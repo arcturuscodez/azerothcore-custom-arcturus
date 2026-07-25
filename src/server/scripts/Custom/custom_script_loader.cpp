@@ -17,10 +17,13 @@
 
 // This is where scripts' loading functions should be declared:
 // void MyExampleScript()
+void AddSC_warlock_demonic_empowerment();
+void AddSC_demons_commandscript();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
 void AddCustomScripts()
 {
-    // MyExampleScript()
+    AddSC_warlock_demonic_empowerment();
+    AddSC_demons_commandscript();
 }

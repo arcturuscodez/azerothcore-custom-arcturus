@@ -1184,6 +1184,38 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             AddAura(SPELL_MAGE_PET_SCALING_04, this);
                             break;
                         }
+                    // Custom: Doomguard & Infernal are now permanent Pets (see SpellInfoCorrections for spells 1122/18540).
+                    // Mirrors their previous guardian-branch scaling so the pet retains proper stats/weapon damage.
+                    case NPC_INFERNAL:
+                        {
+                            if (pInfo)
+                            {
+                                SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(pInfo->min_dmg));
+                                SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(pInfo->max_dmg));
+                            }
+                            AddAura(SPELL_PET_AVOIDANCE, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_05, this);
+                            AddAura(SPELL_INFERNAL_SCALING_01, this);
+                            AddAura(SPELL_INFERNAL_SCALING_02, this);
+                            AddAura(SPELL_INFERNAL_SCALING_03, this);
+                            AddAura(SPELL_INFERNAL_SCALING_04, this);
+                            break;
+                        }
+                    case NPC_DOOMGUARD:
+                        {
+                            float highAmt = petlevel / 11.0f;
+                            float lowAmt = petlevel / 12.0f;
+                            SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, lowAmt * lowAmt * lowAmt);
+                            SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, highAmt * highAmt * highAmt);
+
+                            AddAura(SPELL_PET_AVOIDANCE, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_01, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_02, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_03, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_04, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_05, this);
+                            break;
+                        }
                 }
                 break;
             }

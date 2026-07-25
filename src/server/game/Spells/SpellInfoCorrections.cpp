@@ -1051,6 +1051,79 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_CHARM;
     });
 
+    // Custom: promote Inferno to a permanent pet summon (mirrors Summon Water Elemental permanent, spell 70908).
+    // Inferno's Effect_0 is already SPELL_EFFECT_SUMMON with MiscValue = NPC_INFERNAL (89); we swap the summon
+    // type to SUMMON_PET and null the duration so Pet::LoadPetFromDB accepts it on relog.
+    // DISMISS_PET_FIRST is required for SPELL_EFFECT_SUMMON_PET spells: without it Spell::CheckCast fails with
+    // SPELL_FAILED_ALREADY_HAVE_SUMMON while another demon is out (EffectSummonPet stables the old pet itself).
+    ApplySpellFix({ 1122 }, [](SpellInfo* spellInfo)
+    {
+        for (uint8 i = EFFECT_0; i < MAX_SPELL_EFFECTS; ++i)
+        {
+            SpellEffectInfo& eff = spellInfo->Effects[i];
+            if (eff.Effect == SPELL_EFFECT_SUMMON && eff.MiscValue == 89 /*NPC_INFERNAL*/)
+            {
+                eff.Effect = SPELL_EFFECT_SUMMON_PET;
+                eff.MiscValueB = 0;
+            }
+        }
+        spellInfo->AttributesEx |= SPELL_ATTR1_DISMISS_PET_FIRST;
+        spellInfo->DurationEntry = nullptr;
+    });
+
+    // Custom: turn Ritual of Doom (18540) into a solo, instant Summon Doomguard.
+    // Vanilla 18540 is a channeled group ritual: it spawns a Doom Portal gameobject that requires
+    // 5 warlocks channeling, consumes a Demonic Figurine, and has a 30-minute cooldown. Effect_0 is
+    // SPELL_EFFECT_TRANS_DOOR (spawns the GO 177193), not a direct summon — which is why the old
+    // conditional-only fix silently did nothing. Here we rewire the spell entirely:
+    //   * Effect_0 → SPELL_EFFECT_SUMMON_PET on NPC_DOOMGUARD (11859)
+    //   * Instant cast, no channel
+    //   * No reagent, no cooldown
+    //   * Permanent-pet duration (nulled) so LoadPetFromDB accepts it
+    // Remaining effects (sacrificing a group member, GO portals) are wiped so nothing else fires.
+    ApplySpellFix({ 18540 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].Effect      = SPELL_EFFECT_SUMMON_PET;
+        spellInfo->Effects[EFFECT_0].MiscValue   = 11859; // NPC_DOOMGUARD
+        spellInfo->Effects[EFFECT_0].MiscValueB  = 0;
+
+        for (uint8 i = EFFECT_1; i < MAX_SPELL_EFFECTS; ++i)
+            spellInfo->Effects[i].Effect = SPELL_EFFECT_NONE;
+
+        spellInfo->CastTimeEntry        = sSpellCastTimesStore.LookupEntry(1); // instant
+        spellInfo->AttributesEx        &= ~SPELL_ATTR1_IS_CHANNELED;
+        spellInfo->AttributesEx        &= ~SPELL_ATTR1_IS_SELF_CHANNELED;
+        spellInfo->AttributesEx        |= SPELL_ATTR1_DISMISS_PET_FIRST; // let CheckCast pass while another demon is out
+        spellInfo->RecoveryTime         = 0;
+        spellInfo->CategoryRecoveryTime = 0;
+        spellInfo->DurationEntry        = nullptr;
+
+        for (uint8 i = 0; i < MAX_SPELL_REAGENTS; ++i)
+        {
+            spellInfo->Reagent[i]      = 0;
+            spellInfo->ReagentCount[i] = 0;
+        }
+    });
+
+    // Custom: repurpose Fel Domination (18708) as the persistent "Demonic Empowerment" visual aura.
+    // We display kill count via aura stack (capped at 255 by the WoW client) and let the fel-domination
+    // instant-summon side effect ride along as a "solo leveling" QOL bonus for the warlock.
+    //   * StackAmount = 255 so the client renders stack numbers. Spell-mod amounts scale with stacks
+    //     (cast time / mana cost of summons), but both clamp at 0 in CalcCastTime / CalcPowerCost.
+    //   * ProcCharges = 0 so the aura is not consumed by casting a demon summon
+    //   * Infinite duration (index 21 = -1) so even a manual Fel Domination cast can't shorten the
+    //     aura to its old 15s and let it expire
+    //   * ALLOW_AURA_WHILE_DEAD so the buff survives player death instead of silently vanishing
+    //   * NO_AURA_CANCEL so players can't right-click it off by mistake
+    ApplySpellFix({ 18708 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->StackAmount    = 255;
+        spellInfo->ProcCharges    = 0;
+        spellInfo->DurationEntry  = sSpellDurationStore.LookupEntry(21); // -1 (infinite)
+        spellInfo->Attributes    |= SPELL_ATTR0_NO_AURA_CANCEL;
+        spellInfo->AttributesEx3 |= SPELL_ATTR3_ALLOW_AURA_WHILE_DEAD;
+    });
+
     // Combustion, make this passive
     ApplySpellFix({ 11129 }, [](SpellInfo* spellInfo)
     {

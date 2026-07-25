@@ -1759,19 +1759,9 @@ class spell_gen_pet_summoned : public SpellScript
         {
             PetType newPetType = (player->IsClass(CLASS_HUNTER, CLASS_CONTEXT_PET)) ? HUNTER_PET : SUMMON_PET;
             Pet* newPet = new Pet(player, newPetType);
-            if (newPet->LoadPetFromDB(player, 0, player->GetLastPetNumber(), true, 100, true))
-            {
-                switch (newPet->GetEntry())
-                {
-                    case NPC_DOOMGUARD:
-                    case NPC_INFERNAL:
-                        newPet->SetEntry(NPC_IMP);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else
+            // Doomguard / Infernal used to be forced back to Imp here; the custom permanent-demon path
+            // in SpellInfoCorrections lets them re-summon like felguard, so the fallback is unnecessary.
+            if (!newPet->LoadPetFromDB(player, 0, player->GetLastPetNumber(), true, 100, true))
                 delete newPet;
         }
     }

@@ -122,3 +122,8 @@ __pycache__/
 # ==================
 .cache
 compile_commands.json
+
+# Custom scripts we do want to track in this fork
+!/src/server/scripts/Custom/warlock_demonic_empowerment.cpp
+!/src/server/scripts/Custom/warlock_demonic_empowerment.h
+!/src/server/scripts/Custom/cs_demons.cpp
