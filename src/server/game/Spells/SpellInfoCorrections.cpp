@@ -1088,7 +1088,7 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Effects[EFFECT_0].MiscValueB  = 0;
 
         for (uint8 i = EFFECT_1; i < MAX_SPELL_EFFECTS; ++i)
-            spellInfo->Effects[i].Effect = SPELL_EFFECT_NONE;
+            spellInfo->Effects[i].Effect = 0;
 
         spellInfo->CastTimeEntry        = sSpellCastTimesStore.LookupEntry(1); // instant
         spellInfo->AttributesEx        &= ~SPELL_ATTR1_IS_CHANNELED;
