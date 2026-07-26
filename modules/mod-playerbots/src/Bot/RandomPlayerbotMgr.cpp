@@ -740,7 +740,8 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 GetEventValue(charInfo.guid, "logout") ||
                 GetPlayerBot(charInfo.guid) ||
                 std::find(currentBots.begin(), currentBots.end(), charInfo.guid) != currentBots.end() ||
-                (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT))
+                (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT) ||
+                (sPlayerbotAIConfig.disableWarlockLogin && charInfo.rClass == CLASS_WARLOCK))
             {
                 return false;
             }

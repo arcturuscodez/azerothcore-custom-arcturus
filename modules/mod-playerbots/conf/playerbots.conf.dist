@@ -733,6 +733,11 @@ AiPlayerbot.RandomBotHordeRatio = 50
 # Disable logging in of death knight bots
 AiPlayerbot.DisableDeathKnightLogin = 0
 
+# Disable logging in of warlock bots
+# (custom for this fork: keeps the player the realm's only warlock, so the
+# Demonic Empowerment / legendary systems stay exclusive)
+AiPlayerbot.DisableWarlockLogin = 1
+
 # Enable simulated expansion limitation for talents and glyphs
 # If enabled, limits talent trees to 6 rows plus the middle talent of the 7th row for bots until level 61
 # and 8 rows plus the middle talent of the 9th row for bots from level 61 until level 71
