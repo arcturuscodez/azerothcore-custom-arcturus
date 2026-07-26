@@ -79,7 +79,6 @@ WHERE `Quality` = 5
 REPLACE INTO `item_template`
     (`entry`, `class`, `subclass`, `name`, `displayid`, `Quality`, `Flags`, `BuyPrice`, `SellPrice`,
      `InventoryType`, `AllowableClass`, `AllowableRace`, `ItemLevel`, `RequiredLevel`, `maxcount`, `stackable`,
-     `StatsCount`,
      `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`,
      `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`,
      `dmg_min1`, `dmg_max1`, `dmg_type1`, `delay`,
@@ -90,7 +89,6 @@ VALUES
     -- 900001  Ring of Malchezaar's Passage — cross-class Blink (mage 1953). Finger, cloth ring.
     (900001, 4, 0, 'Ring of Malchezaar''s Passage', 63481, 5, 524288, 0, 250000,
      11, 256, -1, 264, 80, 1, 1,
-     4,
      5, 45, 7, 65, 45, 105, 36, 42, 0, 0,
      0, 0, 0, 0,
      1953, 0, 30000, 0, 0,
@@ -100,7 +98,6 @@ VALUES
     -- 900002  Signet of the Feltouched — passive doubles Demonic Empowerment gains.
     (900002, 4, 0, 'Signet of the Feltouched', 47733, 5, 524288, 0, 250000,
      11, 256, -1, 264, 80, 1, 1,
-     4,
      7, 55, 45, 125, 32, 48, 31, 48, 0, 0,
      0, 0, 0, 0,
      0, 0, 0, 0, 0,
@@ -110,7 +107,6 @@ VALUES
     -- 900003  Ring of the Voidsworn — passive: your active demon gains +250 stamina.
     (900003, 4, 0, 'Ring of the Voidsworn', 39159, 5, 524288, 0, 250000,
      11, 256, -1, 264, 80, 1, 1,
-     4,
      7, 78, 5, 55, 45, 95, 31, 40, 0, 0,
      0, 0, 0, 0,
      0, 0, 0, 0, 0,
@@ -120,7 +116,6 @@ VALUES
     -- 900004  Frostmourne, Shard of the Damned — cross-class Anti-Magic Shell (DK 48707). Trinket.
     (900004, 4, 0, 'Frostmourne, Shard of the Damned', 51763, 5, 524288, 0, 250000,
      12, 256, -1, 284, 80, 1, 1,
-     2,
      45, 155, 7, 80, 0, 0, 0, 0, 0, 0,
      0, 0, 0, 0,
      48707, 0, 120000, 1141, 30000,
@@ -130,7 +125,6 @@ VALUES
     -- 900005  Kel'Thuzad's Broken Phylactery — cross-class Dispersion (Shadow Priest 47585). Trinket.
     (900005, 4, 0, 'Kel''Thuzad''s Broken Phylactery', 42499, 5, 524288, 0, 250000,
      12, 256, -1, 284, 80, 1, 1,
-     3,
      45, 100, 7, 60, 36, 55, 0, 0, 0, 0,
      0, 0, 0, 0,
      47585, 0, 180000, 1141, 30000,
@@ -141,7 +135,6 @@ VALUES
     -- Client-facing use spell: 18708 Fel Domination (instant self, no reagent/target).
     (900006, 4, 0, 'Voidcaller''s Sigil', 22206, 5, 524288, 0, 250000,
      12, 256, -1, 284, 80, 1, 1,
-     2,
      45, 135, 7, 65, 0, 0, 0, 0, 0, 0,
      0, 0, 0, 0,
      18708, 0, 180000, 0, 0,
@@ -152,7 +145,6 @@ VALUES
     -- Client-facing use spell: 47193 Demonic Empowerment (targets the summoned demon).
     (900007, 4, 0, 'Heart of Kanrethad', 39336, 5, 524288, 0, 250000,
      12, 256, -1, 284, 80, 1, 1,
-     2,
      45, 135, 7, 80, 0, 0, 0, 0, 0, 0,
      0, 0, 0, 0,
      47193, 0, 120000, 0, 0,
@@ -163,7 +155,6 @@ VALUES
     -- Client-facing use spell: 1122 Inferno (ground-targeted, no reagent) — aim the summon.
     (900008, 2, 10, 'Doomstaff of Ner''zhul', 48963, 5, 524288, 0, 500000,
      17, 256, -1, 284, 80, 1, 1,
-     4,
      5, 105, 7, 155, 45, 205, 31, 78, 0, 0,
      220, 330, 6, 3200,
      1122, 0, 300000, 0, 0,
@@ -173,7 +164,6 @@ VALUES
     -- 900009  Sacrophile, Blade of the Damned — dagger. Chance on melee hit: Corruption (27216).
     (900009, 2, 15, 'Sacrophile, Blade of the Damned', 39710, 5, 524288, 0, 250000,
      13, 256, -1, 264, 80, 1, 1,
-     4,
      5, 65, 45, 85, 32, 72, 36, 42, 0, 0,
      95, 175, 6, 1600,
      0, 0, 0, 0, 0,
@@ -183,7 +173,6 @@ VALUES
     -- 900010  Fel-Iron Skewer — 1H sword. Chance on melee hit: Corruption (27216).
     (900010, 2, 7, 'Fel-Iron Skewer', 40908, 5, 524288, 0, 250000,
      13, 256, -1, 264, 80, 1, 1,
-     4,
      5, 65, 45, 65, 36, 42, 31, 32, 0, 0,
      115, 200, 6, 2000,
      0, 0, 0, 0, 0,
@@ -193,7 +182,6 @@ VALUES
     -- 900011  Mannoroth's Femur — 1H mace. Chance on melee hit: Shadow Nova AoE (42223).
     (900011, 2, 4, 'Mannoroth''s Femur', 45087, 5, 524288, 0, 300000,
      13, 256, -1, 264, 80, 1, 1,
-     4,
      4, 55, 7, 65, 45, 105, 32, 55, 0, 0,
      140, 220, 6, 2300,
      0, 0, 0, 0, 0,
@@ -203,7 +191,6 @@ VALUES
     -- 900012  Void-Grip of Kil'jaeden — off-hand orb. Cross-class Death Grip (DK 49576).
     (900012, 4, 0, 'Void-Grip of Kil''jaeden', 40592, 5, 524288, 0, 250000,
      23, 256, -1, 264, 80, 1, 1,
-     4,
      45, 105, 5, 55, 7, 45, 31, 42, 0, 0,
      0, 0, 0, 0,
      49576, 0, 60000, 0, 0,
@@ -213,7 +200,6 @@ VALUES
     -- 900013  Mirror of the Twin Emperors — off-hand book. Cross-class Mirror Image (mage 55342).
     (900013, 4, 0, 'Mirror of the Twin Emperors', 33839, 5, 524288, 0, 250000,
      23, 256, -1, 264, 80, 1, 1,
-     4,
      45, 85, 5, 55, 7, 45, 32, 42, 0, 0,
      0, 0, 0, 0,
      55342, 0, 300000, 0, 0,
@@ -224,7 +210,6 @@ VALUES
     -- soul on every qualifying kill (2 total; stacks with Signet of the Feltouched for 3).
     (900014, 2, 19, 'Fel Splinter', 30935, 5, 524288, 0, 250000,
      26, 256, -1, 264, 80, 1, 1,
-     3,
      45, 75, 5, 42, 7, 32, 0, 0, 0, 0,
      205, 305, 6, 1800,
      0, 0, 0, 0, 0,
@@ -234,7 +219,6 @@ VALUES
     -- 900015  Kanrethad's Reach — wand. Chance on wand hit: Immolate (27215).
     (900015, 2, 19, 'Kanrethad''s Reach', 31007, 5, 524288, 0, 250000,
      26, 256, -1, 264, 80, 1, 1,
-     4,
      45, 85, 5, 42, 32, 32, 36, 32, 0, 0,
      250, 355, 6, 1800,
      0, 0, 0, 0, 0,
