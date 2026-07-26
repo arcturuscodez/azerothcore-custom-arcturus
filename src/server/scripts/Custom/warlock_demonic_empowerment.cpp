@@ -11,10 +11,11 @@
  *  - When a demon is killed by an enemy in combat, 5% of the accumulated kills is refunded
  *    to the void (min 1). Dismissing, sacrificing, or unsummoning is not a "combat death"
  *    and carries no penalty.
- *  - The warlock always sees a visible buff icon (Fel Domination, spell 18708, repurposed
- *    in SpellInfoCorrections). Stack count = min(kills, 255). Side effect: since 18708
- *    grants instant demon summons, the warlock keeps a permanent instant-summon bonus —
- *    which is exactly the "solo leveling" flavor we're going for.
+ *  - The warlock always sees a visible "Demonic Empowerment" buff (custom spell 900000,
+ *    defined in the world DB spell_dbc table; icon/name/tooltip come from the client
+ *    patch built by client-patches/build_spell_patch.py). Stack count = min(kills, 255),
+ *    no visual on the character. Without the client patch the buff still exists but the
+ *    client renders it without icon/tooltip.
  *  - Every qualifying kill also restores 5% of the summoned demon's max HP (configurable).
  *  - Crossing a rank threshold (Apprentice → Warlock → Feltouched → …) fires a milestone
  *    chat announcement.
@@ -43,6 +44,7 @@
 #include "StringFormat.h"
 #include "UnitScript.h"
 #include "WorldSession.h"
+#include "warlock_legendaries.h"
 
 #include <algorithm>
 #include <cmath>
@@ -91,15 +93,15 @@ namespace WarlockEmpowerment
 
         if (!kills)
         {
-            player->RemoveAurasDueToSpell(SPELL_FEL_DOMINATION_AURA);
+            player->RemoveAurasDueToSpell(SPELL_DEMONIC_EMPOWERMENT_AURA);
             return;
         }
 
-        Aura* aura = player->GetAura(SPELL_FEL_DOMINATION_AURA);
+        Aura* aura = player->GetAura(SPELL_DEMONIC_EMPOWERMENT_AURA);
         if (!aura)
-            aura = player->AddAura(SPELL_FEL_DOMINATION_AURA, player);
+            aura = player->AddAura(SPELL_DEMONIC_EMPOWERMENT_AURA, player);
         if (!aura)
-            return;
+            return; // spell_dbc row not applied yet — bonuses still work, only the buff is missing
 
         // Stack count is uint8 on the wire; cap at 255. The `.demons` command shows the
         // real total, so the visual cap is only cosmetic once a warlock crosses 255 kills.
@@ -325,10 +327,14 @@ public:
         if (!IsWarlock(player))
             return;
 
+        // Migration: older builds used a repurposed Fel Domination (18708) as the
+        // empowerment buff. Its override is gone, so strip any stale saved aura.
+        player->RemoveAurasDueToSpell(SPELL_FEL_DOMINATION_LEGACY);
+
         if (!IsEnabled())
         {
             // The aura persists in character_aura; clean it up if the feature was turned off.
-            player->RemoveAurasDueToSpell(SPELL_FEL_DOMINATION_AURA);
+            player->RemoveAurasDueToSpell(SPELL_DEMONIC_EMPOWERMENT_AURA);
             return;
         }
 
@@ -364,15 +370,23 @@ public:
         if (!IsEnabled() || !IsWarlock(player) || !IsQualifyingKill(player, rewarder))
             return;
 
+        // Legendary bonuses. Signet of the Feltouched and Fel Splinter each grant
+        // +1 additional soul per qualifying kill; equipping both stacks to +3/kill.
+        uint32 killDelta = 1u;
+        if (player->HasItemOrGemWithIdEquipped(WarlockLegendaries::ITEM_SIGNET_OF_THE_FELTOUCHED, 1))
+            killDelta += 1u;
+        if (player->HasItemOrGemWithIdEquipped(WarlockLegendaries::ITEM_FEL_SPLINTER, 1))
+            killDelta += 1u;
+
         uint32 before = sWarlockEmpower->GetKills(player->GetGUID());
-        uint32 total  = sWarlockEmpower->Add(player->GetGUID(), 1);
+        uint32 total  = sWarlockEmpower->Add(player->GetGUID(), killDelta);
         if (!total)
             return; // counter not loaded (feature was disabled at this character's login)
 
         if (Pet* pet = player->GetPet())
         {
-            ApplyKillBonus(pet, 1, true);
-            ++pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY)->applied;
+            ApplyKillBonus(pet, killDelta, true);
+            pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY)->applied += killDelta;
         }
 
         HealSummonedDemon(player);
@@ -385,7 +399,7 @@ public:
                     "|cff9370dbDemonic Empowerment:|r {} souls harvested.", total));
 
         // Save every 25 kills so a crash never eats more than a handful.
-        if ((total % 25u) == 0u)
+        if ((total / 25u) != (before / 25u))
             sWarlockEmpower->FlushIfDirty(player->GetGUID());
     }
 

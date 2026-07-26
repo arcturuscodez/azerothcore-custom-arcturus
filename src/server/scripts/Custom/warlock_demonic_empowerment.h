@@ -37,8 +37,14 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_ANNOUNCE_KILLS    = "WarlockDemonicEmpowerment.AnnounceEveryNKills";
     constexpr char const* CONFIG_PET_HEAL_PCT      = "WarlockDemonicEmpowerment.PetHealOnKillPct";
 
-    // Reused spell IDs.
-    constexpr uint32 SPELL_FEL_DOMINATION_AURA = 18708; // repurposed as the visible "empowerment" aura
+    // Custom buff spell (defined in the world DB `spell_dbc` table; client patch
+    // for icon/name/tooltip built by client-patches/build_spell_patch.py).
+    // No character visual, infinite duration, stacks = harvested souls.
+    constexpr uint32 SPELL_DEMONIC_EMPOWERMENT_AURA = 900000;
+
+    // Legacy: Fel Domination (18708) was previously repurposed as the visible
+    // empowerment aura. Kept only so login can clean up auras saved by older builds.
+    constexpr uint32 SPELL_FEL_DOMINATION_LEGACY = 18708;
 
     // Rank tier used for chat titles and milestone announcements. Kept as a fixed
     // ladder — every "next rank" carries a nice chunky number so the tiers stay

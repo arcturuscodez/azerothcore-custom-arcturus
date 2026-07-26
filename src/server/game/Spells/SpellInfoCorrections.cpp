@@ -1105,25 +1105,6 @@ void SpellMgr::LoadSpellInfoCorrections()
         }
     });
 
-    // Custom: repurpose Fel Domination (18708) as the persistent "Demonic Empowerment" visual aura.
-    // We display kill count via aura stack (capped at 255 by the WoW client) and let the fel-domination
-    // instant-summon side effect ride along as a "solo leveling" QOL bonus for the warlock.
-    //   * StackAmount = 255 so the client renders stack numbers. Spell-mod amounts scale with stacks
-    //     (cast time / mana cost of summons), but both clamp at 0 in CalcCastTime / CalcPowerCost.
-    //   * ProcCharges = 0 so the aura is not consumed by casting a demon summon
-    //   * Infinite duration (index 21 = -1) so even a manual Fel Domination cast can't shorten the
-    //     aura to its old 15s and let it expire
-    //   * ALLOW_AURA_WHILE_DEAD so the buff survives player death instead of silently vanishing
-    //   * NO_AURA_CANCEL so players can't right-click it off by mistake
-    ApplySpellFix({ 18708 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->StackAmount    = 255;
-        spellInfo->ProcCharges    = 0;
-        spellInfo->DurationEntry  = sSpellDurationStore.LookupEntry(21); // -1 (infinite)
-        spellInfo->Attributes    |= SPELL_ATTR0_NO_AURA_CANCEL;
-        spellInfo->AttributesEx3 |= SPELL_ATTR3_ALLOW_AURA_WHILE_DEAD;
-    });
-
     // Combustion, make this passive
     ApplySpellFix({ 11129 }, [](SpellInfo* spellInfo)
     {
