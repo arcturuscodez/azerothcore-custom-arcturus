@@ -19,6 +19,19 @@ Updates.EnableDatabases = 7
 EndlessInstances.Enable = 1
 WarlockDemonicEmpowerment.Enable = 1
 
+# Warlock legendary mail drops + Cinderfury / Voidsworn / Feltouched script kit
+# (src/server/scripts/Custom/warlock_legendaries.cpp). Default in code is 1 if unset;
+# set explicitly to silence missing-option spam and make intent clear on development/live.
+WarlockLegendary.Enable = 1
+# WarlockLegendary.DropChancePercent = 0.5
+# WarlockLegendary.MinCreatureLevel = 1
+# WarlockLegendary.MinCreatureRank = 1
+# WarlockLegendary.VoidswornStaminaBonus = 20
+# WarlockLegendary.MailSenderEntry = 16128
+
+# Expansion scripted items 900018+ (src/server/scripts/Custom/warlock_special_items.*)
+WarlockSpecialItems.Enable = 1
+
 ####################################################################################################
 # AutoBalance.conf  (modules/mod-autobalance/conf/)
 ####################################################################################################
