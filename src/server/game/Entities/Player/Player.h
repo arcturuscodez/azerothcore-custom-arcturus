@@ -1750,6 +1750,7 @@ public:
     [[nodiscard]] bool HasTalent(uint32 spell_id, uint8 spec) const;
 
     [[nodiscard]] uint32 CalculateTalentsPoints() const;
+    [[nodiscard]] uint32 GetUsedTalentCount() const { return m_usedTalentCount; }
     void SetBonusTalentCount(uint32 count) { m_extraBonusTalentCount = count; };
     uint32 GetBonusTalentCount() { return m_extraBonusTalentCount; };
     void AddBonusTalent(uint32 count) { m_extraBonusTalentCount += count; };

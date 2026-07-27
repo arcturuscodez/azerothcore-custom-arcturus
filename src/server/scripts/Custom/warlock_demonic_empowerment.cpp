@@ -493,7 +493,7 @@ namespace
         player->SetBonusTalentCount(want);
 
         uint32 talentPointsForLevel = player->CalculateTalentsPoints();
-        if (player->m_usedTalentCount > talentPointsForLevel)
+        if (player->GetUsedTalentCount() > talentPointsForLevel)
         {
             // Still over budget after a mid-session config cut: park free points at
             // zero rather than wiping the tree. Next login with Enable=0 also skips.
