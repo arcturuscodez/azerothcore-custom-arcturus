@@ -253,6 +253,12 @@ namespace WarlockEmpowerment
         return it != _souls.end() ? it->second : Souls{};
     }
 
+    bool Mgr::IsLoaded(ObjectGuid guid) const
+    {
+        std::shared_lock<std::shared_mutex> lock(_mutex);
+        return _souls.find(guid.GetCounter()) != _souls.end();
+    }
+
     Souls Mgr::Add(ObjectGuid guid, uint32 delta)
     {
         std::unique_lock<std::shared_mutex> lock(_mutex);
@@ -577,6 +583,21 @@ public:
         SyncGifts(player, souls.lifetime, false);
         SyncTalentPoints(player, souls.lifetime);
 
+        // LoadPet() runs before OnPlayerLogin, so OnPlayerAfterGuardianInitStatsForLevel
+        // saw unloaded counters and skipped the flat soul mods (Spell Bonus still works
+        // because PetSoulSpellPowerBonus reads the Mgr live). Re-sync now.
+        if (Pet* pet = player->GetPet())
+        {
+            auto* state = pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
+            if (state->applied != souls.current)
+            {
+                if (state->applied)
+                    ApplyKillBonus(pet, state->applied, false);
+                ApplyKillBonus(pet, souls.current, true);
+                state->applied = souls.current;
+            }
+        }
+
         RankTier const& tier = RANKS[RankIndexFor(souls.lifetime)];
         if (souls.lifetime)
         {
@@ -672,6 +693,11 @@ public:
     void OnPlayerAfterGuardianInitStatsForLevel(Player* player, Guardian* guardian) override
     {
         if (!IsEnabled() || !IsWarlock(player) || !guardian || !guardian->IsPet())
+            return;
+
+        // Character load calls LoadPet() before OnPlayerLogin / LoadFromDB. Do not
+        // treat missing counters as "0 souls already applied" — login will sync.
+        if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
             return;
 
         // Flat TOTAL_VALUE mods survive Guardian::InitStatsForLevel (it only rewrites

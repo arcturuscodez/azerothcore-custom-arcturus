@@ -220,6 +220,11 @@ namespace WarlockEmpowerment
         void FlushAndForget(ObjectGuid guid);
         void FlushIfDirty(ObjectGuid guid);
 
+        // True after LoadFromDB for this guid (even if all counters are zero).
+        // Pet init runs before OnPlayerLogin — use this to avoid treating
+        // "not loaded yet" as "zero souls, already synced".
+        bool IsLoaded(ObjectGuid guid) const;
+
     private:
         Mgr() = default;
 

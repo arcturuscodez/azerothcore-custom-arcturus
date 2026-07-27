@@ -107,6 +107,13 @@ class EmpowermentInvariants(unittest.TestCase):
         """GATE-EMP-007: Level-up path skips strip/reapply when applied == current."""
         self.assertIn("if (state->applied == current)", self.cpp)
         self.assertIn("guardian->IsPet()", self.cpp)
+        self.assertIn("IsLoaded(player->GetGUID())", self.cpp)
+
+    def test_GATE_EMP_011_login_resyncs_pet_after_load(self):
+        """GATE-EMP-011: OnPlayerLogin re-applies soul mods after LoadFromDB (LoadPet races)."""
+        self.assertIn("bool IsLoaded(ObjectGuid guid) const", self.h)
+        self.assertIn("LoadPet() runs before OnPlayerLogin", self.cpp)
+        self.assertIn("ApplyKillBonus(pet, souls.current, true)", self.cpp)
 
     def test_GATE_EMP_008_hp_preserve_on_stamina_apply(self):
         """GATE-EMP-008: ApplyKillBonus preserves HP% and skips SetHealth on dead pets."""

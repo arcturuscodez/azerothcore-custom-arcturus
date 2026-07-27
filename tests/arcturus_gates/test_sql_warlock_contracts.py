@@ -22,15 +22,15 @@ class SqlWarlockContracts(unittest.TestCase):
         )
 
     def test_GATE_SQL_001_femur_shadow_nova_fix(self):
-        """GATE-SQL-001: 900011 spellid_1 fixed from 42223 to 32711."""
-        self.assertIn("`spellid_1` = 32711", self.fix)
+        """GATE-SQL-001: 900011 Shadow Nova 32711 on spellid_2 (proc slot)."""
+        self.assertIn("`spellid_2` = 32711", self.fix)
         self.assertIn("`entry` = 900011", self.fix)
         self.assertIn("42223", self.fix)
 
     def test_GATE_SQL_002_kanrethad_immolate_fix(self):
-        """GATE-SQL-002: 900015 Immolate updated to 47811."""
+        """GATE-SQL-002: 900015 Immolate 47811 on spellid_2 (proc slot)."""
         self.assertIn("`entry` = 900015", self.fix)
-        self.assertIn("`spellid_1` = 47811", self.fix)
+        self.assertIn("`spellid_2` = 47811", self.fix)
         self.assertIn("27215", self.fix)
 
     def test_GATE_SQL_003_use_decoy_fel_domination(self):
@@ -61,6 +61,16 @@ class SqlWarlockContracts(unittest.TestCase):
         path = PENDING_WORLD / "rev_1785974400000000000.sql"
         self.assertTrue(path.is_file())
         self.assertIn("Warlock custom stability follow-up", self.fix)
+
+    def test_GATE_SQL_007_spellid2_followup_pending(self):
+        """GATE-SQL-007: Follow-up pending SQL retargets Femur/Kanrethad spellid_2."""
+        path = PENDING_WORLD / "rev_1786060800000000000.sql"
+        self.assertTrue(path.is_file(), msg="missing spellid_2 follow-up pending SQL")
+        text = read_text(path)
+        self.assertIn("`spellid_2` = 32711", text)
+        self.assertIn("`entry` = 900011", text)
+        self.assertIn("`spellid_2` = 47811", text)
+        self.assertIn("`entry` = 900015", text)
 
 
 if __name__ == "__main__":

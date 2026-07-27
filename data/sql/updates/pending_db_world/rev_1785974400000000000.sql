@@ -13,9 +13,19 @@
 -- ---------------------------------------------------------------------------
 -- Spell ID fixes
 -- ---------------------------------------------------------------------------
+-- Femur / Kanrethad procs live on spellid_2 (see INSERT in rev_178528...).
+-- Also clear spellid_1 if a bad value was written there.
+UPDATE `item_template` SET
+    `spellid_2` = 32711
+WHERE `entry` = 900011 AND `spellid_2` = 42223;
+
 UPDATE `item_template` SET
     `spellid_1` = 32711
 WHERE `entry` = 900011 AND `spellid_1` = 42223;
+
+UPDATE `item_template` SET
+    `spellid_2` = 47811
+WHERE `entry` = 900015 AND `spellid_2` = 27215;
 
 UPDATE `item_template` SET
     `spellid_1` = 47811
