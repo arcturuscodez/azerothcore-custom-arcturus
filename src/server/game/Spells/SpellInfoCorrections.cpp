@@ -1056,6 +1056,7 @@ void SpellMgr::LoadSpellInfoCorrections()
     // type to SUMMON_PET and null the duration so Pet::LoadPetFromDB accepts it on relog.
     // DISMISS_PET_FIRST is required for SPELL_EFFECT_SUMMON_PET spells: without it Spell::CheckCast fails with
     // SPELL_FAILED_ALREADY_HAVE_SUMMON while another demon is out (EffectSummonPet stables the old pet itself).
+    // Infernal Stone reagent (DBC) is kept — casting still consumes one.
     ApplySpellFix({ 1122 }, [](SpellInfo* spellInfo)
     {
         for (uint8 i = EFFECT_0; i < MAX_SPELL_EFFECTS; ++i)
@@ -1077,8 +1078,8 @@ void SpellMgr::LoadSpellInfoCorrections()
     // SPELL_EFFECT_TRANS_DOOR (spawns the GO 177193), not a direct summon — which is why the old
     // conditional-only fix silently did nothing. Here we rewire the spell entirely:
     //   * Effect_0 → SPELL_EFFECT_SUMMON_PET on NPC_DOOMGUARD (11859)
-    //   * Instant cast, no channel
-    //   * No reagent, no cooldown
+    //   * Instant cast, no channel / no cooldown
+    //   * Demonic Figurine reagent kept from DBC
     //   * Permanent-pet duration (nulled) so LoadPetFromDB accepts it
     // Remaining effects (sacrificing a group member, GO portals) are wiped so nothing else fires.
     ApplySpellFix({ 18540 }, [](SpellInfo* spellInfo)
@@ -1097,12 +1098,6 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->RecoveryTime         = 0;
         spellInfo->CategoryRecoveryTime = 0;
         spellInfo->DurationEntry        = nullptr;
-
-        for (uint8 i = 0; i < MAX_SPELL_REAGENTS; ++i)
-        {
-            spellInfo->Reagent[i]      = 0;
-            spellInfo->ReagentCount[i] = 0;
-        }
     });
 
     // Custom: Anti-Magic Shell (48707) and Icebound Fortitude (48792) are Gifts of the

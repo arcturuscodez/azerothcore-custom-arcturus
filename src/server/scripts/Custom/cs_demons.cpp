@@ -110,20 +110,21 @@ public:
 
         BonusValues b = LoadedBonus();
         handler->PSendSysMessage(
-            "Demon bonus (current souls): |cff00ffff+{} Sta / +{} Str / +{} Agi / +{} Int / +{} Spi / +{} AP / +{} SP / +{} Armor|r",
+            "Demon bonus (current souls): |cff00ffff+{} Sta / +{} Str / +{} Agi / +{} Int / +{} Spi / +{} AP / +{:.1f} SP / +{} Armor|r",
             uint32(b.stamina * float(souls.current)),
             uint32(b.strength * float(souls.current)),
             uint32(b.agility * float(souls.current)),
             uint32(b.intellect * float(souls.current)),
             uint32(b.spirit * float(souls.current)),
             uint32(b.attackPower * float(souls.current)),
-            uint32(b.spellPower * float(souls.current)),
+            b.spellPower * float(souls.current),
             uint32(b.armor * float(souls.current)));
 
         uint32 tiers = TemperTiersFor(souls.lifetime);
         TemperValues t = LoadedTemper();
-        handler->PSendSysMessage("Soul Tempering ({} tiers): |cff00ffff+{} Sta / +{} Int / +{} Spell Power|r to you",
-            tiers, t.stamina * int32(tiers), t.intellect * int32(tiers), t.spellPower * int32(tiers));
+        handler->PSendSysMessage("Soul Tempering ({} tiers): |cff00ffff+{} Sta / +{} Int / +{} Spell Power / +{} Mana/5|r to you",
+            tiers, t.stamina * int32(tiers), t.intellect * int32(tiers),
+            t.spellPower * int32(tiers), t.manaPer5 * int32(tiers));
 
         handler->PSendSysMessage("Perks: |cff00ff00+{}%|r XP | |cffff4040-{}%|r souls per demon death | "
             "|cff40ff40+{}%|r demon HP per kill | |cffffff00+{}|r bonus soul income",
@@ -186,8 +187,8 @@ public:
 
         int32 interval = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTERVAL, 100);
         TemperValues t = LoadedTemper();
-        handler->PSendSysMessage("Every {} souls tempers you: |cff00ffff+{} Sta / +{} Int / +{} Spell Power|r.",
-            interval, t.stamina, t.intellect, t.spellPower);
+        handler->PSendSysMessage("Every {} souls tempers you: |cff00ffff+{} Sta / +{} Int / +{} Spell Power / +{} Mana/5|r.",
+            interval, t.stamina, t.intellect, t.spellPower, t.manaPer5);
 
         return true;
     }

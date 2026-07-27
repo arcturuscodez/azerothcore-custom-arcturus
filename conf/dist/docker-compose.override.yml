@@ -9,9 +9,8 @@ version: "3.8"
 services:
   ac-worldserver:
     environment:
-      # WarlockLegendary.Enable / WarlockSpecialItems.Enable (Config.cpp AC_ mapping)
+      # WarlockLegendary.Enable (Config.cpp AC_ mapping)
       AC_WARLOCK_LEGENDARY_ENABLE: "1"
-      AC_WARLOCK_SPECIAL_ITEMS_ENABLE: "1"
       # Rate.XP.Kill — creature kill experience
       AC_RATE_XP_KILL: "3"
       # Paragon Anniversary via mod-ale (ALE.* keys; not Eluna)

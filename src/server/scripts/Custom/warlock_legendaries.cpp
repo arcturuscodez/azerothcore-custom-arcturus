@@ -1,30 +1,15 @@
 /*
- * Warlock Legendaries
+ * Warlock Legendaries — Noggenfogger (900016) and Cinderfury (900017) only.
  *
- * Fifteen warlock-only legendaries (entries 900001..900015). SQL defines the items,
- * stats, and simple existing-spell effects (Blink / Anti-Magic Shell / Dispersion /
- * Death Grip / Mirror Image on the cross-class trinkets, Corruption / Immolate /
- * Shadow Nova on the proc weapons). This file wires the four bits SQL can't cover:
+ * SQL defines the items; ScriptMgr owns scripted on-use / equip behaviour.
  *
- *   * Drop pipeline. Any qualifying kill by (or credited to) a warlock rolls once
- *     for a legendary; on success one is minted and delivered by mail from the
- *     "voidcaller" NPC entry — see the "The Void" mail.
- *   * On-use custom effects: Voidcaller's Sigil (full-restore or resummon your last
- *     demon), Heart of Kanrethad (temporary +damage/-mitigation aura on your
- *     demon), Doomstaff of Ner'zhul (temporary Doomguard for 45s).
- *   * Passive equip effect: Ring of the Voidsworn adds flat stamina to the active
- *     demon while equipped, and stays synced across summon / (un)equip.
- *   * The Signet of the Feltouched and Fel Splinter "extra Demonic Empowerment"
- *     hook lives in warlock_demonic_empowerment.cpp so that all Demonic Empowerment
- *     bookkeeping happens in one place — this file only exports the item IDs it
- *     needs (see warlock_legendaries.h).
- *   * Cinderfury, Signet of the Firelord (900017), the Molten Core exclusive
- *     ring: +30% fire damage,
- *     fire spell damage leeches back as health, -20% stamina, Hellfire becomes a
- *     persistent no-self-damage aura, Soul Feast SP stacks on kills near your
- *     Hellfire, Molten Ward emergency fire shield, and the Infernal Detonation
- *     on-use. It does NOT sit in the mail-drop pool — it drops from MC bosses
- *     (see rev_1785542400000000000.sql).
+ *   * Noggenfogger's Magnum Opus: toggle CreatureDisplayInfo 21151 at a
+ *     reduced object scale (default 0.35 — the model is huge at 1.0). Death
+ *     clears the morph; use the trinket again.
+ *   * Cinderfury, Signet of the Firelord: +30% fire damage, fire spell damage
+ *     leeches back as health, -20% stamina, Hellfire becomes a persistent
+ *     no-self-damage aura, Soul Feast SP stacks on kills near Hellfire, Molten
+ *     Ward emergency fire shield, and Infernal Detonation on-use.
  */
 
 #include "warlock_legendaries.h"
@@ -32,26 +17,17 @@
 #include "Chat.h"
 #include "Config.h"
 #include "DataMap.h"
-#include "DatabaseEnv.h"
 #include "Duration.h"
-#include "Formulas.h"
 #include "Item.h"
 #include "ItemScript.h"
-#include "Log.h"
-#include "Mail.h"
 #include "ObjectAccessor.h"
-#include "ObjectMgr.h"
-#include "Pet.h"
 #include "Player.h"
 #include "PlayerScript.h"
-#include "Random.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
 #include "Spell.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
-#include "StringFormat.h"
-#include "TemporarySummon.h"
 #include "Timer.h"
 #include "UnitScript.h"
 #include "WorldSession.h"
@@ -66,43 +42,9 @@ using namespace WarlockLegendaries;
 
 namespace
 {
-    // Full pool of legendaries eligible to drop.
-    constexpr std::array<uint32, 16> LEGENDARY_POOL = {
-        ITEM_RING_MALCHEZAAR_PASSAGE,
-        ITEM_SIGNET_OF_THE_FELTOUCHED,
-        ITEM_RING_OF_THE_VOIDSWORN,
-        ITEM_FROSTMOURNE_SHARD,
-        ITEM_KELTHUZAD_PHYLACTERY,
-        ITEM_VOIDCALLER_SIGIL,
-        ITEM_HEART_OF_KANRETHAD,
-        ITEM_DOOMSTAFF_OF_NER_ZHUL,
-        ITEM_SACROPHILE_BLADE,
-        ITEM_FEL_IRON_SKEWER,
-        ITEM_MANNOROTHS_FEMUR,
-        ITEM_VOID_GRIP_KIL_JAEDEN,
-        ITEM_MIRROR_TWIN_EMPERORS,
-        ITEM_FEL_SPLINTER,
-        ITEM_KANRETHADS_REACH,
-        ITEM_NOGGENFOGGER_MAGNUM_OPUS
-    };
-
-    // Doomguard NPC entry used both by the on-use temporary summon (Doomstaff)
-    // and as the default mail sender ("A Voidcaller's Whisper").
-    // Named DOOMGUARD_ENTRY because PetDefines.h already declares an unscoped
-    // NPC_DOOMGUARD enumerator with the same value, which makes the plain name
-    // ambiguous in this translation unit.
-    constexpr uint32 DOOMGUARD_ENTRY = 11859;
-
-    // Per-item cooldown durations (ms) for our custom on-use items. We track them
-    // via Player CustomData rather than Player::AddSpellCooldown because the items
-    // ship with spellid_1 = 0 (no real Spell.dbc entry to piggy-back on); shoving
-    // a synthetic id into m_spellCooldowns would spam ERROR logs at load time.
-    // CustomData dies with the WorldSession, so cooldowns reset on logout — an
-    // acceptable trade for zero-noise persistence.
-    constexpr uint32 CD_VOIDCALLER_SIGIL_MS      = 180u * 1000u;
-    constexpr uint32 CD_HEART_OF_KANRETHAD_MS    = 120u * 1000u;
-    constexpr uint32 CD_DOOMSTAFF_OF_NER_ZHUL_MS = 300u * 1000u;
-
+    // Per-item cooldown durations (ms) for custom on-use items. Tracked via
+    // Player CustomData rather than Player::AddSpellCooldown because the items
+    // ship with spellid_1 = 0 (no real Spell.dbc entry to piggy-back on).
     class LegendaryCooldowns : public DataMap::Base
     {
     public:
@@ -111,8 +53,6 @@ namespace
 
     constexpr char const* COOLDOWNS_KEY = "WarlockLegendaries.Cooldowns";
 
-    // True if `itemEntry` is still on cooldown for `player`. Called before running
-    // any on-use side effects so a failed on-CD check leaves state untouched.
     bool IsOnLegendaryCooldown(Player* player, uint32 itemEntry)
     {
         auto* cds = player->CustomData.GetDefault<LegendaryCooldowns>(COOLDOWNS_KEY);
@@ -126,19 +66,72 @@ namespace
         cds->readyAtMs[itemEntry] = getMSTime() + durationMs;
     }
 
-    // Existing spell used by the Heart of Kanrethad to "berserk" the demon.
-    // Bestial Wrath (19574) applies a 18s buff to the target pet: +50% damage,
-    // -25% damage taken, CC-immunity. Thematically identical to what we want,
-    // works out-of-the-box for any demon we throw at it, and gives us free
-    // client-side art (the wrath aura visual).
-    constexpr uint32 SPELL_BESTIAL_WRATH_ANALOG = 19574;
+    // CreatureDisplayInfo used by Wrathbone Flayer / Shadowmoon Fallen — looks
+    // right for the Magnum Opus, but native size is enormous; scale it down.
+    constexpr uint32 DISPLAY_NOGGENFOGGER = 21151;
+    constexpr float  NOGGENFOGGER_SCALE_DEFAULT = 0.35f;
 
-    // Temp Doomguard duration for Doomstaff of Ner'zhul.
-    constexpr uint32 DOOMSTAFF_TEMP_DURATION_MS = 45u * 1000u;
+    class NoggenfoggerState : public DataMap::Base
+    {
+    public:
+        bool active = false;
+        float scale = NOGGENFOGGER_SCALE_DEFAULT;
+    };
 
-    // The classic Gadgetzan skeleton morph applied by Noggenfogger Elixir. The
-    // Magnum Opus toggles it with no duration limit (death still removes it).
-    constexpr uint32 SPELL_NOGGENFOGGER_SKELETON = 16591;
+    constexpr char const* NOGGENFOGGER_KEY = "WarlockLegendaries.Noggenfogger";
+
+    NoggenfoggerState* GetNoggenfoggerState(Player* player)
+    {
+        return player->CustomData.GetDefault<NoggenfoggerState>(NOGGENFOGGER_KEY);
+    }
+
+    float GetNoggenfoggerScale()
+    {
+        float scale = sConfigMgr->GetOption<float>(CONFIG_NOGGENFOGGER_SCALE, NOGGENFOGGER_SCALE_DEFAULT);
+        if (scale < 0.1f)
+            scale = 0.1f;
+        if (scale > 2.0f)
+            scale = 2.0f;
+        return scale;
+    }
+
+    void ApplyNoggenfoggerMorph(Player* player)
+    {
+        NoggenfoggerState* state = GetNoggenfoggerState(player);
+        state->active = true;
+        state->scale = GetNoggenfoggerScale();
+        player->SetDisplayId(DISPLAY_NOGGENFOGGER, state->scale);
+    }
+
+    void ClearNoggenfoggerMorph(Player* player)
+    {
+        // Use Get (not GetDefault) so death/update paths never allocate CustomData.
+        NoggenfoggerState* state = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
+        bool ourMorph = (state && state->active) || player->GetDisplayId() == DISPLAY_NOGGENFOGGER;
+        if (!ourMorph)
+            return;
+
+        if (state)
+            state->active = false;
+        player->DeMorph();
+    }
+
+    void MaintainNoggenfoggerMorph(Player* player)
+    {
+        NoggenfoggerState* state = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
+        if (!state || !state->active)
+            return;
+
+        if (player->GetDisplayId() != DISPLAY_NOGGENFOGGER)
+        {
+            // Another transform won; drop our toggle so the next use re-applies.
+            state->active = false;
+            return;
+        }
+
+        if (std::fabs(player->GetObjectScale() - state->scale) > 0.01f)
+            player->SetObjectScale(state->scale);
+    }
 
     // ---- Cinderfury, Signet of the Firelord (900017) ----------------------------
 
@@ -148,29 +141,25 @@ namespace
     constexpr std::array<uint32, 5> HELLFIRE_CHANNEL_IDS = { 1949u, 11683u, 11684u, 27213u, 47823u };
 
     // Top-rank Hellfire channel aura — the copy we pin with infinite duration.
-    // Its periodic effect triggers 47822 (Hellfire Effect) around the player
-    // every second, exactly as if he were channeling, but with no channel lock.
     constexpr uint32 SPELL_HELLFIRE_TOP_RANK = 47823;
 
-    // Top-rank Hellfire Effect — also reused (with overridden base points) as the
-    // Infernal Detonation nova so we get real fire AoE visuals and real spell
-    // damage that feeds the ring's fire leech.
+    // Top-rank Hellfire Effect — reused (with overridden base points) as the
+    // Infernal Detonation nova.
     constexpr uint32 SPELL_HELLFIRE_NOVA = 47822;
 
-    // Molten Armor (rank 3) — visual + flavor while the Molten Ward is up. The
-    // ward's damage reduction and melee scorch are enforced by our own hooks.
+    // Molten Armor (rank 3) — visual + flavor while the Molten Ward is up.
     constexpr uint32 SPELL_MOLTEN_WARD_VISUAL = 43046;
 
-    constexpr int32  CINDERFURY_STAMINA_PCT      = -20;         // total stamina while worn
-    constexpr int32  CINDERFURY_FIRE_AMP_PCT     = 30;          // all fire damage done
-    constexpr int32  DETONATION_HELLFIRE_PCT   = 50;          // extra Hellfire damage while empowered
-    constexpr int32  DETONATION_NOVA_BP        = 2000;        // nova base points (before the +30%)
-    constexpr int32  DETONATION_BURN_PCT       = 20;          // % of current health burned on use
+    constexpr int32  CINDERFURY_STAMINA_PCT    = -20;
+    constexpr int32  CINDERFURY_FIRE_AMP_PCT   = 30;
+    constexpr int32  DETONATION_HELLFIRE_PCT   = 50;
+    constexpr int32  DETONATION_NOVA_BP        = 2000;
+    constexpr int32  DETONATION_BURN_PCT       = 20;
     constexpr uint32 DETONATION_EMPOWER_MS     = 10u * 1000u;
-    constexpr uint32 CD_CINDERFURY_MS       = 120u * 1000u;
+    constexpr uint32 CD_CINDERFURY_MS          = 120u * 1000u;
     constexpr int32  WARD_TRIGGER_HEALTH_PCT   = 35;
     constexpr int32  WARD_REDUCTION_PCT        = 15;
-    constexpr int32  WARD_MELEE_SCORCH_PCT     = 30;          // melee damage returned as fire
+    constexpr int32  WARD_MELEE_SCORCH_PCT     = 30;
     constexpr uint32 WARD_DURATION_MS          = 8u * 1000u;
     constexpr uint32 WARD_COOLDOWN_MS          = 60u * 1000u;
     constexpr int32  FEAST_SP_PER_STACK        = 40;
@@ -178,18 +167,16 @@ namespace
     constexpr uint32 FEAST_DURATION_MS         = 15u * 1000u;
     constexpr float  FEAST_RANGE_YD            = 15.0f;
 
-    // Session state for the ring, kept on the player's CustomData (dies with the
-    // WorldSession, same pattern as LegendaryCooldowns above).
     class CinderfuryState : public DataMap::Base
     {
     public:
-        float  staminaPctApplied  = 0.0f; // -20 while the malus is applied, 0 otherwise
+        float  staminaPctApplied  = 0.0f;
         uint32 wardReadyAtMs      = 0;
         uint32 wardEndsAtMs       = 0;
         uint32 detonationEndsAtMs = 0;
         uint32 feastStacks        = 0;
         int32  feastSpApplied     = 0;
-        uint32 feastGeneration    = 0;    // invalidates stale expiry events on refresh
+        uint32 feastGeneration    = 0;
     };
 
     constexpr char const* CINDERFURY_KEY = "WarlockLegendaries.Cinderfury";
@@ -220,19 +207,6 @@ namespace
                 return true;
         return false;
     }
-
-    // Per-pet record: how much Voidsworn stamina is currently applied to this pet
-    // object. Kept on the pet's CustomData so it dies with the pet — no GUID-reuse
-    // or cleanup hazards, exactly the same pattern as warlock_demonic_empowerment.cpp.
-    // We store the applied amount (not a bool) so a config reload mid-session can't
-    // strand a differently-sized modifier on the pet.
-    class VoidswornPetState : public DataMap::Base
-    {
-    public:
-        float applied = 0.0f;
-    };
-
-    constexpr char const* PET_STATE_KEY = "WarlockLegendaries.Voidsworn";
 
     bool IsEnabled()
     {
@@ -278,8 +252,7 @@ namespace
         state->feastStacks = 0;
     }
 
-    // Strips every session effect of the ring (used on unequip); the stamina
-    // malus is state-tracked, so the final sync removes it cleanly.
+    // Strips every session effect of the ring (used on unequip).
     void ShutDownCinderfury(Player* player)
     {
         auto* state = GetCinderfuryState(player);
@@ -329,316 +302,7 @@ namespace
         if (target != attacker && player->IsAlive())
             player->ModifyHealth(int32(damage));
     }
-
-    int32 VoidswornStamBonus()
-    {
-        return sConfigMgr->GetOption<int32>(CONFIG_VOIDSWORN_STAM_BONUS, 250);
-    }
-
-    // Applies (or removes) the Voidsworn stamina bump to a pet, updating the
-    // per-pet applied amount so we never double-apply or double-remove. Flat
-    // TOTAL_VALUE modifiers survive Guardian::InitStatsForLevel (it only rewrites
-    // base/create stats), so the recorded amount stays accurate across re-inits.
-    void SyncVoidswornOnPet(Player* owner, Unit* pet)
-    {
-        if (!owner || !pet)
-            return;
-
-        float want = owner->HasItemOrGemWithIdEquipped(ITEM_RING_OF_THE_VOIDSWORN, 1)
-            ? float(VoidswornStamBonus()) : 0.0f;
-        if (want < 0.0f)
-            want = 0.0f;
-
-        auto* state = pet->CustomData.GetDefault<VoidswornPetState>(PET_STATE_KEY);
-        if (want == state->applied)
-            return;
-
-        uint32 const maxHealthBefore = pet->GetMaxHealth();
-        float const healthPct = maxHealthBefore
-            ? float(pet->GetHealth()) / float(maxHealthBefore)
-            : 1.0f;
-
-        if (state->applied != 0.0f)
-            pet->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA, TOTAL_VALUE, state->applied, false);
-        if (want != 0.0f)
-            pet->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA, TOTAL_VALUE, want, true);
-
-        pet->UpdateAllStats();
-
-        if (pet->IsAlive())
-        {
-            if (uint32 maxHealth = pet->GetMaxHealth())
-            {
-                uint32 wantHp = uint32(float(maxHealth) * healthPct + 0.5f);
-                if (wantHp < 1)
-                    wantHp = 1;
-                if (wantHp > maxHealth)
-                    wantHp = maxHealth;
-                pet->SetHealth(wantHp);
-            }
-        }
-
-        state->applied = want;
-    }
-
-    // Kill was "qualifying" (grants XP/rep). Mirrors the check in warlock_demonic_empowerment.cpp
-    // so drop chance can't be farmed off grey mobs or on player kills.
-    bool IsQualifyingCreatureKill(Player const* killer, Creature const* victim)
-    {
-        if (!killer || !victim)
-            return false;
-        if (victim->IsControlledByPlayer())
-            return false;
-        return victim->GetLevel() > Acore::XP::GetGrayLevel(killer->GetLevel());
-    }
-
-    bool CreatureRankQualifies(Creature const* victim)
-    {
-        if (!victim)
-            return false;
-
-        CreatureTemplate const* ct = victim->GetCreatureTemplate();
-        if (!ct)
-            return false;
-
-        // ct->rank: 0=normal, 1=elite, 2=rare-elite, 3=world-boss, 4=rare.
-        // With minRank=1 (default), we drop for elite / rare-elite / world-boss / rare —
-        // i.e. anything that isn't a common trash mob. minRank<=0 disables the gate.
-        int32 minRank = sConfigMgr->GetOption<int32>(CONFIG_MIN_CREATURE_RANK, 1);
-        if (minRank <= 0)
-            return true;
-
-        return int32(ct->rank) >= minRank && int32(ct->rank) > 0;
-    }
-
-    // Mails the picked legendary to `receiver`. Sender is a configurable NPC
-    // entry (defaults to a Doomguard, 11859) so the mail bar shows a demon name.
-    void SendLegendaryMail(Player* receiver, uint32 itemId)
-    {
-        if (!receiver)
-            return;
-
-        ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
-        if (!proto)
-        {
-            LOG_ERROR("scripts.custom", "WarlockLegendaries: itemId {} has no template; skipping mail.", itemId);
-            return;
-        }
-
-        Item* mailed = Item::CreateItem(itemId, 1);
-        if (!mailed)
-        {
-            LOG_ERROR("scripts.custom", "WarlockLegendaries: Item::CreateItem failed for {}", itemId);
-            return;
-        }
-
-        uint32 senderEntry = uint32(sConfigMgr->GetOption<int32>(CONFIG_MAIL_SENDER_ENTRY, int32(DOOMGUARD_ENTRY)));
-
-        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-        mailed->SaveToDB(trans);
-
-        MailDraft("A Whisper from the Void",
-                  "The Legion stirs. Something of terrible potency has drifted into your hands.\n\n"
-                  "Guard it well, warlock — the demons remember every promise.")
-            .AddItem(mailed)
-            .SendMailTo(trans, MailReceiver(receiver), MailSender(MAIL_CREATURE, senderEntry));
-
-        CharacterDatabase.CommitTransaction(trans);
-
-        SendMessageIfOnline(receiver, Acore::StringFormat(
-            "|cffff8000A Voidcaller's Whisper:|r |cffff8000|Hitem:{}:0:0:0:0:0:0:0:0|h[{}]|h|r has been mailed to you.",
-            itemId, proto->Name1));
-    }
-
-    // Roll for a legendary drop off `victim` for `killer` (or the killer's owner).
-    void HandleLegendaryDropRoll(Player* killer, Creature* victim)
-    {
-        if (!IsEnabled() || !IsWarlock(killer))
-            return;
-        if (!IsQualifyingCreatureKill(killer, victim))
-            return;
-
-        int32 minLevel = sConfigMgr->GetOption<int32>(CONFIG_MIN_CREATURE_LEVEL, 60);
-        if (int32(victim->GetLevel()) < minLevel)
-            return;
-
-        if (!CreatureRankQualifies(victim))
-            return;
-
-        float chance = sConfigMgr->GetOption<float>(CONFIG_DROP_CHANCE_PERCENT, 0.5f);
-        if (chance <= 0.0f || !roll_chance_f(chance))
-            return;
-
-        uint32 pick = LEGENDARY_POOL[urand(0u, uint32(LEGENDARY_POOL.size()) - 1u)];
-        SendLegendaryMail(killer, pick);
-    }
 }
-
-// -----------------------------------------------------------------------------
-// ItemScript: Voidcaller's Sigil (900006)
-// -----------------------------------------------------------------------------
-
-class item_voidcaller_sigil : public ItemScript
-{
-public:
-    item_voidcaller_sigil() : ItemScript("item_voidcaller_sigil") { }
-
-    bool OnUse(Player* player, Item* item, SpellCastTargets const& /*targets*/) override
-    {
-        if (!player)
-            return true;
-
-        // We always handle the use ourselves (return true), so the client is never
-        // sent a cast — release the item from its pending/grey state explicitly.
-        player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
-
-        if (!IsEnabled())
-            return true;
-
-        if (IsOnLegendaryCooldown(player, ITEM_VOIDCALLER_SIGIL))
-        {
-            SendMessageIfOnline(player, "|cffff8000The Voidcaller's Sigil still cools.|r");
-            return true;
-        }
-
-        Pet* pet = player->GetPet();
-        if (pet)
-        {
-            if (!pet->IsAlive())
-            {
-                pet->setDeathState(DeathState::Alive);
-                pet->SetHealth(pet->GetMaxHealth());
-            }
-            else
-            {
-                pet->SetFullHealth();
-            }
-            pet->SetPower(pet->getPowerType(), pet->GetMaxPower(pet->getPowerType()));
-            SendMessageIfOnline(player, "|cff9370dbThe void yields. Your demon is restored.|r");
-        }
-        else
-        {
-            uint32 lastPetSpell = player->GetLastPetSpell();
-            if (!lastPetSpell)
-            {
-                SendMessageIfOnline(player, "|cffff8000No bound demon remembers you.|r");
-                return true;
-            }
-            player->CastSpell(player, lastPetSpell, true);
-            SendMessageIfOnline(player, "|cff9370dbThe void yields. Your demon returns to your side.|r");
-        }
-
-        StartLegendaryCooldown(player, ITEM_VOIDCALLER_SIGIL, CD_VOIDCALLER_SIGIL_MS);
-        return true;
-    }
-};
-
-// -----------------------------------------------------------------------------
-// ItemScript: Heart of Kanrethad (900007)
-// -----------------------------------------------------------------------------
-
-class item_heart_of_kanrethad : public ItemScript
-{
-public:
-    item_heart_of_kanrethad() : ItemScript("item_heart_of_kanrethad") { }
-
-    bool OnUse(Player* player, Item* item, SpellCastTargets const& /*targets*/) override
-    {
-        if (!player)
-            return true;
-
-        player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
-
-        if (!IsEnabled())
-            return true;
-
-        if (IsOnLegendaryCooldown(player, ITEM_HEART_OF_KANRETHAD))
-        {
-            SendMessageIfOnline(player, "|cffff8000The Heart of Kanrethad beats slowly.|r");
-            return true;
-        }
-
-        Pet* pet = player->GetPet();
-        if (!pet || !pet->IsAlive())
-        {
-            SendMessageIfOnline(player, "|cffff8000No living demon to empower.|r");
-            return true;
-        }
-
-        // Bestial Wrath — +50% damage, -25% damage taken, CC-immunity, 18s.
-        player->CastSpell(pet, SPELL_BESTIAL_WRATH_ANALOG, true);
-        SendMessageIfOnline(player, "|cff9370dbFel-blood floods your demon.|r");
-
-        StartLegendaryCooldown(player, ITEM_HEART_OF_KANRETHAD, CD_HEART_OF_KANRETHAD_MS);
-        return true;
-    }
-};
-
-// -----------------------------------------------------------------------------
-// ItemScript: Doomstaff of Ner'zhul (900008)
-// -----------------------------------------------------------------------------
-
-class item_doomstaff_of_nerzhul : public ItemScript
-{
-public:
-    item_doomstaff_of_nerzhul() : ItemScript("item_doomstaff_of_nerzhul") { }
-
-    bool OnUse(Player* player, Item* item, SpellCastTargets const& targets) override
-    {
-        if (!player)
-            return true;
-
-        player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
-
-        if (!IsEnabled())
-            return true;
-
-        if (IsOnLegendaryCooldown(player, ITEM_DOOMSTAFF_OF_NER_ZHUL))
-        {
-            SendMessageIfOnline(player, "|cffff8000The Doomstaff's chorus is silent.|r");
-            return true;
-        }
-
-        // The item's client-side spell (Inferno) is ground-targeted, so the player
-        // aims where the Doomguard appears. Fall back to just in front of the player
-        // if no destination came through.
-        float ox = player->GetPositionX() + std::cos(player->GetOrientation()) * 2.5f;
-        float oy = player->GetPositionY() + std::sin(player->GetOrientation()) * 2.5f;
-        float oz = player->GetPositionZ();
-        float oo = player->GetOrientation();
-        if (targets.HasDst())
-        {
-            if (WorldLocation const* dest = targets.GetDstPos())
-            {
-                ox = dest->GetPositionX();
-                oy = dest->GetPositionY();
-                oz = dest->GetPositionZ();
-            }
-        }
-
-        TempSummon* summon = player->SummonCreature(DOOMGUARD_ENTRY, ox, oy, oz, oo,
-            TEMPSUMMON_TIMED_DESPAWN, DOOMSTAFF_TEMP_DURATION_MS);
-
-        if (!summon)
-        {
-            SendMessageIfOnline(player, "|cffff8000The Doomstaff falters.|r");
-            return true;
-        }
-
-        summon->SetOwnerGUID(player->GetGUID());
-        summon->SetFaction(player->GetFaction());
-        summon->SetLevel(player->GetLevel());
-
-        if (Unit* target = player->GetSelectedUnit())
-            if (summon->AI() && summon->IsValidAttackTarget(target))
-                summon->AI()->AttackStart(target);
-
-        SendMessageIfOnline(player, "|cff9370dbA second doom answers your call.|r");
-
-        StartLegendaryCooldown(player, ITEM_DOOMSTAFF_OF_NER_ZHUL, CD_DOOMSTAFF_OF_NER_ZHUL_MS);
-        return true;
-    }
-};
 
 // -----------------------------------------------------------------------------
 // ItemScript: Noggenfogger's Magnum Opus (900016)
@@ -659,29 +323,24 @@ public:
         if (!IsEnabled())
             return true;
 
-        if (player->HasAura(SPELL_NOGGENFOGGER_SKELETON))
+        NoggenfoggerState* state = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
+        if ((state && state->active) || player->GetDisplayId() == DISPLAY_NOGGENFOGGER)
         {
-            player->RemoveAurasDueToSpell(SPELL_NOGGENFOGGER_SKELETON);
+            ClearNoggenfoggerMorph(player);
             SendMessageIfOnline(player, "|cff9370dbFlesh, regrettably, returns.|r");
             return true;
         }
 
-        if (Aura* aura = player->AddAura(SPELL_NOGGENFOGGER_SKELETON, player))
-        {
-            // The elixir's morph lasts 10 minutes; the Magnum Opus is a toggle —
-            // pin it until toggled off. (Death still strips the morph; just use
-            // the trinket again.)
-            aura->SetMaxDuration(-1);
-            aura->SetDuration(-1);
-            SendMessageIfOnline(player, "|cff9370dbYour flesh boils away. Noggenfogger's masterpiece holds.|r");
-        }
-
+        // Direct SetDisplayId (not spell 16591) so we can shrink CreatureDisplayInfo
+        // 21151 — at native scale the model is boss-sized.
+        ApplyNoggenfoggerMorph(player);
+        SendMessageIfOnline(player, "|cff9370dbYour flesh boils away. Noggenfogger's masterpiece holds.|r");
         return true;
     }
 };
 
 // -----------------------------------------------------------------------------
-// ItemScript: Cinderfury, Signet of the Firelord (900017) — Infernal Detonation on-use.
+// ItemScript: Cinderfury, Signet of the Firelord (900017) — Infernal Detonation.
 // -----------------------------------------------------------------------------
 
 class item_cinderfury : public ItemScript
@@ -706,8 +365,6 @@ public:
         }
 
         // Blood price first: burn 20% of current health as unavoidable fire.
-        // Dealt self-to-self, so neither the leech nor the Hellfire negation
-        // touches it (both skip attacker == target).
         uint32 burn = player->CountPctFromCurHealth(DETONATION_BURN_PCT);
         if (burn >= player->GetHealth())
             burn = player->GetHealth() - 1;
@@ -717,8 +374,6 @@ public:
         // Empower before the nova so the burst itself enjoys the +50%.
         GetCinderfuryState(player)->detonationEndsAtMs = getMSTime() + DETONATION_EMPOWER_MS;
 
-        // Hellfire nova: real spell damage, so it feeds the fire leech and buys
-        // back part of the blood price when enemies are actually nearby.
         int32 bp = DETONATION_NOVA_BP;
         player->CastCustomSpell(player, SPELL_HELLFIRE_NOVA, &bp, nullptr, nullptr, true);
 
@@ -730,7 +385,7 @@ public:
 };
 
 // -----------------------------------------------------------------------------
-// PlayerScript: legendary drop hook + Voidsworn ring passive sync.
+// PlayerScript: Cinderfury stamina sync, equip/unequip, Hellfire toggle.
 // -----------------------------------------------------------------------------
 
 class warlock_legendaries_playerscript : public PlayerScript
@@ -740,9 +395,8 @@ public:
         "warlock_legendaries_playerscript",
         {
             PLAYERHOOK_ON_LOGIN,
-            PLAYERHOOK_ON_CREATURE_KILL,
-            PLAYERHOOK_ON_CREATURE_KILLED_BY_PET,
-            PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
+            PLAYERHOOK_ON_PLAYER_JUST_DIED,
+            PLAYERHOOK_ON_UPDATE,
             PLAYERHOOK_ON_EQUIP,
             PLAYERHOOK_ON_UNEQUIP_ITEM,
             PLAYERHOOK_ON_SPELL_CAST
@@ -758,10 +412,33 @@ public:
         SyncCinderfuryStamina(player);
     }
 
+    void OnPlayerJustDied(Player* player) override
+    {
+        ClearNoggenfoggerMorph(player);
+    }
+
+    void OnPlayerUpdate(Player* player, uint32 /*diff*/) override
+    {
+        if (!player || !player->IsInWorld())
+            return;
+
+        // Cheap reject: only players who toggled the morph have CustomData.
+        NoggenfoggerState* state = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
+        if (!state || !state->active)
+            return;
+
+        if (!IsEnabled())
+        {
+            ClearNoggenfoggerMorph(player);
+            return;
+        }
+
+        MaintainNoggenfoggerMorph(player);
+    }
+
     // Cinderfury: any Hellfire cast becomes a toggle for the persistent aura.
     // We can't cancel a spell from inside its own cast hook, so the actual work
-    // runs one update later off the player's event queue (events die with the
-    // player object, so the captured pointer cannot dangle).
+    // runs one update later off the player's event queue.
     void OnPlayerSpellCast(Player* player, Spell* spell, bool /*skipCheck*/) override
     {
         if (!IsEnabled() || !spell)
@@ -801,50 +478,20 @@ public:
         }, Milliseconds(1));
     }
 
-    void OnPlayerCreatureKill(Player* killer, Creature* killed) override
-    {
-        HandleLegendaryDropRoll(killer, killed);
-    }
-
-    void OnPlayerCreatureKilledByPet(Player* petOwner, Creature* killed) override
-    {
-        HandleLegendaryDropRoll(petOwner, killed);
-    }
-
-    void OnPlayerAfterGuardianInitStatsForLevel(Player* player, Guardian* guardian) override
-    {
-        if (!IsEnabled() || !IsWarlock(player) || !guardian)
-            return;
-
-        // Guardian::InitStatsForLevel fires on summon and on level-ups. It only
-        // rewrites base stats — our flat modifier (and the recorded applied amount)
-        // survives, so a plain re-sync is enough. Do NOT zero the state here or the
-        // bonus would be stacked again on every re-init.
-        SyncVoidswornOnPet(player, guardian);
-    }
-
     void OnPlayerEquip(Player* player, Item* it, uint8 /*bag*/, uint8 /*slot*/, bool /*update*/) override
     {
         if (!IsEnabled() || !IsWarlock(player) || !it)
             return;
 
-        switch (it->GetEntry())
-        {
-            case ITEM_RING_OF_THE_VOIDSWORN:
-                if (Pet* pet = player->GetPet())
-                    SyncVoidswornOnPet(player, pet);
-                break;
-            case ITEM_CINDERFURY:
-                SyncCinderfuryStamina(player);
-                SendMessageIfOnline(player,
-                    "|cffff4500Cinderfury ignites.|r |cff9370dbYour fire burns 30% hotter and feeds you its "
-                    "harvest, Hellfire toggles into an unquenchable aura that spares its master, souls slain in your "
-                    "flames stoke your power, and a molten ward answers when death draws near — but your flesh "
-                    "withers (-20% stamina).|r");
-                break;
-            default:
-                break;
-        }
+        if (it->GetEntry() != ITEM_CINDERFURY)
+            return;
+
+        SyncCinderfuryStamina(player);
+        SendMessageIfOnline(player,
+            "|cffff4500Cinderfury ignites.|r |cff9370dbYour fire burns 30% hotter and feeds you its "
+            "harvest, Hellfire toggles into an unquenchable aura that spares its master, souls slain in your "
+            "flames stoke your power, and a molten ward answers when death draws near — but your flesh "
+            "withers (-20% stamina).|r");
     }
 
     void OnPlayerUnequip(Player* player, Item* it) override
@@ -852,19 +499,11 @@ public:
         if (!IsEnabled() || !IsWarlock(player) || !it)
             return;
 
-        switch (it->GetEntry())
-        {
-            case ITEM_RING_OF_THE_VOIDSWORN:
-                if (Pet* pet = player->GetPet())
-                    SyncVoidswornOnPet(player, pet);
-                break;
-            case ITEM_CINDERFURY:
-                ShutDownCinderfury(player);
-                SendMessageIfOnline(player, "|cff9370dbCinderfury gutters out.|r");
-                break;
-            default:
-                break;
-        }
+        if (it->GetEntry() != ITEM_CINDERFURY)
+            return;
+
+        ShutDownCinderfury(player);
+        SendMessageIfOnline(player, "|cff9370dbCinderfury gutters out.|r");
     }
 };
 
@@ -897,8 +536,7 @@ public:
     }
 
     // Molten Ward: 15% less damage while up, and it flares when a hit would drop
-    // the wearer below 35% health (60s internal cooldown). Sits in DealDamage,
-    // so melee, spells and dot ticks are all covered exactly once.
+    // the wearer below 35% health (60s internal cooldown).
     void OnDamage(Unit* attacker, Unit* victim, uint32& damage) override
     {
         if (!IsEnabled() || !victim || attacker == victim || !damage)
@@ -917,7 +555,6 @@ public:
             return;
         }
 
-        // Not lethal (nothing to save then), but dips below the threshold.
         if (now >= state->wardReadyAtMs
             && damage < player->GetHealth()
             && player->HealthBelowPctDamaged(WARD_TRIGGER_HEALTH_PCT, damage))
@@ -962,8 +599,7 @@ public:
     }
 
     // Soul Feast: enemies dying within 15yd while the wearer's Hellfire burns
-    // (channeled or persistent) grant +40 spell power, stacking to 5, 15s
-    // refreshed on every kill.
+    // grant +40 spell power, stacking to 5, 15s refreshed on every kill.
     void OnUnitDeath(Unit* unit, Unit* killer) override
     {
         if (!IsEnabled() || !unit || !killer)
@@ -992,7 +628,6 @@ public:
                 SendMessageIfOnline(player, "|cffff4500Soul Feast blazes at full fury (+200 spell power).|r");
         }
 
-        // Refresh: bump the generation so any older expiry event becomes a no-op.
         uint32 generation = ++state->feastGeneration;
         player->m_Events.AddEventAtOffset([player, generation]()
         {
@@ -1008,9 +643,6 @@ public:
 
 void AddSC_warlock_legendaries()
 {
-    new item_voidcaller_sigil();
-    new item_heart_of_kanrethad();
-    new item_doomstaff_of_nerzhul();
     new item_noggenfogger_magnum_opus();
     new item_cinderfury();
     new warlock_legendaries_playerscript();

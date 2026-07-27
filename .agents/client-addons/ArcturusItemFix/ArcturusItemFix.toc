@@ -1,0 +1,8 @@
+## Interface: 30300
+## Title: Arcturus Item Fix
+## Notes: Right-click equip for custom 900xxx items missing from client Item.dbc. Also keeps bag icons from server GetItemInfo.
+## Author: Arcturus
+## Version: 1.0
+## OptionalDeps: CustomItemFix
+
+ArcturusItemFix.lua

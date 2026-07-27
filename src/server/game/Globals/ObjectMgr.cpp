@@ -8253,12 +8253,20 @@ std::string ObjectMgr::GeneratePetNameLocale(uint32 entry, LocaleConstant locale
 
 std::string ObjectMgr::GeneratePetName(uint32 entry)
 {
+    CreatureTemplate const* cinfo = GetCreatureTemplate(entry);
+    if (!cinfo)
+        return {};
+
+    // Infernal (89) reuses CREATURE_FAMILY_DOOMGUARD (19) — there is no Infernal family in
+    // CreatureFamily.dbc — so falling through to GetPetName() would label the pet "Doomguard".
+    if (entry == NPC_INFERNAL)
+        return cinfo->Name;
+
     std::vector<std::string>& list0 = _petHalfName0[entry];
     std::vector<std::string>& list1 = _petHalfName1[entry];
 
     if (list0.empty() || list1.empty())
     {
-        CreatureTemplate const* cinfo = GetCreatureTemplate(entry);
         char const* petname = GetPetName(cinfo->family, sWorld->GetDefaultDbcLocale());
         if (!petname)
             return cinfo->Name;

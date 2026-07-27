@@ -302,6 +302,10 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
     uint8 petlevel = petInfo->Level;
     ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
     SetName(petInfo->Name);
+    // Infernal shares Doomguard's creature family; older saves may still carry the wrong name.
+    if (GetEntry() == NPC_INFERNAL)
+        if (CreatureTemplate const* ct = GetCreatureTemplate())
+            SetName(ct->Name);
 
     switch (getPetType())
     {
@@ -978,7 +982,10 @@ bool Pet::CreateBaseAtCreatureInfo(CreatureTemplate const* cinfo, Unit* owner)
     if (!CreateBaseAtTamed(cinfo, owner->GetMap(), owner->GetPhaseMask()))
         return false;
 
-    if (CreatureFamilyEntry const* cFamily = sCreatureFamilyStore.LookupEntry(cinfo->family))
+    // Infernal reuses CREATURE_FAMILY_DOOMGUARD; prefer the creature template name.
+    if (cinfo->Entry == NPC_INFERNAL)
+        SetName(cinfo->Name);
+    else if (CreatureFamilyEntry const* cFamily = sCreatureFamilyStore.LookupEntry(cinfo->family))
         SetName(cFamily->Name[sWorld->GetDefaultDbcLocale()]);
 
     Relocate(owner->GetPositionX(), owner->GetPositionY(), owner->GetPositionZ(), owner->GetOrientation());
@@ -1193,6 +1200,8 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                                 SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(pInfo->min_dmg));
                                 SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(pInfo->max_dmg));
                             }
+                            // Permanent pets skip creature_template_addon; reapply fire immunity here.
+                            AddAura(SPELL_INFERNAL_FIRE_SHIELD, this);
                             AddAura(SPELL_PET_AVOIDANCE, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_05, this);
                             AddAura(SPELL_INFERNAL_SCALING_01, this);
@@ -1254,6 +1263,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                                 SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(pInfo->min_dmg));
                                 SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(pInfo->max_dmg));
                             }
+                            AddAura(SPELL_INFERNAL_FIRE_SHIELD, this);
                             AddAura(SPELL_PET_AVOIDANCE, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_05, this);
                             AddAura(SPELL_INFERNAL_SCALING_01, this);

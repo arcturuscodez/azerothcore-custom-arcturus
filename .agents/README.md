@@ -62,9 +62,12 @@ Frozen suite + `FROZEN.sha256` + git/Cursor hooks block commits unless all `GATE
 - **Client build:** WoW 3.3.5a **12340**
 - **Best public DB for stock IDs/icons/spells:** [Wowhead Wrath](https://www.wowhead.com/wotlk/) (`/wotlk/` path)
 - **Server DB for content:** `acore_world` (`item_template`, creatures, loot, …)
-- **Custom item range (Arcturus):** `900001`–`900138+`
+- **Custom item range (Arcturus):** `900016` Noggenfogger + `900017` Cinderfury (other 900xxx retired)
 - **Branches:** `development` → merge → `live`
 - **This repo's preferred item-icon path today:** server-only stock `displayid` remaps (no client patch). Unique custom art requires restoring an MPQ + ItemDisplayInfo pipeline (see client docs).
 - **Custom bag icons:** still need **CustomItemFix** or client **Item.dbc** — see [knowledge/custom-items-red-question-mark.md](knowledge/custom-items-red-question-mark.md).
+- **Custom right-click equip:** [client-addons/ArcturusItemFix/](client-addons/ArcturusItemFix/README.md) — fixes “Item not found” on bag right-click
 - **Paragon + ALE Lua 5.2 unpack fix:** [patches/paragon-ale-lua52/](patches/paragon-ale-lua52/README.md)
 - **Live client debug:** [client-addons/ArcturusDebug/](client-addons/ArcturusDebug/README.md) — `/adebug`; agents read `WTF/.../SavedVariables/ArcturusDebug.lua` after `/reload`
+- **Inferno / Doomguard tooltips:** [client-addons/ArcturusSpellFix/](client-addons/ArcturusSpellFix/README.md) — rewrites stock ritual text (reagents still required)
+

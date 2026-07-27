@@ -7,9 +7,9 @@
  *   current  — lifetime minus souls lost to demon deaths; scales the demons.
  *
  * What souls buy:
- *  - Demons: +2 Sta / +1 Str / +1 Agi / +1 Int / +1 Spi / +1 AP / +1 SP / +5 Armor
+ *  - Demons: +2 Sta / +1 Str / +1 Agi / +1 Int / +1 Spi / +1 AP / +0.1 SP / +5 Armor
  *    per CURRENT soul (configurable), shared by every demon the warlock summons.
- *  - Soul Tempering: the warlock gains +2 Sta / +2 Int / +3 SP per 100 LIFETIME souls
+ *  - Soul Tempering: the warlock gains +2 Sta / +2 Int / +3 SP / +1 Mp5 per 100 LIFETIME souls
  *    (interval, values, and an optional tier cap all configurable).
  *  - Gifts of the Void: permanently learned spells at rank thresholds (see GIFTS in
  *    the header). All are client-known spells, so they render with full icon/tooltip.
@@ -49,7 +49,6 @@
 #include "StringFormat.h"
 #include "UnitScript.h"
 #include "WorldSession.h"
-#include "warlock_legendaries.h"
 
 #include <algorithm>
 #include <cmath>
@@ -65,27 +64,33 @@ namespace WarlockEmpowerment
         return idx;
     }
 
+    // Config is immutable after world start for these keys; cache once so
+    // pet re-inits / kills do not spam "missing option" when conf omits them.
     BonusValues LoadedBonus()
     {
-        return {
+        static BonusValues const cached = {
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_STAMINA,     2)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_STRENGTH,    1)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_AGILITY,     1)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_INTELLECT,   1)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_SPIRIT,      1)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_ATTACKPOWER, 1)),
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_SPELLPOWER,  1)),
+            // Fractional SP is intentional — 1.0/soul was far too strong on Firebolt.
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_SPELLPOWER, 0.1f),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_ARMOR,       5))
         };
+        return cached;
     }
 
     TemperValues LoadedTemper()
     {
-        return {
+        static TemperValues const cached = {
             sConfigMgr->GetOption<int32>(CONFIG_TEMPER_STAMINA,    2),
             sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTELLECT,  2),
-            sConfigMgr->GetOption<int32>(CONFIG_TEMPER_SPELLPOWER, 3)
+            sConfigMgr->GetOption<int32>(CONFIG_TEMPER_SPELLPOWER, 3),
+            sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MANA_PER5,  1)
         };
+        return cached;
     }
 
     uint32 DeathPenaltyPctFor(uint32 lifetime)
@@ -235,7 +240,7 @@ namespace WarlockEmpowerment
         if (!souls)
             return 0;
 
-        return int32(LoadedBonus().spellPower * float(souls));
+        return int32(LoadedBonus().spellPower * float(souls) + 0.5f);
     }
 
     // ---- Manager --------------------------------------------------------------
@@ -350,9 +355,9 @@ namespace WarlockEmpowerment
 
     void Mgr::PersistNow(uint32 low, Souls const& souls)
     {
-        // Fire-and-forget async upsert; safe because we only ever have one owner (the
-        // character's session) dirtying its own row at a time.
-        CharacterDatabase.Execute(
+        // Synchronous upsert: logout and crash windows must not race an async queue
+        // (fast relog used to load a stale row and wipe in-memory progress).
+        CharacterDatabase.DirectExecute(
             "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime, souls_lost) VALUES ({}, {}, {}, {})",
             low, souls.current, souls.lifetime, souls.lost);
     }
@@ -380,7 +385,7 @@ namespace
     {
     public:
         uint32       appliedTiers = 0;
-        TemperValues appliedValues = { 0, 0, 0 };
+        TemperValues appliedValues = { 0, 0, 0, 0 };
     };
 
     constexpr char const* PET_STATE_KEY    = "WarlockDemonicEmpowerment";
@@ -414,11 +419,45 @@ namespace
         if (!tiers)
             return;
 
+        // Stamina/intellect rewrite max HP/mana. Preserve fill % across strip/reapply
+        // so tier-ups (and config sync) cannot clamp the warlock to a temporary max.
+        uint32 const maxHealthBefore = player->GetMaxHealth();
+        float const healthPct = maxHealthBefore
+            ? float(player->GetHealth()) / float(maxHealthBefore)
+            : 1.0f;
+        uint32 const maxManaBefore = player->GetMaxPower(POWER_MANA);
+        float const manaPct = maxManaBefore
+            ? float(player->GetPower(POWER_MANA)) / float(maxManaBefore)
+            : 1.0f;
+
         float mult = float(tiers);
         player->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA,   TOTAL_VALUE, float(values.stamina)   * mult, apply);
         player->HandleStatFlatModifier(UNIT_MOD_STAT_INTELLECT, TOTAL_VALUE, float(values.intellect) * mult, apply);
         player->ApplySpellPowerBonus(values.spellPower * int32(tiers), apply);
+        if (values.manaPer5)
+            player->ApplyManaRegenBonus(values.manaPer5 * int32(tiers), apply);
         player->UpdateAllStats();
+
+        if (player->IsAlive())
+        {
+            if (uint32 maxHealth = player->GetMaxHealth())
+            {
+                uint32 want = uint32(float(maxHealth) * healthPct + 0.5f);
+                if (want < 1)
+                    want = 1;
+                if (want > maxHealth)
+                    want = maxHealth;
+                player->SetHealth(want);
+            }
+
+            if (uint32 maxMana = player->GetMaxPower(POWER_MANA))
+            {
+                uint32 want = uint32(float(maxMana) * manaPct + 0.5f);
+                if (want > maxMana)
+                    want = maxMana;
+                player->SetPower(POWER_MANA, want);
+            }
+        }
     }
 
     // Brings the player's applied tempering in line with the lifetime soul total.
@@ -440,15 +479,30 @@ namespace
     // ---- Bonus talent points --------------------------------------------------
 
     // Brings the engine's persisted bonus-talent counter in line with the lifetime
-    // soul total. This system is the only source of bonus talents on this fork, so
-    // a straight SetBonusTalentCount is idempotent and self-healing.
+    // soul total. Never call InitTalentForLevel when the new pool is smaller than
+    // spent points — that path hard-resets the talent tree and dismisses the pet.
     void SyncTalentPoints(Player* player, uint32 lifetime)
     {
-        uint32 want = IsEnabled() ? BonusTalentPointsFor(lifetime) : 0u;
+        if (!IsEnabled())
+            return; // leave spent bonus talents alone while the feature is off
+
+        uint32 want = BonusTalentPointsFor(lifetime);
         if (player->GetBonusTalentCount() == want)
             return;
 
         player->SetBonusTalentCount(want);
+
+        uint32 talentPointsForLevel = player->CalculateTalentsPoints();
+        if (player->m_usedTalentCount > talentPointsForLevel)
+        {
+            // Still over budget after a mid-session config cut: park free points at
+            // zero rather than wiping the tree. Next login with Enable=0 also skips.
+            player->SetFreeTalentPoints(0);
+            if (!player->GetSession()->PlayerLoading())
+                player->SendTalentsInfoData(false);
+            return;
+        }
+
         player->InitTalentForLevel(); // refreshes free talent points on the client
     }
 
@@ -550,6 +604,7 @@ public:
         {
             PLAYERHOOK_ON_LOGIN,
             PLAYERHOOK_ON_LOGOUT,
+            PLAYERHOOK_ON_SAVE,
             PLAYERHOOK_ON_GIVE_EXP,
             PLAYERHOOK_ON_REWARD_KILL_REWARDER,
             PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
@@ -569,10 +624,10 @@ public:
 
         if (!IsEnabled())
         {
-            // Feature turned off: also take back the gifts and bonus talent points
-            // (talented spells are spared).
+            // Feature off: strip learned gifts (talented spells are spared). Do NOT
+            // zero bonus talent points — InitTalentForLevel would reset the tree.
             SyncGifts(player, 0, false);
-            SyncTalentPoints(player, 0);
+            SyncTempering(player, 0); // strip tempering if it was applied this session
             return;
         }
 
@@ -620,6 +675,16 @@ public:
         sWarlockEmpower->FlushAndForget(player->GetGUID());
     }
 
+    void OnPlayerSave(Player* player) override
+    {
+        if (!IsWarlock(player))
+            return;
+
+        // Keep character_warlock_demon_kills aligned with autosave so a crash
+        // between kills and logout cannot drop harvested souls.
+        sWarlockEmpower->FlushIfDirty(player->GetGUID());
+    }
+
     void OnPlayerAfterSpecSlotChanged(Player* player, uint8 /*newSlot*/) override
     {
         if (!IsEnabled() || !IsWarlock(player))
@@ -647,19 +712,25 @@ public:
         if (!IsEnabled() || !IsWarlock(player) || !IsQualifyingKill(player, rewarder))
             return;
 
+        // Mid-session Enable flip (or login-before-load edge): load before mutating
+        // so Add() never fabricates a zeroed row over real DB progress.
+        if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
+        {
+            sWarlockEmpower->LoadFromDB(player->GetGUID());
+            Souls loaded = sWarlockEmpower->Get(player->GetGUID());
+            SyncTempering(player, loaded.lifetime);
+            SyncGifts(player, loaded.lifetime, false);
+            SyncTalentPoints(player, loaded.lifetime);
+        }
+
         Souls before = sWarlockEmpower->Get(player->GetGUID());
 
-        // Soul income: 1 base, +1 per equipped income legendary (Signet of the
-        // Feltouched / Fel Splinter), +rank income perk (see BonusSoulIncomeFor).
+        // Soul income: 1 base + rank income perk (see BonusSoulIncomeFor).
         uint32 killDelta = 1u + BonusSoulIncomeFor(before.lifetime);
-        if (player->HasItemOrGemWithIdEquipped(WarlockLegendaries::ITEM_SIGNET_OF_THE_FELTOUCHED, 1))
-            killDelta += 1u;
-        if (player->HasItemOrGemWithIdEquipped(WarlockLegendaries::ITEM_FEL_SPLINTER, 1))
-            killDelta += 1u;
 
         Souls total = sWarlockEmpower->Add(player->GetGUID(), killDelta);
-        if (!total.lifetime)
-            return; // counter not loaded (feature was disabled at this character's login)
+        if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
+            return;
 
         if (Pet* pet = player->GetPet())
         {

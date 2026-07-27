@@ -19,8 +19,6 @@ GATED_CPP = (
     CUSTOM / "warlock_demonic_empowerment.cpp",
     CUSTOM / "warlock_legendaries.h",
     CUSTOM / "warlock_legendaries.cpp",
-    CUSTOM / "warlock_special_items.h",
-    CUSTOM / "warlock_special_items.cpp",
     CUSTOM / "cs_demons.cpp",
     SPELLS / "spell_warlock.cpp",
 )

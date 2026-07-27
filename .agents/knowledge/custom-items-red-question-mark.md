@@ -33,21 +33,22 @@ Bag UI path (simplified):
 
 ## Fix options (pick one)
 
-### A) CustomItemFix addon (fastest — installed on your HD client)
+### A) CustomItemFix + ArcturusItemFix addons (fastest)
 
-Official: https://github.com/azerothcore/CustomItemFix
+**Icons:** [CustomItemFix](https://github.com/azerothcore/CustomItemFix) (already on the HD client).
 
-Hooks bag/bank/action-bar updates and replaces `INV_Misc_QuestionMark` with the texture from `GetItemInfo()` (server-provided).
-
-Path installed (example):
+**Right-click equip:** without client `Item.dbc`, bag right-click fails with
+**Item not found** (drag-equip still works). Install
+[client-addons/ArcturusItemFix/](../client-addons/ArcturusItemFix/README.md) —
+it auto-equips `900xxx` items via `AutoEquipCursorItem()`.
 
 ```text
-<WoW client>/Interface/AddOns/CustomItemFix/
+<WoW client>/Interface/AddOns/ArcturusItemFix/
 ```
 
-**You must enable it** at character select (AddOns button). Then `/reload` or relog. Cache\WDB was cleared.
+Enable at character select → `/reload`.
 
-Pros: no MPQ. Cons: every player needs the addon; some UIs (ElvUI bags) may need their own hooks.
+Pros: no MPQ. Cons: every player needs the addons; ElvUI bags may need their own hooks.
 
 ### B) Client MPQ with Item.dbc (proper / multiplayer)
 

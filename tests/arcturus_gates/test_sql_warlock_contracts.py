@@ -1,76 +1,57 @@
 # Frozen suite — do not edit without ARCTURUS_UNLOCK_GATES=1.
-"""GATE-SQL-* Pending SQL contracts for warlock customs."""
+"""GATE-SQL-* Pending SQL contracts after custom-item purge."""
 
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
-from _repo import PENDING_CHARS, PENDING_WORLD, read_text, require_exists
+from _repo import PENDING_WORLD, REPO_ROOT, require_exists
 
 
 class SqlWarlockContracts(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.fix = read_text(
-            require_exists(PENDING_WORLD / "rev_1785974400000000000.sql")
-        )
-        cls.chars_create = read_text(
-            require_exists(PENDING_CHARS / "rev_1785196800000000000.sql")
-        )
-        cls.chars_alter = read_text(
-            require_exists(PENDING_CHARS / "rev_1785456000000000000.sql")
-        )
+        cls.purge = require_exists(
+            PENDING_WORLD / "rev_1786406400000000000.sql"
+        ).read_text(encoding="utf-8")
+        cls.chars = require_exists(
+            REPO_ROOT
+            / "data"
+            / "sql"
+            / "updates"
+            / "pending_db_characters"
+            / "rev_1786406400000000000.sql"
+        ).read_text(encoding="utf-8")
 
-    def test_GATE_SQL_001_femur_shadow_nova_fix(self):
-        """GATE-SQL-001: 900011 Shadow Nova 32711 on spellid_2 (proc slot)."""
-        self.assertIn("`spellid_2` = 32711", self.fix)
-        self.assertIn("`entry` = 900011", self.fix)
-        self.assertIn("42223", self.fix)
+    def test_GATE_SQL_001_purge_keeps_noggenfogger_and_cinderfury(self):
+        """GATE-SQL-001: World purge deletes 900xxx except 900016/900017."""
+        self.assertIn("NOT IN (900016, 900017)", self.purge)
+        self.assertIn("DELETE FROM `item_template`", self.purge)
+        self.assertIn("DELETE FROM `item_dbc`", self.purge)
 
-    def test_GATE_SQL_002_kanrethad_immolate_fix(self):
-        """GATE-SQL-002: 900015 Immolate 47811 on spellid_2 (proc slot)."""
-        self.assertIn("`entry` = 900015", self.fix)
-        self.assertIn("`spellid_2` = 47811", self.fix)
-        self.assertIn("27215", self.fix)
+    def test_GATE_SQL_002_purge_strips_loot_tables(self):
+        """GATE-SQL-002: Creature/GO loot for retired customs is deleted."""
+        self.assertIn("creature_loot_template", self.purge)
+        self.assertIn("gameobject_loot_template", self.purge)
 
-    def test_GATE_SQL_003_use_decoy_fel_domination(self):
-        """GATE-SQL-003: 900136/900137 Use decoys are Fel Domination 18708."""
-        # UPDATE sets spellid first, then WHERE entry — match that shape.
-        self.assertRegex(
-            self.fix,
-            r"`spellid_1`\s*=\s*18708[\s\S]*?`entry`\s*=\s*900136",
-        )
-        self.assertRegex(
-            self.fix,
-            r"`spellid_1`\s*=\s*18708[\s\S]*?`entry`\s*=\s*900137",
-        )
+    def test_GATE_SQL_003_characters_purge_item_instances(self):
+        """GATE-SQL-003: Characters DB strips retired item instances from bags/mail."""
+        self.assertIn("item_instance", self.chars)
+        self.assertIn("character_inventory", self.chars)
+        self.assertIn("NOT IN (900016, 900017)", self.chars)
 
-    def test_GATE_SQL_004_character_souls_table(self):
-        """GATE-SQL-004: character_warlock_demon_kills exists with lifetime/souls_lost."""
-        self.assertIn("character_warlock_demon_kills", self.chars_create)
-        self.assertIn("`kills`", self.chars_create)
-        self.assertIn("ADD COLUMN `lifetime`", self.chars_alter)
-        self.assertIn("ADD COLUMN `souls_lost`", self.chars_alter)
+    def test_GATE_SQL_004_cinderfury_mc_loot_still_in_history(self):
+        """GATE-SQL-004: Cinderfury MC insert pending still present for fresh installs."""
+        cinder = require_exists(PENDING_WORLD / "rev_1785542400000000000.sql")
+        text = cinder.read_text(encoding="utf-8")
+        self.assertIn("900017", text)
+        self.assertIn("Cinderfury", text)
 
-    def test_GATE_SQL_005_no_forbidden_double_semicolon(self):
-        """GATE-SQL-005: Stability SQL has no `;;` double semicolons."""
-        self.assertNotIn(";;", self.fix)
-
-    def test_GATE_SQL_006_pending_world_stability_file_present(self):
-        """GATE-SQL-006: Stability follow-up pending SQL filename is required."""
-        path = PENDING_WORLD / "rev_1785974400000000000.sql"
-        self.assertTrue(path.is_file())
-        self.assertIn("Warlock custom stability follow-up", self.fix)
-
-    def test_GATE_SQL_007_spellid2_followup_pending(self):
-        """GATE-SQL-007: Follow-up pending SQL retargets Femur/Kanrethad spellid_2."""
-        path = PENDING_WORLD / "rev_1786060800000000000.sql"
-        self.assertTrue(path.is_file(), msg="missing spellid_2 follow-up pending SQL")
-        text = read_text(path)
-        self.assertIn("`spellid_2` = 32711", text)
-        self.assertIn("`entry` = 900011", text)
-        self.assertIn("`spellid_2` = 47811", text)
-        self.assertIn("`entry` = 900015", text)
+    def test_GATE_SQL_005_no_forbidden_double_semicolon_in_purge(self):
+        """GATE-SQL-005: Purge SQL has no `;;` double semicolons."""
+        self.assertNotIn(";;", self.purge)
+        self.assertNotIn(";;", self.chars)
 
 
 if __name__ == "__main__":

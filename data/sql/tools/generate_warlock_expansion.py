@@ -268,7 +268,8 @@ CATALOG = [
     mk(900116, "Black Temple Soulbinder", "ring", 4, 70, "Worn by warlocks who served Illidan.", 22898, 8, "Supremus"),
     mk(900117, "Nathrezim Signet", "ring", 4, 70, "Anetheron's agents left this behind at Hyjal.", 17808, 6, "Anetheron"),
     mk(900118, "Felstorm Warlock Blade", "sword", 4, 69, "Outland Legion steel.", 18472, 9, "Darkweaver Syth", spell2_id=30108, spell2_trigger=2, spell2_ppm=3),
-    mk(900119, "Magtheridon's Cube Shard", "trinket", 4, 70, "A fragment of the cube that bound him.", 17257, 7, "Magtheridon", spell_id=47897, spell_trigger=0, spell_cd=180000, script="item_warlock_special"),
+    # Use decoy is Fel Domination 18708 (self); C++ casts Shadowflame 47897.
+    mk(900119, "Magtheridon's Cube Shard", "trinket", 4, 70, "A fragment of the cube that bound him.", 17257, 7, "Magtheridon", spell_id=18708, spell_trigger=0, spell_cd=180000, script="item_warlock_special"),
 
     # ---- Levels 71-80 (900120-900137) — includes 5 legendaries ----
     mk(900120, "Jedoga's Shadowseeker Ring", "ring", 4, 75, "Twilight zeal from Ahn'kahet.", 29310, 10, "Jedoga Shadowseeker"),
@@ -299,7 +300,7 @@ CATALOG = [
        19554, 2, "Dimensius the All-Devouring",
        stats={"int": 70, "sp": 155, "haste": 50, "hit": 40},
        bonding=1, flags=524288, maxcount=1, script="item_voidheart",
-       spell_id=47897, spell_trigger=0, spell_cd=120000, displayid=42499),
+       spell_id=18708, spell_trigger=0, spell_cd=120000, displayid=42499),
     mk(900135, "Seal of the First Necrolyte", "ring", 5, 80,
        "Teron Gorefiend was the first death knight; this seal predates even his curse.",
        22871, 2, "Teron Gorefiend",

@@ -156,6 +156,7 @@ enum PetScalingSpells
     SPELL_INFERNAL_SCALING_02           = 36188,
     SPELL_INFERNAL_SCALING_03           = 36189,
     SPELL_INFERNAL_SCALING_04           = 36190,
+    SPELL_INFERNAL_FIRE_SHIELD          = 7942,  // Immunity: Fire (creature_template_addon for NPC 89)
     SPELL_RITUAL_ENSLAVEMENT            = 22987,
 
     // Shaman

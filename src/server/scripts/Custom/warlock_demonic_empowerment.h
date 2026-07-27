@@ -54,6 +54,7 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_TEMPER_STAMINA    = "WarlockDemonicEmpowerment.Tempering.Stamina";
     constexpr char const* CONFIG_TEMPER_INTELLECT  = "WarlockDemonicEmpowerment.Tempering.Intellect";
     constexpr char const* CONFIG_TEMPER_SPELLPOWER = "WarlockDemonicEmpowerment.Tempering.SpellPower";
+    constexpr char const* CONFIG_TEMPER_MANA_PER5  = "WarlockDemonicEmpowerment.Tempering.ManaPer5";
     constexpr char const* CONFIG_TEMPER_MAX_TIERS  = "WarlockDemonicEmpowerment.Tempering.MaxTiers"; // 0 = unlimited
 
     // Gifts of the Void (learned spells at rank thresholds) and passive rank perks.
@@ -191,6 +192,7 @@ namespace WarlockEmpowerment
         int32 stamina;
         int32 intellect;
         int32 spellPower;
+        int32 manaPer5; // mana regenerated per 5 seconds (Mp5)
     };
 
     // Reads the per-tier Soul Tempering values from config.
