@@ -1,4 +1,22 @@
-version: '3.8'
-# services:
-#   ac-worldserver-2:
+version: "3.8"
+#
+# Copy to repo root as docker-compose.override.yml (Compose auto-merges it),
+# or:  cp conf/dist/docker-compose.override.yml docker-compose.override.yml
+#
+# Do not commit secrets / live GUIDs here — keep those in gitignored env/dist/etc.
+#
 
+services:
+  ac-worldserver:
+    environment:
+      # WarlockLegendary.Enable / WarlockSpecialItems.Enable (Config.cpp AC_ mapping)
+      AC_WARLOCK_LEGENDARY_ENABLE: "1"
+      AC_WARLOCK_SPECIAL_ITEMS_ENABLE: "1"
+      # Optional: pin ALE ScriptPath at Paragon serverside inside the modules volume
+      # AC_ELUNA_SCRIPTPATH: "/azerothcore/modules/Paragon-Anniversary/serverside"
+    volumes:
+      # Survive `git submodule update` wiping the Lua 5.2 unpack fix (upstream push 403)
+      - ./.agents/patches/paragon-ale-lua52/000_lua_compat.lua:/azerothcore/modules/Paragon-Anniversary/serverside/000_lua_compat.lua:ro
+      - ./.agents/patches/paragon-ale-lua52/mediator.lua:/azerothcore/modules/Paragon-Anniversary/serverside/paragon/lib/Mediator/mediator.lua:ro
+      # Prefer mounting the submodule tree (not a host symlink) for lua_scripts:
+      # - ./modules/Paragon-Anniversary/serverside:/azerothcore/modules/Paragon-Anniversary/serverside:ro

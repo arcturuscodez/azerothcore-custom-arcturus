@@ -23,7 +23,7 @@
     "type_label": "Finger (ring)",
     "original_displayid": 47733,
     "displayid": 47733,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -37,7 +37,7 @@
     "type_label": "Finger (ring)",
     "original_displayid": 39159,
     "displayid": 39159,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -50,9 +50,9 @@
     "type_key": "inv-12",
     "type_label": "Trinket",
     "original_displayid": 51763,
-    "displayid": 45364,
-    "stock_lookalike": "The Skull of Gul'dan",
-    "remapped_from": 51763,
+    "displayid": 31479,
+    "stock_lookalike": "Frostwolf Insignia Rank 6",
+    "remapped_from": 45364,
     "status": "remapped"
   },
   {
@@ -93,7 +93,7 @@
     "type_label": "Trinket",
     "original_displayid": 39336,
     "displayid": 39336,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -134,9 +134,9 @@
     "type_key": "2-7-13",
     "type_label": "1H Sword",
     "original_displayid": 40908,
-    "displayid": 30606,
-    "stock_lookalike": "Thunderfury, Blessed Blade of the Windseeker",
-    "remapped_from": 40908,
+    "displayid": 58939,
+    "stock_lookalike": "Remorse",
+    "remapped_from": 30606,
     "status": "remapped"
   },
   {
@@ -163,7 +163,7 @@
     "type_label": "Holdable (off-hand)",
     "original_displayid": 40592,
     "displayid": 40592,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -177,7 +177,7 @@
     "type_label": "Holdable (off-hand)",
     "original_displayid": 33839,
     "displayid": 33839,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -219,7 +219,7 @@
     "type_label": "Trinket",
     "original_displayid": 17403,
     "displayid": 17403,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -834,9 +834,9 @@
     "type_key": "2-7-13",
     "type_label": "1H Sword",
     "original_displayid": 31657,
-    "displayid": 52784,
-    "stock_lookalike": "Quel'Serrar",
-    "remapped_from": 31657,
+    "displayid": 41867,
+    "stock_lookalike": "Edge Slicer",
+    "remapped_from": 52784,
     "status": "remapped"
   },
   {
@@ -1527,7 +1527,7 @@
   },
   {
     "entry": 900110,
-    "name": "Shade of Aran's Ember Cloak",
+    "name": "Shade of Aran's Ember Mantle",
     "class": 4,
     "subclass": 1,
     "InventoryType": 3,
@@ -1857,7 +1857,7 @@
     "type_label": "Finger (ring)",
     "original_displayid": 47733,
     "displayid": 47733,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -1885,7 +1885,7 @@
     "type_label": "Finger (ring)",
     "original_displayid": 39159,
     "displayid": 39159,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -1899,7 +1899,7 @@
     "type_label": "Holdable (off-hand)",
     "original_displayid": 33839,
     "displayid": 33839,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -1913,7 +1913,7 @@
     "type_label": "Trinket",
     "original_displayid": 39336,
     "displayid": 39336,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   },
@@ -1927,7 +1927,7 @@
     "type_label": "Finger (ring)",
     "original_displayid": 39159,
     "displayid": 39159,
-    "stock_lookalike": "(unchanged \u2014 original displayid kept)",
+    "stock_lookalike": "(unchanged — original displayid kept)",
     "remapped_from": null,
     "status": "kept"
   }

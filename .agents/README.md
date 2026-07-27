@@ -52,3 +52,5 @@ This folder adds **3.3.5a client + Arcturus** depth that AGENTS.md does not cove
 - **Custom item range (Arcturus):** `900001`–`900138+`
 - **Branches:** `development` → merge → `live`
 - **This repo's preferred item-icon path today:** server-only stock `displayid` remaps (no client patch). Unique custom art requires restoring an MPQ + ItemDisplayInfo pipeline (see client docs).
+- **Custom bag icons:** still need **CustomItemFix** or client **Item.dbc** — see [knowledge/custom-items-red-question-mark.md](knowledge/custom-items-red-question-mark.md).
+- **Paragon + ALE Lua 5.2 unpack fix:** [patches/paragon-ale-lua52/](patches/paragon-ale-lua52/README.md)

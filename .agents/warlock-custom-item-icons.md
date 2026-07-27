@@ -35,9 +35,9 @@ Total: **138** | Remapped: **127** | Kept: **11**
 
 | Entry | Item | displayid | Looks like (stock) | Notes |
 |------:|------|----------:|--------------------|-------|
-| 900010 | Fel-Iron Skewer | 30606 | Thunderfury, Blessed Blade of the Windseeker | was 40908 |
+| 900010 | Fel-Iron Skewer | 58939 | Remorse | was Thunderfury 30606 |
 | 900052 | Roaming Felguard's Cleaver | 41867 | Warp Slicer | was 31657 |
-| 900060 | Herod's Falling Blade | 52784 | Quel'Serrar | was 31657 |
+| 900060 | Herod's Falling Blade | 41867 | Edge Slicer | was Quel'Serrar 52784 |
 | 900076 | Dunemaul Warlock Blade | 48078 | Dragonscale-Encrusted Longblade | was 31657 |
 | 900099 | Shadowsworn Warlock Blade | 58939 | Remorse | was 31657 |
 | 900118 | Felstorm Warlock Blade | 32197 | Vis'kag the Bloodletter | was 31657 |
@@ -96,7 +96,7 @@ Total: **138** | Remapped: **127** | Kept: **11**
 | 900028 | Cinderwhisper Shawl | 31974 | Felheart Shoulder Pads | was 31657 |
 | 900045 | Blackfathom Void Shawl | 29798 | Tattered Dreadmist Mantle | was 31657 |
 | 900078 | Theradras's Verdant Wrap | 34254 | Netherwind Mantle | was 31657 |
-| 900110 | Shade of Aran's Ember Cloak | 23737 | Exquisite Sunderseer Mantle | was 31657 |
+| 900110 | Shade of Aran's Ember Mantle | 23737 | Exquisite Sunderseer Mantle | was 31657; renamed from Cloak |
 
 ## Cloth Waist
 
@@ -186,7 +186,7 @@ Total: **138** | Remapped: **127** | Kept: **11**
 
 | Entry | Item | displayid | Looks like (stock) | Notes |
 |------:|------|----------:|--------------------|-------|
-| 900004 | Frostmourne, Shard of the Damned | 45364 | The Skull of Gul'dan | was 51763 |
+| 900004 | Frostmourne, Shard of the Damned | 31479 | Frostwolf Insignia Rank 6 | was Gul'dan skull 45364 |
 | 900005 | Kel'Thuzad's Broken Phylactery | 64247 | Phylactery of the Nameless Lich | was 42499 |
 | 900006 | Voidcaller's Sigil | 31287 | Talisman of Ephemeral Power | was 22206 |
 | 900007 | Heart of Kanrethad | 39336 | (unchanged — original displayid kept) | unchanged |
@@ -234,7 +234,7 @@ Total: **138** | Remapped: **127** | Kept: **11**
 ## Former red-? orphans (priority remaps)
 
 - **900001** Ring of Malchezaar's Passage → `35423` (Seal of the Damned)
-- **900004** Frostmourne, Shard of the Damned → `45364` (The Skull of Gul'dan)
+- **900004** Frostmourne, Shard of the Damned → `31479` (Frostwolf Insignia Rank 6)
 - **900005** Kel'Thuzad's Broken Phylactery → `64247` (Phylactery of the Nameless Lich)
 - **900006** Voidcaller's Sigil → `31287` (Talisman of Ephemeral Power)
 - **900009** Sacrophile, Blade of the Damned → `33615` (Perdition's Blade)

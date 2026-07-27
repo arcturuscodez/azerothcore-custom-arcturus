@@ -166,7 +166,7 @@ CATALOG = [
     mk(900026, "Ragefire Embercloth", "chest", 2, 10, "Woven from cloth that survived the chasm's heat.", 11520, 16, "Taragaman the Hungerer"),
     mk(900027, "Imp-Caller's Thumb Ring", "ring", 1, 6, "Sized for a warlock, not an imp — probably.", 11519, 11, "Bazzalan"),
     mk(900028, "Cinderwhisper Shawl", "shoulder", 2, 9, "Whispers of distant flame when the wind blows.", 3196, 13, "Burning Blade Fanatic"),
-    mk(900029, "Starter's Soul Pin", "trinket", 2, 10, "A pin said to catch stray soul fragments from fresh kills.", 11518, 20, "Jergosh the Invoker", spell_id=689, spell_trigger=0, spell_cd=60000, script="item_warlock_special"),
+    mk(900029, "Starter's Soul Pin", "trinket", 2, 10, "A pin said to catch stray soul fragments from fresh kills.\n\nUse: Restore 5% of your maximum health. (1 Min Cooldown)", 11518, 20, "Jergosh the Invoker", spell_id=1454, spell_trigger=0, spell_cd=60000, script="item_warlock_special"),
 
     # ---- Levels 11-20 (900030-900043) ----
     mk(900030, "Shadowfang Soulbinder", "ring", 2, 15, "Silverlaine's pages wore these while copying Arugal's rites.", 3887, 14, "Baron Silverlaine"),
@@ -187,7 +187,7 @@ CATALOG = [
     # ---- Levels 21-30 (900044-900057) ----
     mk(900044, "Kelris's Tide-Twisted Band", "ring", 3, 22, "Salt and shadow cling to this Twilight relic.", 4832, 12, "Twilight Lord Kelris"),
     mk(900045, "Blackfathom Void Shawl", "shoulder", 3, 23, "Drowned cultists' garb, still dripping power.", 4813, 9, "Twilight Shadowmage"),
-    mk(900046, "Abyssal Soul Trinket", "trinket", 3, 24, "Presses against your chest when mana runs low.", 4832, 15, "Twilight Lord Kelris", spell_id=1454, spell_trigger=0, spell_cd=120000, script="item_warlock_special"),
+    mk(900046, "Abyssal Soul Trinket", "trinket", 3, 24, "Presses against your chest when mana runs low.\n\nUse: Restore 16% of your maximum mana. (2 Min Cooldown)", 4832, 15, "Twilight Lord Kelris", spell_id=12051, spell_trigger=0, spell_cd=120000, script="item_warlock_special"),
     mk(900047, "Razorflank's Bone Focus", "offhand", 3, 25, "Charlga's quilboar mystics feared this focus.", 4421, 13, "Charlga Razorflank"),
     mk(900048, "Death Speaker's Signet", "ring", 3, 26, "Jargba's voice still echoes inside the band.", 4428, 14, "Death Speaker Jargba"),
     mk(900049, "Quilboar Hex Staff", "staff", 3, 27, "Rough carvings channel surprisingly potent fel.", 4421, 16, "Charlga Razorflank"),
@@ -259,7 +259,7 @@ CATALOG = [
     mk(900107, "Supremus's Molten Band", "ring", 4, 70, "Heat from the Black Temple floor.", 22898, 7, "Supremus"),
     mk(900108, "Illidan's Outcast Wand", "wand", 4, 70, "Discarded by the Betrayer — still potent.", 22917, 6, "Illidan Stormrage", spell2_id=27215, spell2_trigger=2, spell2_ppm=4),
     mk(900109, "Archimonde's Defiler Staff", "staff", 4, 70, "A splinter of eredar power.", 17968, 5, "Archimonde"),
-    mk(900110, "Shade of Aran's Ember Cloak", "shoulder", 4, 70, "The shade's fire lingers.", 16524, 8, "Shade of Aran", script="item_warlock_special"),
+    mk(900110, "Shade of Aran's Ember Mantle", "shoulder", 4, 70, "The shade's fire lingers on every thread.\n\nEquip: Your fire spells deal 8% additional damage.", 16524, 8, "Shade of Aran", script="item_warlock_special"),
     mk(900111, "Malchezaar's Pocket Watch", "trinket", 4, 70, "Time bends around Karazhan's prince.", 15690, 7, "Prince Malchezaar", spell_id=1953, spell_trigger=0, spell_cd=120000),
     mk(900112, "Hex Lord's Voodoo Focus", "offhand", 4, 70, "Zul'Aman witchcraft repurposed.", 24239, 9, "Hex Lord Malacrass"),
     mk(900113, "Fel Iron Warlock Gloves", "hands", 4, 68, "Outland fel iron, warlock-fit.", 16807, 10, "Grand Warlock Nethekurse"),
@@ -289,11 +289,11 @@ CATALOG = [
 
     # Five level-80 build-defining legendaries (scripted)
     mk(900133, "Bloodseal of Nethekurse", "ring", 5, 80,
-       "Grand Warlock Nethekurse bled his own demons to forge this seal. Life is currency; power is interest.",
+       "Grand Warlock Nethekurse bled his own demons to forge this seal. Life is currency; power is interest.\n\nEquip: Life Tap grants a stacking spell power buff (up to 10).\nEquip: Healing received from others is reduced by 30%.\nUse: Burn 25% of your current health to gain Metamorphosis (or Bestial Wrath if unknown). (2 Min Cooldown)",
        16807, 2, "Grand Warlock Nethekurse",
        stats={"int": 75, "stam": 40, "sp": 140, "crit": 55, "haste": 45},
        bonding=1, flags=524288, maxcount=1, script="item_bloodseal_nethekurse",
-       spell_id=1454, spell_trigger=0, spell_cd=120000, displayid=47733),
+       spell_id=18708, spell_trigger=0, spell_cd=120000, displayid=47733),
     mk(900134, "Voidheart, Eye of Dimensius", "trinket", 5, 80,
        "A crystallized tear from the All-Devouring. Corruption becomes permanent; the void hungers.",
        19554, 2, "Dimensius the All-Devouring",

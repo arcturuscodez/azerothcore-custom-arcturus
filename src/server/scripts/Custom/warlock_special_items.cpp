@@ -39,14 +39,19 @@ using namespace WarlockSpecialItems;
 
 namespace
 {
-    constexpr std::array<uint32, 18> SCRIPTED_ITEMS = {
+    constexpr std::array<uint32, 19> SCRIPTED_ITEMS = {
         ITEM_FEL_SPARK_SIGNET, ITEM_STARTERS_SOUL_PIN, ITEM_WORGEN_CALLERS_STAFF,
         ITEM_ABYSSAL_SOUL_TRINKET, ITEM_FELGUARD_CLEAVER, ITEM_DEATHS_HEAD_SOUL_PIN,
         ITEM_PRINCESS_SOUL_LOCKET, ITEM_IMMOLTHAR_MANAFEED, ITEM_DREADLORD_CLAW,
         ITEM_ARAN_EMBER_CLOAK, ITEM_DIMENSIUS_DUST, ITEM_MAGTHERIDON_CUBE,
         ITEM_FESTERGUT_PLAGUE, ITEM_BLOODSEAL_NETHERKURSE, ITEM_VOIDHEART,
-        ITEM_SEAL_FIRST_NECROLYTE, ITEM_GRIMOIRE_EREDAR_TWINS, ITEM_SOULFLAME_LANTERN
+        ITEM_SEAL_FIRST_NECROLYTE, ITEM_GRIMOIRE_EREDAR_TWINS, ITEM_SOULFLAME_LANTERN,
+        ITEM_SIGNET_RESTLESS_VOID
     };
+
+    // Pursuit of Justice r2 — +15% run (+mounted via core spell_linked_spell).
+    // Applied from C++ so the item tooltip is not the paladin talent name.
+    constexpr uint32 SPELL_RESTLESS_VOID_MS = 26023;
 
     // All Life Tap / Drain Life ranks (family-mask matching is unreliable here:
     // Life Tap is a dummy-effect spell, so we match rank ids explicitly).
@@ -236,6 +241,15 @@ namespace
         }
         else
             SyncSoulflameSp(player);
+
+        // Restless Void: +15% movement (and mounted via spell_linked_spell on 26023).
+        // Applied here so item_template has no paladin "Pursuit of Justice" Equip line.
+        bool wantMs = PlayerHasSpecialItem(player, ITEM_SIGNET_RESTLESS_VOID);
+        bool hasMs = player->HasAura(SPELL_RESTLESS_VOID_MS);
+        if (wantMs && !hasMs)
+            player->CastSpell(player, SPELL_RESTLESS_VOID_MS, true);
+        else if (!wantMs && hasMs)
+            player->RemoveAurasDueToSpell(SPELL_RESTLESS_VOID_MS);
     }
 
     bool HandleGenericOnUse(Player* player, Item* item)

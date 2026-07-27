@@ -393,8 +393,10 @@ UPDATE `item_template` SET `displayid` = 35634 WHERE `entry` = 900132 AND `displ
 UPDATE `item_template` SET `displayid` = 68106 WHERE `entry` = 900134 AND `displayid` = 42499;
 
 -- ---------------------------------------------------------------------------
--- Cinderfury: put scripted Equip effects in description (no Spell.dbc patch)
+-- Cinderfury: short flavor only here (item_template.description is varchar(255)).
+-- Full organized Equip:/Use: tooltip is applied in rev_1785888000000000000.sql
+-- after widening the column.
 -- ---------------------------------------------------------------------------
 UPDATE `item_template` SET `description` =
-    'Cast from the last cooling ember of Ragnaros''s rage. Equip: +30% fire damage dealt; fire damage you deal heals you. Equip: -20% stamina. Equip: Hellfire becomes a persistent toggle that does not burn you. Equip: Soul Feast — kills near your Hellfire grant stacking spell power. Equip: Molten Ward — below 35% health, gain a fire shield (15% DR, scorches melee) (1 min ICD). Use: Infernal Detonation — burn 20% of your health to unleash a hellfire nova and empower Hellfire by 50% for 10 sec.'
+    'Cast from Ragnaros''s last ember. Scripted fire kit — see chat on equip.'
 WHERE `entry` = 900017;

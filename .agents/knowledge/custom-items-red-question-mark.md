@@ -81,6 +81,12 @@ Pending SQL: `data/sql/updates/pending_db_world/rev_1785801600000000000.sql`
 
 Fills `item_dbc` so `sItemStore` knows customs (stops “not in item.dbc” server errors; helps some equip paths). **Client still needs A, B, or C.**
 
+### Description / tooltip length
+
+Stock `item_template.description` is **varchar(255)**. Long organized Equip:/Use: text
+needs `rev_1785888000000000000.sql`, which widens the column to **varchar(1024)** before
+applying tooltips. Without that ALTER, MySQL returns **ERROR 1406**.
+
 ## Correct workflow for new custom items
 
 1. `item_template` pending SQL (stats, ScriptName, displayid → **stock** ItemDisplayInfo ID).

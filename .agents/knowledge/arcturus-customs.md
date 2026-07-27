@@ -43,12 +43,42 @@ EndlessInstances.Enable
 
 Documented in `conf/dist/arcturus-recommended-overrides.conf.dist`.
 
+Docker env equivalents (Config.cpp upper-snake `AC_` mapping):
+
+```text
+AC_WARLOCK_LEGENDARY_ENABLE=1
+AC_WARLOCK_SPECIAL_ITEMS_ENABLE=1
+```
+
+See `conf/dist/docker-compose.override.yml`. The recommended overrides **conf.dist is not
+auto-applied** — copy keys into `env/dist/etc/worldserver.conf` or set the `AC_*` env vars.
+
 ### Cinderfury (900017) — server vs client
 
 **SQL:** stats + Use spell 42945 (Blast Wave) as client-facing Use only.  
 **C++:** +30% fire damage + fire heal; −20% stamina; Hellfire toggle (no self-burn);
 Soul Feast; Molten Ward; Infernal Detonation.  
-**Tooltip:** description text (no custom Spell.dbc). Chat on equip/unequip.
+**Tooltip:** organized `description` text (no custom Spell.dbc). Chat on equip/unequip.
+
+`item_template.description` is widened to **varchar(1024)** in `rev_1785888000000000000.sql`
+(stock is 255 — longer Cinderfury text caused ERROR 1406).
+
+## Client icons (red `?`)
+
+Server `displayid` remaps + `item_dbc` are **not enough** for bag icons. Client still needs
+**CustomItemFix**, an **Item.dbc MPQ**, or a patched exe. Clear `Cache/` + `WDB/` after changes.
+Details: [custom-items-red-question-mark.md](custom-items-red-question-mark.md).
+
+## Paragon Anniversary + mod-ale
+
+Paragon is ALE/Lua. ALE is Lua 5.2+ (`unpack` is nil). Tracked fix:
+
+- [`.agents/patches/paragon-ale-lua52/`](../patches/paragon-ale-lua52/README.md)
+- Apply: `apps/patches/apply-paragon-ale-lua52.ps1` (or Compose volume mounts in
+  `conf/dist/docker-compose.override.yml`)
+
+`ScriptPath` should point at `modules/Paragon-Anniversary/serverside` **inside** the
+container/modules volume — do not rely on host `lua_scripts` symlinks in Docker.
 
 ## Client patch stance
 
@@ -61,6 +91,8 @@ Soul Feast; Molten Ward; Infernal Detonation.
 - Endless instances (`EndlessInstances.Enable`)
 - Individual progression / AutoBalance / AOE loot / transmog — see overrides conf
 - Playerbots: prefer module conf; watch bot population on live
+- Runtime-only (often gitignored under `env/dist/etc/`): `mod_ale.conf`, AH bot GUIDs,
+  bot counts — capture in dist docs if they must be reproducible across hosts
 
 ## Pending SQL index (legendaries / expansions)
 
@@ -74,7 +106,9 @@ Soul Feast; Molten Ward; Infernal Detonation.
 | `rev_1785628800000000001.sql` | 900058–900101 |
 | `rev_1785628800000000002.sql` | 900102–900137 |
 | `rev_1785628800000000003.sql` | 900138 |
-| `rev_1785715200000000000.sql` | displayid remaps + Cinderfury description |
+| `rev_1785715200000000000.sql` | displayid remaps + short Cinderfury flavor |
+| `rev_1785801600000000000.sql` | `item_dbc` rows for 900001–900138 |
+| `rev_1785888000000000000.sql` | widen description; Use decoys; organized tooltips; Mantle; Restless Void |
 
 When adding items: **new** pending rev file; do not silently edit already-applied live revs
 without a follow-up UPDATE migration.
@@ -82,6 +116,7 @@ without a follow-up UPDATE migration.
 ## Smoke test (warlock)
 
 1. `.additem 900017` — equip → chat ignite; fire spells feel stronger; stam down
-2. `.additem 900016` — use → skeleton morph; icon not `?` (displayid 17403)
-3. `.additem 900001` / orphans — icons present after remap + cache clear
+2. `.additem 900016` — use → skeleton morph; icon not `?` only if CustomItemFix/Item.dbc present
+3. `.additem 900001` / orphans — icons after client fix + Cache/WDB clear
 4. Weapons (900009/010/014/015) — models match dagger/sword/wand, not rings
+5. Paragon: worldserver loads ALE without `unpack` nil errors
