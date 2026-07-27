@@ -11,7 +11,8 @@ Apply on every task that touches items, spells, icons, tooltips, or HD clients.
   fix (CustomItemFix addon and/or Item.dbc MPQ). See
   `knowledge/custom-items-red-question-mark.md` — `item_template` alone causes red `?`.
 - After displayid or DBC-affecting changes, tell the user to clear client `Cache/WDB`.
-- Read `.agents/warlock-custom-item-icons.md` before changing 900xxx `displayid`s.
+- Read `.agents/warlock-custom-item-icons.md` before changing active custom `displayid`s
+  (900016 / 900017).
 - Prefer **type-correct** stock displayids (weapon≠ring model).
 - Put script-only legendary effects in `description` and/or chat unless a client spell
   patch is explicitly in scope.

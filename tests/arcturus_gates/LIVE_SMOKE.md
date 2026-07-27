@@ -1,10 +1,15 @@
-# Live smoke — post-deploy checklist (Cinderfury + Noggenfogger baseline)
+# Live smoke — post-wipe checklist (Cinderfury + Noggenfogger baseline)
 #
-# 1. `.additem 900017` — equip Cinderfury → chat ignite; fire spells stronger; stam down
-# 2. Cast Hellfire → persistent aura, no self-burn; cast again to quench
-# 3. Use Cinderfury → Infernal Detonation (HP burn + nova); 2 min CD
-# 4. `.additem 900016` — use → display 21151 morph at ~player size; use again → flesh returns
-#    (tune WarlockLegendary.Noggenfogger.Scale if still too big/small; default 0.35)
-# 5. Confirm retired 900001–900015 / 900018+ are gone (`.additem` fails / no template)
-# 6. Paragon: worldserver loads ALE without `unpack` nil errors
-# 7. Client: CustomItemFix or Item.dbc for bag icons on 900016/900017 if still `?`
+# After empty DBs + worldserver applies pending SQL + rebuild/restart:
+#
+# 1. Confirm NO retired customs: `.lookup item Mannoroth` / `.additem 900001` fail
+# 2. `.additem 900017` — equip Cinderfury → chat ignite; fire spells stronger; stam down
+# 3. Cast Hellfire → persistent aura, no self-burn; cast again to quench
+# 4. Use Cinderfury → Infernal Detonation (HP burn + nova); 2 min CD
+# 5. `.additem 900016` — use → display 21151 morph at ~player size; use again → flesh returns
+#    (tune WarlockLegendary.Noggenfogger.Scale if needed; default 0.35)
+# 6. Inferno → pet named Infernal with Immolation/Cleave/Anguish/War Stomp; stone consumed
+# 7. Ritual of Doom → Doomguard permanent pet; figurine consumed
+# 8. `.demons` works; souls table exists; kill → counter moves
+# 9. Paragon: worldserver loads ALE without `unpack` nil errors
+# 10. Client: CustomItemFix + ArcturusItemFix for bag icons / right-click on 900016/900017

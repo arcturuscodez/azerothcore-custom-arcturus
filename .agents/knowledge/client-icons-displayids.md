@@ -16,16 +16,18 @@ If InventoryIcon is blank or the `.blp` is missing → client draws **red `?`**.
 Wrong displayid for the item **type** (e.g. ring displayid on a sword) → icon may work
 but the **equipped model** looks nonsense (bow-as-sword, wand-as-warglaive, …).
 
-## Arcturus incident (July 2026)
+## Arcturus customs (displayids)
 
-- Custom items used displayids that depended on a **removed client patch**, or shared
-  placeholder **31657** (Cauterizing Band — a **ring**) on weapons/armor.
-- Orphans with red `?`: 900001, 900004, 900005, 900006, 900009, 900015, 900039, 900134.
-- Fix: `data/sql/updates/pending_db_world/rev_1785715200000000000.sql`
-- Map of outcomes: [../warlock-custom-item-icons.md](../warlock-custom-item-icons.md)
+Active items only: **900016** Noggenfogger (`17403`), **900017** Cinderfury (`31664`).
+Map: [../warlock-custom-item-icons.md](../warlock-custom-item-icons.md).
 
-Noggenfogger (900016) uses stock **17403** (same as item 8529) — works on clean clients.
-If 8529 works and 900016 does not → clear Cache/WDB or check client mods.
+Historical note: a July 2026 remap (`rev_1785715200000000000.sql`) fixed orphans that used
+patch-only or ring-placeholder displayids; most of those entries were later **retired**
+by the custom-item purge. Bag `?` on remaining customs is an Item.dbc client issue — see
+[custom-items-red-question-mark.md](custom-items-red-question-mark.md).
+
+Noggenfogger uses stock **17403** (same as item 8529) — works on clean clients for the
+*icon texture*, but the custom **entry** still needs CustomItemFix / Item.dbc for bag UI.
 
 ## How to choose a stock displayid
 
@@ -113,4 +115,4 @@ HD icon pack sources: see `client-hd-patches.md`.
 ## Reference inventory
 
 Always consult **[warlock-custom-item-icons.md](../warlock-custom-item-icons.md)** before
-changing 900xxx visuals so we do not regress orphans or type mismatches.
+changing active custom (900016/900017) visuals so we do not regress type mismatches.

@@ -1,23 +1,15 @@
 --
--- Cinderfury, Signet of the Firelord (900017) — legendary warlock ring, drops at
--- a very low chance from Molten Core bosses (direct loot-table entries, not the
--- mail pipeline the other 900001..900016 legendaries use).
+-- Arcturus wipe baseline: only Noggenfogger (900016) + Cinderfury (900017).
+-- Fresh installs must never insert retired 900xxx customs.
 --
--- The ring's behaviour lives in src/server/scripts/Custom/warlock_legendaries.cpp
--- (ScriptName item_cinderfury + the legendaries unit/player scripts):
---   * +30% fire damage done, and all fire spell damage you deal heals you (100%).
---   * -20% total stamina while worn.
---   * Casting Hellfire toggles it into a persistent aura that no longer burns you.
---   * Soul Feast: kills near your burning Hellfire grant stacking spell power.
---   * Molten Ward: dropping below 35% health raises a fire shield (15% damage
---     reduction, melee attackers are scorched), 60s internal cooldown.
---   * Use: Infernal Detonation — burns 20% of your current health to unleash a
---     hellfire nova and empower Hellfire (+50%) for 10s. 2 min cooldown.
+-- * Widen item_template.description for organized Cinderfury tooltip.
+-- * Final item_template + item_dbc for both keepers.
+-- * Cinderfury Molten Core loot (bosses + Majordomo cache).
 --
--- spellid_1 42945 (Blast Wave) is client-facing only: it makes the client show a
--- "Use: ..." fire-nova tooltip and send CMSG_USE_ITEM; the ItemScript intercepts
--- the use, so the server never casts it. displayid 31657 = Cauterizing Band (MC).
---
+
+ALTER TABLE `item_template`
+    MODIFY `description` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '';
+
 REPLACE INTO `item_template`
     (`entry`, `class`, `subclass`, `name`, `displayid`, `Quality`, `Flags`, `BuyPrice`, `SellPrice`,
      `InventoryType`, `AllowableClass`, `AllowableRace`, `ItemLevel`, `RequiredLevel`, `maxcount`, `stackable`,
@@ -28,20 +20,28 @@ REPLACE INTO `item_template`
      `spellid_2`, `spelltrigger_2`, `spellppmRate_2`, `spellcooldown_2`,
      `bonding`, `description`, `Material`, `sheath`, `MaxDurability`, `ScriptName`, `flagsCustom`)
 VALUES
-    (900017, 4, 0, 'Cinderfury, Signet of the Firelord', 31657, 5, 524288, 0, 250000,
+    (900016, 4, 0, 'Noggenfogger''s Magnum Opus', 17403, 5, 524288, 0, 250000,
+     12, 256, -1, 284, 80, 1, 1,
+     45, 145, 36, 60, 7, 55, 0, 0, 0, 0,
+     0, 0, 0, 0,
+     16591, 0, 5000, 0, 0,
+     0, 0, 0, 0,
+     1, 'Decades of Gadgetzan alchemy distilled into one perfect draught. Marin Noggenfogger insists the permanent skeleton is a feature.\n\nUse: Toggle the Noggenfogger morph (no duration limit; death removes it).', 1, 0, 0, 'item_noggenfogger_magnum_opus', 0),
+    (900017, 4, 0, 'Cinderfury, Signet of the Firelord', 31664, 5, 524288, 0, 250000,
      11, 256, -1, 284, 80, 1, 1,
      5, 80, 45, 160, 32, 60, 36, 50, 0, 0,
      0, 0, 0, 0,
      42945, 0, 120000, 0, 0,
      0, 0, 0, 0,
-     1, 'Cast from the last cooling ember of Ragnaros''s rage. "By fire be purged" is not a threat — it is this ring''s only promise.', 1, 0, 0, 'item_cinderfury', 0);
+     1, 'Cast from the last cooling ember of Ragnaros''s rage. "By fire be purged" is not a threat — it is this ring''s only promise.\n\nEquip: +30% fire damage dealt; fire damage you deal heals you.\nEquip: -20% stamina.\nEquip: Hellfire becomes a persistent toggle that does not burn you.\nEquip: Soul Feast — kills near your Hellfire grant stacking spell power.\nEquip: Molten Ward — below 35% health, gain a fire shield (15% DR, scorches melee) (1 Min ICD).\nUse: Infernal Detonation — burn 20% of your health to unleash a hellfire nova and empower Hellfire by 50% for 10 sec. (2 Min Cooldown)', 1, 0, 0, 'item_cinderfury', 0);
 
---
--- Loot: every Molten Core boss can drop the ring. Majordomo Executus has no
--- creature loot of his own — his reward chest, the Cache of the Firelord
--- (gameobject 179703), uses gameobject loot table 16719. Ragnaros gets a
--- slightly better chance as the final boss.
---
+DELETE FROM `item_dbc` WHERE `ID` IN (900016, 900017);
+INSERT INTO `item_dbc`
+    (`ID`, `ClassID`, `SubclassID`, `Sound_Override_Subclassid`, `Material`, `DisplayInfoID`, `InventoryType`, `SheatheType`)
+VALUES
+    (900016, 4, 0, -1, 1, 17403, 12, 0),
+    (900017, 4, 0, -1, 1, 31664, 11, 0);
+
 DELETE FROM `creature_loot_template` WHERE `Item` = 900017;
 INSERT INTO `creature_loot_template`
     (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`, `GroupId`, `MinCount`, `MaxCount`, `Comment`)

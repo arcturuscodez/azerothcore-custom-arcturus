@@ -84,3 +84,13 @@ UPDATE `item_template` SET `description` = 'Equip: … Use: …' WHERE `entry` =
 ```
 
 Keep accurate to script constants in `warlock_legendaries.cpp` / headers.
+
+## Wipe / fresh install
+
+Prefer a **final-state** pending rev (delete+insert / REPLACE) for customs you want.
+Do **not** leave insert-then-purge chains in `pending_db_*` — a wiped DB would still
+temporarily (or permanently if purge is dropped) pollute `item_template`.
+
+Arcturus wipe baseline: only `rev_1786500000000000000.sql` registers 900016/900017.
+See [arcturus-customs.md](arcturus-customs.md).
+

@@ -6,7 +6,7 @@ Companion to root [`AGENTS.md`](../../AGENTS.md). Focus: how this **fork** is op
 
 - **Core:** AzerothCore WotLK 3.3.5a (C++20, CMake, MySQL)
 - **Bots:** `modules/mod-playerbots` (and related)
-- **Customs:** `src/server/scripts/Custom/` (warlock legendaries, special items, demonic empowerment, …)
+- **Customs:** `src/server/scripts/Custom/` (warlock legendaries, demonic empowerment, …)
 - **Remotes:** `origin` = Arcturus GitHub; `upstream` = mod-playerbots azerothcore-wotlk
 
 ## Processes

@@ -10,7 +10,7 @@ Source of truth for **agent skills, rules, and project knowledge** for Arcturus
 | `skills/<name>/SKILL.md` | Invokable agent skills |
 | `rules/<name>.md` | Persistent agent rules for this repo |
 | `knowledge/` | Deep reference: client modding, server, Wowhead, customs |
-| `warlock-custom-item-icons.md` / `.json` | Current 900xxx displayid → stock lookalike map |
+| `warlock-custom-item-icons.md` / `.json` | Active customs (900016/900017) displayid map |
 
 Agent-specific dirs may symlink here (e.g. Claude Code):
 
