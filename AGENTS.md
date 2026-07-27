@@ -2,6 +2,8 @@
 
 AzerothCore is a C++ MMORPG server emulator for World of Warcraft 3.3.5a (WotLK), built with CMake, backed by MySQL.
 
+For **Arcturus-specific** client modding (MPQ/DBC/icons), Wowhead research, HD patches, and custom warlock content, see [`.agents/README.md`](.agents/README.md) and the `knowledge/` docs there.
+
 ## Agent rules
 
 - **Do not configure or build unless explicitly asked.** Builds are slow and rarely needed for code changes.

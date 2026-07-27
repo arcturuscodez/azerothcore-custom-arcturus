@@ -2,11 +2,19 @@
 
 Agent reference for entries **900001–900138** after `rev_1785715200000000000.sql`.
 
+> Broader context: [knowledge/client-icons-displayids.md](knowledge/client-icons-displayids.md) ·
+> [knowledge/wowhead-research.md](knowledge/wowhead-research.md) ·
+> [knowledge/arcturus-customs.md](knowledge/arcturus-customs.md) ·
+> [README.md](README.md)
+
 - `displayid` = `item_template.displayid` -> client `ItemDisplayInfo.dbc` row
   (bag icon string + 3D model/textures).
 - `stock_lookalike` = stock item that owns that displayid (what players see).
 - Red `?` icons happen when `InventoryIcon` on that ItemDisplayInfo row is empty
   or missing from the client (custom/patch-only IDs).
+- To preview stock looks: open `https://www.wowhead.com/wotlk/item=<stockEntry>` for the
+  lookalike's item entry (resolve entry via `item_template` where `displayid` matches),
+  or search the lookalike name on Wowhead WotLK.
 
 Total: **138** | Remapped: **127** | Kept: **11**
 
