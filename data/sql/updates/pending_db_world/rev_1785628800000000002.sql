@@ -1,0 +1,97 @@
+-- Warlock expansion items 900102-900137 (levels 61-80 + legendaries)
+
+REPLACE INTO `item_template`
+    (`entry`, `class`, `subclass`, `name`, `displayid`, `Quality`, `Flags`, `BuyPrice`, `SellPrice`,
+     `InventoryType`, `AllowableClass`, `AllowableRace`, `ItemLevel`, `RequiredLevel`, `maxcount`, `stackable`,
+     `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`,
+     `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`,
+     `dmg_min1`, `dmg_max1`, `dmg_type1`, `delay`,
+     `spellid_1`, `spelltrigger_1`, `spellcooldown_1`, `spellcategory_1`, `spellcategorycooldown_1`,
+     `spellid_2`, `spelltrigger_2`, `spellppmRate_2`, `spellcooldown_2`,
+     `bonding`, `description`, `Material`, `sheath`, `MaxDurability`, `ScriptName`, `flagsCustom`)
+VALUES
+    (900102, 4, 0, 'Nethekurse''s Training Collar', 31657, 3, 0, 0, 34000, 11, 256, -1, 136, 68, 0, 1, 5, 45, 7, 33, 45, 79, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 'Not the Bloodseal — a lesser focus from the Shattered Halls.', 1, 0, 0, '', 0),
+    (900103, 4, 1, 'Magtheridon''s Fel Chain', 31657, 3, 0, 0, 35000, 6, 256, -1, 140, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 'Links forged in Magtheridon''s prison.', 7, 0, 35, '', 0),
+    (900104, 4, 0, 'Syth''s Sethekk Focus', 31657, 3, 0, 0, 34000, 23, 256, -1, 136, 68, 0, 1, 5, 45, 7, 33, 45, 79, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 'Darkweaver''s shadow crow magic.', 1, 0, 0, '', 0),
+    (900105, 4, 0, 'Ikiss''s Arcane Feather', 31657, 3, 0, 0, 34000, 12, 256, -1, 136, 68, 0, 1, 5, 45, 7, 33, 45, 79, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 'One feather from the Talon King.', 1, 0, 0, '', 0),
+    (900106, 4, 0, 'Kael''thas''s Sunstrider Signet', 31657, 3, 0, 0, 35000, 11, 256, -1, 140, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 'A reject from the prince''s vault.', 1, 0, 0, '', 0),
+    (900107, 4, 0, 'Supremus''s Molten Band', 31657, 3, 0, 0, 35000, 11, 256, -1, 140, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 'Heat from the Black Temple floor.', 1, 0, 0, '', 0),
+    (900108, 2, 19, 'Illidan''s Outcast Wand', 31657, 3, 0, 0, 35000, 26, 256, -1, 140, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 148, 218, 6, 1800, 0, 0, 0, 0, 0, 27215, 2, 4, 0, 2, 'Discarded by the Betrayer — still potent.', 1, 3, 75, '', 0),
+    (900109, 2, 10, 'Archimonde''s Defiler Staff', 31657, 3, 0, 0, 35000, 17, 256, -1, 140, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 155, 245, 6, 3200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 'A splinter of eredar power.', 6, 3, 100, '', 0),
+    (900110, 4, 1, 'Shade of Aran''s Ember Cloak', 31657, 3, 0, 0, 35000, 3, 256, -1, 140, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'The shade''s fire lingers.', 7, 0, 45, 'item_warlock_special', 0),
+    (900111, 4, 0, 'Malchezaar''s Pocket Watch', 31657, 3, 0, 0, 35000, 12, 256, -1, 140, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 1953, 0, 120000, 0, 0, 0, 0, 0, 0, 2, 'Time bends around Karazhan''s prince.', 1, 0, 0, '', 0),
+    (900112, 4, 0, 'Hex Lord''s Voodoo Focus', 31657, 4, 0, 0, 35000, 23, 256, -1, 155, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Zul''Aman witchcraft repurposed.', 1, 0, 0, '', 0),
+    (900113, 4, 1, 'Fel Iron Warlock Gloves', 31657, 3, 0, 0, 34000, 10, 256, -1, 136, 68, 0, 1, 5, 45, 7, 33, 45, 79, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 'Outland fel iron, warlock-fit.', 7, 0, 35, '', 0),
+    (900114, 4, 0, 'Spawn of Dimensius Dust', 31657, 4, 0, 0, 35000, 12, 256, -1, 155, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Void residue from Netherstorm.', 1, 0, 0, 'item_warlock_special', 0),
+    (900115, 4, 0, 'Sunwell Residue Ring', 31657, 4, 0, 0, 35000, 11, 256, -1, 155, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Crystallized sin from the Sunwell.', 1, 0, 0, '', 0),
+    (900116, 4, 0, 'Black Temple Soulbinder', 31657, 4, 0, 0, 35000, 11, 256, -1, 155, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Worn by warlocks who served Illidan.', 1, 0, 0, '', 0),
+    (900117, 4, 0, 'Nathrezim Signet', 31657, 4, 0, 0, 35000, 11, 256, -1, 155, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Anetheron''s agents left this behind at Hyjal.', 1, 0, 0, '', 0),
+    (900118, 2, 7, 'Felstorm Warlock Blade', 31657, 3, 0, 0, 34500, 13, 256, -1, 138, 69, 0, 1, 5, 45, 7, 33, 45, 79, 32, 16, 36, 12, 79, 160, 6, 2000, 0, 0, 0, 0, 0, 30108, 2, 3, 0, 2, 'Outland Legion steel.', 1, 3, 90, '', 0),
+    (900119, 4, 0, 'Magtheridon''s Cube Shard', 31657, 4, 0, 0, 35000, 12, 256, -1, 155, 70, 0, 1, 5, 45, 7, 34, 45, 80, 32, 16, 36, 12, 0, 0, 0, 0, 47897, 0, 180000, 0, 0, 0, 0, 0, 0, 1, 'A fragment of the cube that bound him.', 1, 0, 0, 'item_warlock_special', 0),
+    (900120, 4, 0, 'Jedoga''s Shadowseeker Ring', 31657, 4, 0, 0, 37500, 11, 256, -1, 165, 75, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Twilight zeal from Ahn''kahet.', 1, 0, 0, '', 0),
+    (900121, 2, 19, 'Anub''ar Soul Wand', 31657, 4, 0, 0, 37000, 26, 256, -1, 163, 74, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 156, 230, 6, 1800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Nerubian shadow silk wrapped around bone.', 1, 3, 75, '', 0),
+    (900122, 4, 0, 'Sartharion''s Scorch Signet', 31657, 4, 0, 0, 40000, 11, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Obsidian heat in a band of gold.', 1, 0, 0, '', 0),
+    (900123, 4, 0, 'Malygos''s Arcane Shard', 31657, 4, 0, 0, 40000, 12, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Blue dragon magic, corrupted for fel.', 1, 0, 0, '', 0),
+    (900124, 4, 0, 'Yogg-Saron''s Whispering Eye', 31657, 4, 0, 0, 40000, 23, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'It blinks when you cast.', 1, 0, 0, '', 0),
+    (900125, 4, 0, 'Algalon''s Stellar Focus', 31657, 4, 0, 0, 40000, 12, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Cosmic power in the palm.', 1, 0, 0, '', 0),
+    (900126, 4, 0, 'Deathwhisper''s Cultist Band', 31657, 4, 0, 0, 40000, 11, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Lady Deathwhisper''s low priests wore these.', 1, 0, 0, '', 0),
+    (900127, 4, 1, 'Marrowgar''s Bone Bindings', 31657, 4, 0, 0, 40000, 9, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Icecrown bone, still cold.', 7, 0, 30, '', 0),
+    (900128, 4, 0, 'Festergut''s Plague Trinket', 31657, 4, 0, 0, 40000, 12, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'The stench never fades.', 1, 0, 0, 'item_warlock_special', 0),
+    (900129, 4, 0, 'Putricide''s Experiment Notes', 31657, 4, 0, 0, 40000, 23, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Unpublished research — highly illegal.', 1, 0, 0, '', 0),
+    (900130, 4, 0, 'Halion''s Twilight Signet', 31657, 4, 0, 0, 40000, 11, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Ruby Sanctum fire and shadow.', 1, 0, 0, '', 0),
+    (900131, 4, 0, 'Lich King''s Castoff Focus', 31657, 4, 0, 0, 40000, 23, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Kel''Thuzad''s master discarded this.', 1, 0, 0, '', 0),
+    (900132, 2, 10, 'ICC Soul Harvester', 31657, 4, 0, 0, 40000, 17, 256, -1, 175, 80, 0, 1, 5, 55, 7, 45, 45, 95, 32, 28, 36, 24, 175, 275, 6, 3200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Forged in the Citadel''s lower halls.', 6, 3, 100, '', 0),
+    (900133, 4, 0, 'Bloodseal of Nethekurse', 47733, 5, 524288, 0, 40000, 11, 256, -1, 284, 80, 1, 1, 5, 75, 7, 40, 45, 140, 32, 55, 36, 45, 0, 0, 0, 0, 1454, 0, 120000, 0, 0, 0, 0, 0, 0, 1, 'Grand Warlock Nethekurse bled his own demons to forge this seal. Life is currency; power is interest.', 1, 0, 0, 'item_bloodseal_nethekurse', 0),
+    (900134, 4, 0, 'Voidheart, Eye of Dimensius', 42499, 5, 524288, 0, 40000, 12, 256, -1, 284, 80, 1, 1, 5, 70, 7, 45, 45, 155, 32, 28, 36, 50, 0, 0, 0, 0, 47897, 0, 120000, 0, 0, 0, 0, 0, 0, 1, 'A crystallized tear from the All-Devouring. Corruption becomes permanent; the void hungers.', 1, 0, 0, 'item_voidheart', 0),
+    (900135, 4, 0, 'Seal of the First Necrolyte', 39159, 5, 524288, 0, 40000, 11, 256, -1, 284, 80, 1, 1, 5, 65, 7, 55, 45, 130, 32, 28, 36, 24, 0, 0, 0, 0, 689, 0, 90000, 0, 0, 0, 0, 0, 0, 1, 'Teron Gorefiend was the first death knight; this seal predates even his curse.', 1, 0, 0, 'item_seal_first_necrolyte', 0),
+    (900136, 4, 0, 'Grimoire of the Eredar Twins', 33839, 5, 524288, 0, 40000, 23, 256, -1, 284, 80, 1, 1, 5, 80, 7, 45, 45, 145, 32, 45, 36, 40, 0, 0, 0, 0, 1122, 0, 180000, 0, 0, 0, 0, 0, 0, 1, 'Sacrolash and Alythess bound their shared spells into one volume.', 1, 0, 0, 'item_grimoire_eredar_twins', 0),
+    (900137, 4, 0, 'Soulflame, Lantern of the Damned', 39336, 5, 524288, 0, 40000, 12, 256, -1, 284, 80, 1, 1, 5, 72, 7, 45, 45, 150, 32, 50, 36, 35, 0, 0, 0, 0, 47820, 0, 120000, 0, 0, 0, 0, 0, 0, 1, 'Gothik the Harvester trapped a thousand souls in this lantern. Yours are welcome.', 1, 0, 0, 'item_soulflame_lantern', 0);
+
+DELETE FROM `creature_loot_template` WHERE `Item` IN (900102, 900103, 900104, 900105, 900106, 900107, 900108, 900109, 900110, 900111, 900112, 900113, 900114, 900115, 900116, 900117, 900118, 900119, 900120, 900121, 900122, 900123, 900124, 900125, 900126, 900127, 900128, 900129, 900130, 900131, 900132, 900133, 900134, 900135, 900136, 900137);
+INSERT INTO `creature_loot_template`
+    (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`, `GroupId`, `MinCount`, `MaxCount`, `Comment`)
+VALUES
+    (16807, 900102, 0, 8, 0, 1, 0, 1, 1, 'Grand Warlock Nethekurse - Nethekurse''s Training Collar'),
+    (17257, 900103, 0, 6, 0, 1, 0, 1, 1, 'Magtheridon - Magtheridon''s Fel Chain'),
+    (18472, 900104, 0, 10, 0, 1, 0, 1, 1, 'Darkweaver Syth - Syth''s Sethekk Focus'),
+    (18473, 900105, 0, 11, 0, 1, 0, 1, 1, 'Talon King Ikiss - Ikiss''s Arcane Feather'),
+    (19622, 900106, 0, 5, 0, 1, 0, 1, 1, 'Kael''thas Sunstrider - Kael''thas''s Sunstrider Signet'),
+    (22898, 900107, 0, 7, 0, 1, 0, 1, 1, 'Supremus - Supremus''s Molten Band'),
+    (22917, 900108, 0, 6, 0, 1, 0, 1, 1, 'Illidan Stormrage - Illidan''s Outcast Wand'),
+    (17968, 900109, 0, 5, 0, 1, 0, 1, 1, 'Archimonde - Archimonde''s Defiler Staff'),
+    (16524, 900110, 0, 8, 0, 1, 0, 1, 1, 'Shade of Aran - Shade of Aran''s Ember Cloak'),
+    (15690, 900111, 0, 7, 0, 1, 0, 1, 1, 'Prince Malchezaar - Malchezaar''s Pocket Watch'),
+    (24239, 900112, 0, 9, 0, 1, 0, 1, 1, 'Hex Lord Malacrass - Hex Lord''s Voodoo Focus'),
+    (16807, 900113, 0, 10, 0, 1, 0, 1, 1, 'Grand Warlock Nethekurse - Fel Iron Warlock Gloves'),
+    (19554, 900114, 0, 6, 0, 1, 0, 1, 1, 'Dimensius the All-Devouring - Spawn of Dimensius Dust'),
+    (25315, 900115, 0, 4, 0, 1, 0, 1, 1, 'Kil''jaeden - Sunwell Residue Ring'),
+    (22898, 900116, 0, 8, 0, 1, 0, 1, 1, 'Supremus - Black Temple Soulbinder'),
+    (17808, 900117, 0, 6, 0, 1, 0, 1, 1, 'Anetheron - Nathrezim Signet'),
+    (18472, 900118, 0, 9, 0, 1, 0, 1, 1, 'Darkweaver Syth - Felstorm Warlock Blade'),
+    (17257, 900119, 0, 7, 0, 1, 0, 1, 1, 'Magtheridon - Magtheridon''s Cube Shard'),
+    (29310, 900120, 0, 10, 0, 1, 0, 1, 1, 'Jedoga Shadowseeker - Jedoga''s Shadowseeker Ring'),
+    (29120, 900121, 0, 9, 0, 1, 0, 1, 1, 'Anub''arak - Anub''ar Soul Wand'),
+    (28860, 900122, 0, 6, 0, 1, 0, 1, 1, 'Sartharion - Sartharion''s Scorch Signet'),
+    (33288, 900124, 0, 4, 0, 1, 0, 1, 1, 'Yogg-Saron - Yogg-Saron''s Whispering Eye'),
+    (36855, 900126, 0, 8, 0, 1, 0, 1, 1, 'Lady Deathwhisper - Deathwhisper''s Cultist Band'),
+    (36612, 900127, 0, 7, 0, 1, 0, 1, 1, 'Lord Marrowgar - Marrowgar''s Bone Bindings'),
+    (36626, 900128, 0, 6, 0, 1, 0, 1, 1, 'Festergut - Festergut''s Plague Trinket'),
+    (36678, 900129, 0, 5, 0, 1, 0, 1, 1, 'Professor Putricide - Putricide''s Experiment Notes'),
+    (39863, 900130, 0, 6, 0, 1, 0, 1, 1, 'Halion - Halion''s Twilight Signet'),
+    (15990, 900131, 0, 4, 0, 1, 0, 1, 1, 'Kel''Thuzad - Lich King''s Castoff Focus'),
+    (36855, 900132, 0, 7, 0, 1, 0, 1, 1, 'Lady Deathwhisper - ICC Soul Harvester'),
+    (16807, 900133, 0, 2, 0, 1, 0, 1, 1, 'Grand Warlock Nethekurse - Bloodseal of Nethekurse'),
+    (19554, 900134, 0, 2, 0, 1, 0, 1, 1, 'Dimensius the All-Devouring - Voidheart, Eye of Dimensius'),
+    (22871, 900135, 0, 2, 0, 1, 0, 1, 1, 'Teron Gorefiend - Seal of the First Necrolyte'),
+    (25166, 900136, 0, 2, 0, 1, 0, 1, 1, 'Grand Warlock Alythess - Grimoire of the Eredar Twins'),
+    (16060, 900137, 0, 2, 0, 1, 0, 1, 1, 'Gothik the Harvester - Soulflame, Lantern of the Damned'),
+    (25165, 900136, 0, 2.0, 0, 1, 0, 1, 1, 'Lady Sacrolash - Grimoire of the Eredar Twins');
+
+DELETE FROM `gameobject_loot_template` WHERE `Item` IN (900123, 900125);
+INSERT INTO `gameobject_loot_template`
+    (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`, `GroupId`, `MinCount`, `MaxCount`, `Comment`)
+VALUES
+    (26094, 900123, 0, 5.0, 0, 1, 0, 1, 1, 'Alexstrasza''s Gift (10) - Malygos''s Arcane Shard'),
+    (26097, 900123, 0, 5.0, 0, 1, 0, 1, 1, 'Alexstrasza''s Gift (25) - Malygos''s Arcane Shard'),
+    (27030, 900125, 0, 4.0, 0, 1, 0, 1, 1, 'Gift of the Observer (10) - Algalon''s Stellar Focus'),
+    (26974, 900125, 0, 4.0, 0, 1, 0, 1, 1, 'Gift of the Observer (25) - Algalon''s Stellar Focus');

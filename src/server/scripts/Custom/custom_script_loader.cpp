@@ -20,6 +20,8 @@
 void AddSC_warlock_demonic_empowerment();
 void AddSC_demons_commandscript();
 void AddSC_warlock_legendaries();
+void AddSC_warlock_special_items();
+void AddSC_endless_instances();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
@@ -28,4 +30,6 @@ void AddCustomScripts()
     AddSC_warlock_demonic_empowerment();
     AddSC_demons_commandscript();
     AddSC_warlock_legendaries();
+    AddSC_warlock_special_items();
+    AddSC_endless_instances();
 }

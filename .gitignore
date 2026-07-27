@@ -1,7 +1,6 @@
 #
 # AzerothCore
 #
-
 .cache
 /conf/*
 !/conf/dist
@@ -24,10 +23,8 @@
 /data/sql/custom/*
 /src/server/scripts/Custom/*
 !/src/server/scripts/Custom/README.md
-
 /*.override.yml
 /*.override.yaml
-
 !.gitkeep
 
 # default build directory if not specified by CMAKE configuration
@@ -36,7 +33,6 @@
 #
 #Generic
 #
-
 .directory
 .mailmap
 *.orig
@@ -68,6 +64,7 @@ CMakeLists.txt.user
 /.externalToolBuilders/*
 /.vs
 /out
+
 # exclude in all levels
 nbproject/
 .sync.ffs_db
@@ -77,7 +74,6 @@ nbproject/
 cmake-build-*/*
 coverage-report/
 .vs
-
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -108,16 +104,15 @@ local.properties
 __pycache__/
 *.py[cod]
 
-
 # ==================
 #
-#  CUSTOM
+# CUSTOM
 #
-#  put below your custom ignore rules
-#  for example , if you want to include a
-#  module directly in repositoryyou can do:
+# put below your custom ignore rules
+# for example , if you want to include a
+# module directly in repositoryyou can do:
 #
-#  !modules/yourmodule
+# !modules/yourmodule
 #
 # ==================
 .cache
@@ -129,6 +124,10 @@ compile_commands.json
 !/src/server/scripts/Custom/cs_demons.cpp
 !/src/server/scripts/Custom/warlock_legendaries.cpp
 !/src/server/scripts/Custom/warlock_legendaries.h
+!/src/server/scripts/Custom/warlock_special_items.cpp
+!/src/server/scripts/Custom/warlock_special_items.h
+!/src/server/scripts/Custom/custom_script_loader.cpp
+!/src/server/scripts/Custom/endless_instances.cpp
 
 # Generated client patch artifacts (built by client-patches/build_spell_patch.py)
 /client-patches/out/
