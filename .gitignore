@@ -132,3 +132,4 @@ compile_commands.json
 !/src/server/scripts/Custom/warlock_special_items.cpp
 !/src/server/scripts/Custom/warlock_special_items.h
 !/src/server/scripts/Custom/custom_script_loader.cpp
+!/src/server/scripts/Custom/endless_instances.cpp
