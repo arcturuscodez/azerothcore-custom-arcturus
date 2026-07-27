@@ -14,8 +14,9 @@ services:
       AC_WARLOCK_SPECIAL_ITEMS_ENABLE: "1"
       # Rate.XP.Kill — creature kill experience
       AC_RATE_XP_KILL: "3"
-      # Optional: pin ALE ScriptPath at Paragon serverside inside the modules volume
-      # AC_ELUNA_SCRIPTPATH: "/azerothcore/modules/Paragon-Anniversary/serverside"
+      # Paragon Anniversary via mod-ale (ALE.* keys; not Eluna)
+      AC_ALE_ENABLED: "1"
+      AC_ALE_SCRIPT_PATH: "/azerothcore/modules/Paragon-Anniversary/serverside"
     volumes:
       # Survive `git submodule update` wiping the Lua 5.2 unpack fix (upstream push 403)
       - ./.agents/patches/paragon-ale-lua52/000_lua_compat.lua:/azerothcore/modules/Paragon-Anniversary/serverside/000_lua_compat.lua:ro
