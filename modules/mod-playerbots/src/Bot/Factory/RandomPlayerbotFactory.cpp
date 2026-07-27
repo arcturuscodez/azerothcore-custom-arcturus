@@ -426,8 +426,13 @@ uint32 RandomPlayerbotFactory::CalculateAvailableCharsPerAccount()
 {
     // Death Knight availability according to their login eligibility, and if WotLK is enabled at all.
     bool noDK = sPlayerbotAIConfig.disableDeathKnightLogin || sWorld->getIntConfig(CONFIG_EXPANSION) != EXPANSION_WRATH_OF_THE_LICH_KING;
+    bool noWarlock = sPlayerbotAIConfig.disableWarlockLogin;
 
-    uint32 availableChars = noDK ? 9 : 10;
+    uint32 availableChars = 10;
+    if (noDK)
+        --availableChars;
+    if (noWarlock)
+        --availableChars;
 
     uint32 hordeRatio = sPlayerbotAIConfig.randomBotHordeRatio;
     uint32 allianceRatio = sPlayerbotAIConfig.randomBotAllianceRatio;
@@ -711,6 +716,12 @@ void RandomPlayerbotFactory::CreateRandomBots()
 
             // skip disabled with config classes
             if ((1 << (cls - 1)) & sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK))
+                continue;
+
+            if (sPlayerbotAIConfig.disableWarlockLogin && cls == CLASS_WARLOCK)
+                continue;
+
+            if (sPlayerbotAIConfig.disableDeathKnightLogin && cls == CLASS_DEATH_KNIGHT)
                 continue;
 
             Player* playerBot = factory.CreateRandomBot(session, cls, nameCache);

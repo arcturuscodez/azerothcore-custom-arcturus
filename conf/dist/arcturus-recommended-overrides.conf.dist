@@ -1,0 +1,105 @@
+#
+# Arcturus solo-warlock server — recommended config overrides
+#
+# Copy each module's *.conf.dist from modules/*/conf/ into your server conf/ directory,
+# then merge the relevant sections below. Keys here override defaults called out by
+# module audits (utility, combat, playerbots integration).
+#
+
+####################################################################################################
+# worldserver.conf
+####################################################################################################
+
+EnablePlayerSettings = 1
+DBC.EnforceItemAttributes = 0
+AccountInstancesPerHour = 100
+Rate.Corpse.Decay.Looted = 0.01
+Updates.EnableDatabases = 7
+
+EndlessInstances.Enable = 1
+WarlockDemonicEmpowerment.Enable = 1
+
+####################################################################################################
+# AutoBalance.conf  (modules/mod-autobalance/conf/)
+####################################################################################################
+
+AutoBalance.Enable.Global = 1
+AutoBalance.playerCountDifficultyOffset = -4
+AutoBalance.MinPlayers = 1
+AutoBalance.MinPlayers.Raid = 1
+AutoBalance.RewardScaling.XP = 1
+AutoBalance.reward.enable = 0
+AutoBalance.PlayerChangeNotify = 0
+AutoBalanceAnnounce.enable = 0
+
+####################################################################################################
+# individualProgression.conf  (modules/mod-individual-progression/conf/)
+####################################################################################################
+
+IndividualProgression.Enable = 1
+IndividualProgression.SimpleConfigOverride = 1
+IndividualProgression.BotAccountsRegex = "^rndbot.*"
+IndividualProgression.BotOnlyAdjustments = 0
+IndividualProgression.VanillaPowerAdjustment = 1
+IndividualProgression.VanillaHealingAdjustment = 1
+IndividualProgression.doableNaxx40Bosses_4H = 1
+IndividualProgression.doableNaxx40Bosses_Gluth = 1
+IndividualProgression.doableNaxx40Bosses_Patchwerk = 1
+IndividualProgression.doableNaxx40Bosses_Razuvious = 1
+
+####################################################################################################
+# mod_aoe_loot.conf
+####################################################################################################
+
+AOELoot.Enable = 1
+AOELoot.Group = 1
+AOELoot.Range = 55.0
+AOELoot.Message = 0
+
+####################################################################################################
+# transmog.conf
+####################################################################################################
+
+Transmogrification.Enable = 1
+Transmogrification.UseCollectionSystem = 1
+Transmogrification.EnablePortable = 1
+Transmogrification.ScaledCostModifier = 0.0
+Transmogrification.CopperCost = 0
+Transmogrification.AllowLegendary = 1
+Transmogrification.EnablePlus = 0
+
+####################################################################################################
+# mod_ahbot.conf  — requires a real (non-bot) character GUID
+####################################################################################################
+
+# AuctionHouseBot.GUIDs = <your_dedicated_ah_bot_guid>
+# AuctionHouseBot.EnableSeller = true
+# AuctionHouseBot.Buyer.Enabled = false
+# AuctionHouseBot.DisabledCustomItemIDs = 900017,900058-900101
+# AuctionHouseBot.Alliance.MinItems = 800
+# AuctionHouseBot.Alliance.MaxItems = 1200
+
+####################################################################################################
+# mod_ollama_chat.conf  — disable unless Ollama is running locally
+####################################################################################################
+
+OllamaChat.Enable = 0
+
+# When Ollama is running, also disable native playerbot chatter in playerbots.conf:
+# AiPlayerbot.EnableBroadcasts = 0
+# AiPlayerbot.RandomBotTalk = 0
+# AiPlayerbot.RandomBotEmote = 0
+# AiPlayerbot.RandomBotSuggestDungeons = 0
+# AiPlayerbot.EnableGreet = 0
+# AiPlayerbot.GuildFeedback = 0
+# AiPlayerbot.RandomBotSayWithoutMaster = 0
+
+####################################################################################################
+# playerbots.conf  — see modules/mod-playerbots/conf/playerbots.conf.dist for Arcturus defaults
+####################################################################################################
+
+# AiPlayerbot.DisableWarlockLogin = 1  (blocks randombot + addclass warlock)
+# AiPlayerbot.MaxAddedBots = 4
+# AiPlayerbot.EnableRandomBotTrading = 0
+# AiPlayerbot.RandomBotJoinBG = 0
+# AiPlayerbot.RandomBotJoinLfg = 0

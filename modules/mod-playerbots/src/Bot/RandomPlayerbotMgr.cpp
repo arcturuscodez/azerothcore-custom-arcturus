@@ -1732,6 +1732,9 @@ void RandomPlayerbotMgr::PrepareAddclassCache()
             if (claz == 10)
                 continue;
 
+            if (sPlayerbotAIConfig.disableWarlockLogin && claz == CLASS_WARLOCK)
+                continue;
+
             QueryResult results = CharacterDatabase.Query(
                 "SELECT guid, race FROM characters "
                 "WHERE account = {} AND class = '{}' AND online = 0",

@@ -1143,6 +1143,13 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             messages.push_back("Error: Invalid Class. Try again.");
             return messages;
         }
+
+        if (claz == CLASS_WARLOCK && sPlayerbotAIConfig.disableWarlockLogin)
+        {
+            messages.push_back("Warlock bots are disabled on this server.");
+            return messages;
+        }
+
         //  Added for gender choice : Parsing gender
         int8 gender = -1; // -1 = gender will be random
         if (genderArg)

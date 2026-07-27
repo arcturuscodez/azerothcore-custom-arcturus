@@ -2119,7 +2119,7 @@ PlayerStart.String = ""
 #        Default:     0 - Disabled
 #                     1 - Enabled
 
-EnablePlayerSettings = 0
+EnablePlayerSettings = 1
 
 #
 #    MaxPlayerLevel
@@ -2826,7 +2826,7 @@ ItemDelete.KeepDays = 0
 #        Default:     0 - Off, Use DB values
 #                     1 - On, Enforce DBC Values (default)
 
-DBC.EnforceItemAttributes = 1
+DBC.EnforceItemAttributes = 0
 
 #
 #    Rate.Drop.Item.Poor
@@ -3070,7 +3070,7 @@ Corpse.Decay.WORLDBOSS = 3600
 #                     after they have been looted.
 #         Default:    0.5
 
-Rate.Corpse.Decay.Looted = 0.5
+Rate.Corpse.Decay.Looted = 0.01
 
 #
 #    Rate.Creature.Normal.Damage
@@ -3381,7 +3381,7 @@ Instance.UnloadDelay = 1800000
 #        Description: Controls the max amount of different instances player can enter within hour
 #        Default:     5
 
-AccountInstancesPerHour = 5
+AccountInstancesPerHour = 100
 
 #
 #    Instance.SharedNormalHeroicId
