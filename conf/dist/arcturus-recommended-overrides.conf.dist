@@ -16,8 +16,20 @@ AccountInstancesPerHour = 100
 Rate.Corpse.Decay.Looted = 0.01
 Updates.EnableDatabases = 7
 
+# Creature kill XP (quests/explore stay at 1x unless you change them too)
+Rate.XP.Kill = 3
+
 EndlessInstances.Enable = 1
 WarlockDemonicEmpowerment.Enable = 1
+# Per current soul on the active demon (defaults match code if unset):
+# WarlockDemonicEmpowerment.PerKill.Stamina = 2
+# WarlockDemonicEmpowerment.PerKill.Strength = 1
+# WarlockDemonicEmpowerment.PerKill.Agility = 1
+# WarlockDemonicEmpowerment.PerKill.Intellect = 1
+# WarlockDemonicEmpowerment.PerKill.Spirit = 1
+# WarlockDemonicEmpowerment.PerKill.AttackPower = 1
+# WarlockDemonicEmpowerment.PerKill.SpellPower = 1
+# WarlockDemonicEmpowerment.PerKill.Armor = 5
 
 # Warlock legendary mail drops + Cinderfury / Voidsworn / Feltouched script kit
 # (src/server/scripts/Custom/warlock_legendaries.cpp). Default in code is 1 if unset;

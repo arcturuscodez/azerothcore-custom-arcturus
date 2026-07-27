@@ -257,7 +257,7 @@ CATALOG = [
     mk(900105, "Ikiss's Arcane Feather", "trinket", 4, 68, "One feather from the Talon King.", 18473, 11, "Talon King Ikiss"),
     mk(900106, "Kael'thas's Sunstrider Signet", "ring", 4, 70, "A reject from the prince's vault.", 19622, 5, "Kael'thas Sunstrider"),
     mk(900107, "Supremus's Molten Band", "ring", 4, 70, "Heat from the Black Temple floor.", 22898, 7, "Supremus"),
-    mk(900108, "Illidan's Outcast Wand", "wand", 4, 70, "Discarded by the Betrayer — still potent.", 22917, 6, "Illidan Stormrage", spell2_id=27215, spell2_trigger=2, spell2_ppm=4),
+    mk(900108, "Illidan's Outcast Wand", "wand", 4, 70, "Discarded by the Betrayer — still potent.", 22917, 6, "Illidan Stormrage", spell2_id=47811, spell2_trigger=2, spell2_ppm=4),
     mk(900109, "Archimonde's Defiler Staff", "staff", 4, 70, "A splinter of eredar power.", 17968, 5, "Archimonde"),
     mk(900110, "Shade of Aran's Ember Mantle", "shoulder", 4, 70, "The shade's fire lingers on every thread.\n\nEquip: Your fire spells deal 8% additional damage.", 16524, 8, "Shade of Aran", script="item_warlock_special"),
     mk(900111, "Malchezaar's Pocket Watch", "trinket", 4, 70, "Time bends around Karazhan's prince.", 15690, 7, "Prince Malchezaar", spell_id=1953, spell_trigger=0, spell_cd=120000),
@@ -311,13 +311,13 @@ CATALOG = [
        25166, 2, "Grand Warlock Alythess",
        stats={"int": 80, "sp": 145, "crit": 45, "haste": 40},
        bonding=1, flags=524288, maxcount=1, script="item_grimoire_eredar_twins",
-       spell_id=1122, spell_trigger=0, spell_cd=180000, displayid=33839),
+       spell_id=18708, spell_trigger=0, spell_cd=180000, displayid=33839),
     mk(900137, "Soulflame, Lantern of the Damned", "trinket", 5, 80,
        "Gothik the Harvester trapped a thousand souls in this lantern. Yours are welcome.",
        16060, 2, "Gothik the Harvester",
        stats={"int": 72, "sp": 150, "crit": 50, "haste": 35},
        bonding=1, flags=524288, maxcount=1, script="item_soulflame_lantern",
-       spell_id=47820, spell_trigger=0, spell_cd=120000, displayid=39336),
+       spell_id=18708, spell_trigger=0, spell_cd=120000, displayid=39336),
 ]
 # fmt: on
 

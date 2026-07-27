@@ -19,7 +19,7 @@
 #ifndef _WARLOCK_DEMONIC_EMPOWERMENT_H_
 #define _WARLOCK_DEMONIC_EMPOWERMENT_H_
 
-#include "ObjectGuid.h"
+#include "Define.h"
 
 #include <array>
 #include <cstddef>
@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+class ObjectGuid;
 class Player;
 class Unit;
 
@@ -38,8 +39,12 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_ENABLED           = "WarlockDemonicEmpowerment.Enable";
     constexpr char const* CONFIG_BONUS_STAMINA     = "WarlockDemonicEmpowerment.PerKill.Stamina";
     constexpr char const* CONFIG_BONUS_STRENGTH    = "WarlockDemonicEmpowerment.PerKill.Strength";
+    constexpr char const* CONFIG_BONUS_AGILITY     = "WarlockDemonicEmpowerment.PerKill.Agility";
     constexpr char const* CONFIG_BONUS_INTELLECT   = "WarlockDemonicEmpowerment.PerKill.Intellect";
+    constexpr char const* CONFIG_BONUS_SPIRIT      = "WarlockDemonicEmpowerment.PerKill.Spirit";
     constexpr char const* CONFIG_BONUS_ATTACKPOWER = "WarlockDemonicEmpowerment.PerKill.AttackPower";
+    constexpr char const* CONFIG_BONUS_SPELLPOWER  = "WarlockDemonicEmpowerment.PerKill.SpellPower";
+    constexpr char const* CONFIG_BONUS_ARMOR       = "WarlockDemonicEmpowerment.PerKill.Armor";
     constexpr char const* CONFIG_DEATH_PENALTY_PCT = "WarlockDemonicEmpowerment.DeathPenaltyPct";
     constexpr char const* CONFIG_ANNOUNCE_KILLS    = "WarlockDemonicEmpowerment.AnnounceEveryNKills";
     constexpr char const* CONFIG_PET_HEAL_PCT      = "WarlockDemonicEmpowerment.PetHealOnKillPct";
@@ -165,12 +170,21 @@ namespace WarlockEmpowerment
     {
         float stamina;
         float strength;
+        float agility;
         float intellect;
+        float spirit;
         float attackPower;
+        float spellPower;
+        float armor;
     };
 
     // Reads the per-kill demon bonus values from config.
     BonusValues LoadedBonus();
+
+    // Flat spell power granted to `pet` from Demonic Empowerment souls.
+    // Used by warlock pet-scaling auras so Spell Bonus (PLAYER_PET_SPELL_POWER)
+    // and Firebolt/etc. both see the bonus.
+    int32 PetSoulSpellPowerBonus(Unit const* pet);
 
     struct TemperValues
     {

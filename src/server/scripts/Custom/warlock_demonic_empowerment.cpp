@@ -7,8 +7,8 @@
  *   current  — lifetime minus souls lost to demon deaths; scales the demons.
  *
  * What souls buy:
- *  - Demons: +2 Sta / +1 Str / +1 Int / +1 AP per CURRENT soul (configurable), shared
- *    by every demon the warlock summons.
+ *  - Demons: +2 Sta / +1 Str / +1 Agi / +1 Int / +1 Spi / +1 AP / +1 SP / +5 Armor
+ *    per CURRENT soul (configurable), shared by every demon the warlock summons.
  *  - Soul Tempering: the warlock gains +2 Sta / +2 Int / +3 SP per 100 LIFETIME souls
  *    (interval, values, and an optional tier cap all configurable).
  *  - Gifts of the Void: permanently learned spells at rank thresholds (see GIFTS in
@@ -39,11 +39,13 @@
 #include "DatabaseEnv.h"
 #include "Formulas.h"
 #include "KillRewarder.h"
+#include "ObjectGuid.h"
 #include "Pet.h"
 #include "Player.h"
 #include "PlayerScript.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
+#include "SpellAuraEffects.h"
 #include "StringFormat.h"
 #include "UnitScript.h"
 #include "WorldSession.h"
@@ -68,8 +70,12 @@ namespace WarlockEmpowerment
         return {
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_STAMINA,     2)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_STRENGTH,    1)),
+            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_AGILITY,     1)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_INTELLECT,   1)),
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_ATTACKPOWER, 1))
+            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_SPIRIT,      1)),
+            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_ATTACKPOWER, 1)),
+            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_SPELLPOWER,  1)),
+            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_ARMOR,       5))
         };
     }
 
@@ -153,15 +159,83 @@ namespace WarlockEmpowerment
         if (!pet || !kills)
             return;
 
+        // Stamina (and intellect) changes rewrite max HP/mana. Capture fill ratio
+        // before UpdateAllStats so a remove→reapply (or a level-up re-init) cannot
+        // clamp the pet to the temporary post-remove max and leave it nearly dead.
+        uint32 const maxHealthBefore = pet->GetMaxHealth();
+        float const healthPct = maxHealthBefore
+            ? float(pet->GetHealth()) / float(maxHealthBefore)
+            : 1.0f;
+        uint32 const maxManaBefore = pet->GetMaxPower(POWER_MANA);
+        float const manaPct = maxManaBefore
+            ? float(pet->GetPower(POWER_MANA)) / float(maxManaBefore)
+            : 1.0f;
+
         BonusValues b = LoadedBonus();
         float mult = float(kills);
 
         pet->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA,   TOTAL_VALUE, b.stamina     * mult, apply);
         pet->HandleStatFlatModifier(UNIT_MOD_STAT_STRENGTH,  TOTAL_VALUE, b.strength    * mult, apply);
+        pet->HandleStatFlatModifier(UNIT_MOD_STAT_AGILITY,   TOTAL_VALUE, b.agility     * mult, apply);
         pet->HandleStatFlatModifier(UNIT_MOD_STAT_INTELLECT, TOTAL_VALUE, b.intellect   * mult, apply);
+        pet->HandleStatFlatModifier(UNIT_MOD_STAT_SPIRIT,    TOTAL_VALUE, b.spirit      * mult, apply);
         pet->HandleStatFlatModifier(UNIT_MOD_ATTACK_POWER,   TOTAL_VALUE, b.attackPower * mult, apply);
+        pet->HandleStatFlatModifier(UNIT_MOD_ARMOR,          TOTAL_VALUE, b.armor       * mult, apply);
 
         pet->UpdateAllStats();
+
+        if (pet->IsAlive())
+        {
+            if (uint32 maxHealth = pet->GetMaxHealth())
+            {
+                uint32 want = uint32(float(maxHealth) * healthPct + 0.5f);
+                if (want < 1)
+                    want = 1;
+                if (want > maxHealth)
+                    want = maxHealth;
+                pet->SetHealth(want);
+            }
+
+            if (uint32 maxMana = pet->GetMaxPower(POWER_MANA))
+            {
+                uint32 want = uint32(float(maxMana) * manaPct + 0.5f);
+                if (want > maxMana)
+                    want = maxMana;
+                pet->SetPower(POWER_MANA, want);
+            }
+        }
+
+        // Spell power is injected into the warlock pet-scaling aura (see
+        // spell_warl_*_scaling::CalculateSPAmount) so it feeds both Firebolt
+        // damage and the client's Spell Bonus field. Force a recalc now rather
+        // than waiting for the aura's 2s periodic.
+        if (b.spellPower != 0.0f)
+        {
+            Unit::AuraEffectList const& spEffects = pet->GetAuraEffectsByType(SPELL_AURA_MOD_DAMAGE_DONE);
+            for (AuraEffect* aurEff : spEffects)
+                if (aurEff)
+                    aurEff->RecalculateAmount();
+        }
+    }
+
+    int32 PetSoulSpellPowerBonus(Unit const* pet)
+    {
+        if (!pet || !pet->IsPet() || !sConfigMgr->GetOption<bool>(CONFIG_ENABLED, true))
+            return 0;
+
+        Unit* owner = pet->GetOwner();
+        if (!owner)
+            return 0;
+
+        Player* player = owner->ToPlayer();
+        if (!player || !player->IsClass(CLASS_WARLOCK, CLASS_CONTEXT_PET))
+            return 0;
+
+        uint32 souls = Mgr::instance()->Get(player->GetGUID()).current;
+        if (!souls)
+            return 0;
+
+        return int32(LoadedBonus().spellPower * float(souls));
     }
 
     // ---- Manager --------------------------------------------------------------
@@ -600,14 +674,19 @@ public:
         if (!IsEnabled() || !IsWarlock(player) || !guardian || !guardian->IsPet())
             return;
 
-        // InitStatsForLevel also runs on pet level-up and player level-up; remove whatever
-        // we previously applied to this pet object before applying the current total, or the
-        // flat modifiers would stack once per re-init.
+        // Flat TOTAL_VALUE mods survive Guardian::InitStatsForLevel (it only rewrites
+        // base/create stats). The core then SetFullHealth()'s the pet — if we
+        // strip and re-apply the same soul stamina afterward, max HP briefly
+        // collapses and current HP is clamped to that floor (looks like the pet
+        // "lost most of its health" on level-up). Skip when nothing changed.
         auto* state = guardian->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
+        uint32 current = sWarlockEmpower->Get(player->GetGUID()).current;
+        if (state->applied == current)
+            return;
+
         if (state->applied)
             ApplyKillBonus(guardian, state->applied, false);
 
-        uint32 current = sWarlockEmpower->Get(player->GetGUID()).current;
         ApplyKillBonus(guardian, current, true);
         state->applied = current;
     }

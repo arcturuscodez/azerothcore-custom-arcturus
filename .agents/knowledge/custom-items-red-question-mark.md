@@ -39,10 +39,10 @@ Official: https://github.com/azerothcore/CustomItemFix
 
 Hooks bag/bank/action-bar updates and replaces `INV_Misc_QuestionMark` with the texture from `GetItemInfo()` (server-provided).
 
-Path installed:
+Path installed (example):
 
 ```text
-C:\Games\WOTLK\world of warcraft 3.3.5a hd\Interface\AddOns\CustomItemFix\
+<WoW client>/Interface/AddOns/CustomItemFix/
 ```
 
 **You must enable it** at character select (AddOns button). Then `/reload` or relog. Cache\WDB was cleared.

@@ -118,6 +118,10 @@ __pycache__/
 .cache
 compile_commands.json
 
+# Agent / session debug dumps (never publish)
+debug-*.log
+*.agent.debug.log
+
 # Local ALE script path (junction/copy of Paragon serverside → modules/Paragon-Anniversary)
 /lua_scripts/
 

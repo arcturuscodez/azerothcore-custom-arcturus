@@ -23,7 +23,7 @@ Solo-warlock oriented AzerothCore realm. Customs live mainly under
 |-------|----------------|
 | `warlock_legendaries.h/.cpp` | 900001–900017 kit, mail drops, Cinderfury combat |
 | `warlock_special_items.*` | Scripted subset of 900018+ |
-| `warlock_demonic_empowerment.*` | `.demon` / empowerment (no longer spell 900000 buff) |
+| `warlock_demonic_empowerment.*` | `.demon` / empowerment (no longer spell 900000 buff); pet souls grant Sta/Str/Agi/Int/Spi/AP/**SP**/Armor |
 | `custom_script_loader.cpp` | `AddSC_*` registration |
 
 ### Config keys
@@ -109,9 +109,21 @@ container/modules volume — do not rely on host `lua_scripts` symlinks in Docke
 | `rev_1785715200000000000.sql` | displayid remaps + short Cinderfury flavor |
 | `rev_1785801600000000000.sql` | `item_dbc` rows for 900001–900138 |
 | `rev_1785888000000000000.sql` | widen description; Use decoys; organized tooltips; Mantle; Restless Void |
+| `rev_1785974400000000000.sql` | stability: Shadow Nova ID, Immolate ranks, 136/137 decoys, tooltip sync |
 
 When adding items: **new** pending rev file; do not silently edit already-applied live revs
 without a follow-up UPDATE migration.
+
+## Stability notes (customs)
+
+**Fixed (C++ + `rev_1785974…`):** Doomstaff null AI; Shadow Nova was Rain of Fire `42223` →
+`32711`; Voidheart all Corruption ranks; Death's Head SP capped at +50; Bloodseal Bestial Wrath
+targets the pet; Grimoire Immolate uses WotLK `47811`; legendary OnUse respects
+`WarlockLegendary.Enable`; 900136/137 Use decoys are self-cast.
+
+**Known residual (by design / client):** Item on-use CDs in `CustomData` reset on logout (bypass
+until a spell-category CD is wired). Bag/cursor `?` needs client Item.dbc or CustomItemFix.
+Feltouched/Fel Splinter are flat `+1` soul each (not a true multiply of rank income).
 
 ## Smoke test (warlock)
 
@@ -119,4 +131,9 @@ without a follow-up UPDATE migration.
 2. `.additem 900016` — use → skeleton morph; icon not `?` only if CustomItemFix/Item.dbc present
 3. `.additem 900001` / orphans — icons after client fix + Cache/WDB clear
 4. Weapons (900009/010/014/015) — models match dagger/sword/wand, not rings
-5. Paragon: worldserver loads ALE without `unpack` nil errors
+5. `.additem 900011` — melee proc Shadow Nova (not Rain of Fire)
+6. `.additem 900134` — Corruption any rank stays permanent; void nova after enough shadow damage
+7. `.additem 900008` — Doomguard summons without crash if AI missing
+8. Paragon: worldserver loads ALE without `unpack` nil errors
+9. Client: enable **ArcturusDebug** (`/adebug on`); reproduce; `/reload` then read
+   `WTF/Account/<acct>/SavedVariables/ArcturusDebug.lua` (see `.agents/client-addons/ArcturusDebug/`)

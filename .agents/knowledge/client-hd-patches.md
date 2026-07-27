@@ -37,11 +37,11 @@ improves those stock models/icons improves customs "for free".
 - [slipo335/dbcraft](https://github.com/slipo335/dbcraft)
 - [mindsear/ItemDisplayInfo](https://github.com/mindsear/ItemDisplayInfo) — browse displayid ↔ icon
 
-## This machine's HD client notes
+## Example HD client notes
 
-Path: `C:\Games\WOTLK\world of warcraft 3.3.5a hd\`
+Path: `<WoW client>/` (local HD pack install; do not commit machine-specific absolute paths)
 
-- DXVK 2.4.1 as `d3d9.dll` + `dxvk.conf` (16× AF forced)
+- DXVK as `d3d9.dll` + `dxvk.conf` (e.g. 16× AF forced)
 - `patchmenu.exe` toggles MPQs (HD characters, NPC, world textures, armor, weapons, spells,
   icons, trees, water, sky, blood, …)
 - Disabled examples: MoP char creation (`patch-j`), undead without bones (`patch-u`)

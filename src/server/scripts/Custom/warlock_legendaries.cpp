@@ -353,12 +353,31 @@ namespace
         if (want == state->applied)
             return;
 
+        uint32 const maxHealthBefore = pet->GetMaxHealth();
+        float const healthPct = maxHealthBefore
+            ? float(pet->GetHealth()) / float(maxHealthBefore)
+            : 1.0f;
+
         if (state->applied != 0.0f)
             pet->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA, TOTAL_VALUE, state->applied, false);
         if (want != 0.0f)
             pet->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA, TOTAL_VALUE, want, true);
 
         pet->UpdateAllStats();
+
+        if (pet->IsAlive())
+        {
+            if (uint32 maxHealth = pet->GetMaxHealth())
+            {
+                uint32 wantHp = uint32(float(maxHealth) * healthPct + 0.5f);
+                if (wantHp < 1)
+                    wantHp = 1;
+                if (wantHp > maxHealth)
+                    wantHp = maxHealth;
+                pet->SetHealth(wantHp);
+            }
+        }
+
         state->applied = want;
     }
 
@@ -473,6 +492,9 @@ public:
         // sent a cast — release the item from its pending/grey state explicitly.
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
 
+        if (!IsEnabled())
+            return true;
+
         if (IsOnLegendaryCooldown(player, ITEM_VOIDCALLER_SIGIL))
         {
             SendMessageIfOnline(player, "|cffff8000The Voidcaller's Sigil still cools.|r");
@@ -527,6 +549,9 @@ public:
 
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
 
+        if (!IsEnabled())
+            return true;
+
         if (IsOnLegendaryCooldown(player, ITEM_HEART_OF_KANRETHAD))
         {
             SendMessageIfOnline(player, "|cffff8000The Heart of Kanrethad beats slowly.|r");
@@ -565,6 +590,9 @@ public:
 
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
 
+        if (!IsEnabled())
+            return true;
+
         if (IsOnLegendaryCooldown(player, ITEM_DOOMSTAFF_OF_NER_ZHUL))
         {
             SendMessageIfOnline(player, "|cffff8000The Doomstaff's chorus is silent.|r");
@@ -602,7 +630,7 @@ public:
         summon->SetLevel(player->GetLevel());
 
         if (Unit* target = player->GetSelectedUnit())
-            if (summon->IsValidAttackTarget(target))
+            if (summon->AI() && summon->IsValidAttackTarget(target))
                 summon->AI()->AttackStart(target);
 
         SendMessageIfOnline(player, "|cff9370dbA second doom answers your call.|r");
@@ -627,6 +655,9 @@ public:
             return true;
 
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
+
+        if (!IsEnabled())
+            return true;
 
         if (player->HasAura(SPELL_NOGGENFOGGER_SKELETON))
         {
@@ -664,6 +695,9 @@ public:
             return true;
 
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
+
+        if (!IsEnabled())
+            return true;
 
         if (IsOnLegendaryCooldown(player, ITEM_CINDERFURY))
         {

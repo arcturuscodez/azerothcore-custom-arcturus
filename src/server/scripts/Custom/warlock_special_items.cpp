@@ -58,16 +58,24 @@ namespace
     constexpr std::array<uint32, 8> LIFE_TAP_RANKS   = { 1454, 1455, 1456, 11687, 11688, 11689, 27222, 57946 };
     constexpr std::array<uint32, 9> DRAIN_LIFE_RANKS = { 689, 699, 709, 7651, 11699, 11700, 27219, 27220, 47857 };
 
+    // Corruption ranks (Classic through WotLK max). Voidheart permanence/spread
+    // must match every rank the player can actually cast.
+    constexpr std::array<uint32, 10> CORRUPTION_RANKS = {
+        172, 6222, 6223, 7648, 11671, 11672, 25311, 27216, 47812, 47813
+    };
     constexpr uint32 SPELL_CORRUPTION_MAX    = 47813;
     constexpr uint32 SPELL_METAMORPHOSIS     = 47241;
-    constexpr uint32 SPELL_SHADOW_NOVA       = 42223;
+    // NPC Shadow Nova — self-centered AoE. Do NOT use 42223 (Rain of Fire).
+    constexpr uint32 SPELL_SHADOW_NOVA       = 32711;
     constexpr uint32 SPELL_SHADOWFLAME       = 47897;
     constexpr uint32 SPELL_BESTIAL_WRATH     = 19574;
-    constexpr uint32 SPELL_IMMOLATE          = 27215;
+    constexpr uint32 SPELL_IMMOLATE          = 47811; // WotLK max rank
     constexpr uint32 NPC_IMP                 = 416;
 
     constexpr uint32 CD_GENERIC_MS           = 120u * 1000u;
     constexpr uint32 CD_GRIMOIRE_MS          = 180u * 1000u;
+    constexpr int32  DEATHS_HEAD_SP_PER_KILL = 5;
+    constexpr int32  DEATHS_HEAD_SP_CAP      = 50; // 10 kills worth
 
     class SpecialCooldowns : public DataMap::Base
     {
@@ -93,6 +101,7 @@ namespace
         int32  dreadlordSpApplied  = 0;
         int32  dimensiusSpApplied  = 0;
         int32  festergutSpApplied  = 0;
+        int32  deathsHeadSpApplied = 0;
     };
 
     constexpr char const* STATE_KEY = "WarlockSpecialItems.State";
@@ -125,6 +134,26 @@ namespace
             if (info->Id == id)
                 return true;
         return false;
+    }
+
+    bool IsCorruptionSpell(SpellInfo const* info)
+    {
+        if (!info)
+            return false;
+        for (uint32 id : CORRUPTION_RANKS)
+            if (info->Id == id)
+                return true;
+        return false;
+    }
+
+    Aura* FindPlayerCorruption(Unit* unit, ObjectGuid caster)
+    {
+        if (!unit)
+            return nullptr;
+        for (uint32 id : CORRUPTION_RANKS)
+            if (Aura* aura = unit->GetAura(id, caster))
+                return aura;
+        return nullptr;
     }
 
     SpecialState* State(Player* player)
@@ -297,16 +326,28 @@ namespace
             return true;
         }
 
+        bool const hasMeta = player->HasSpell(SPELL_METAMORPHOSIS);
+        Pet* pet = player->GetPet();
+        bool const petReady = pet && pet->IsAlive();
+        if (!hasMeta && !petReady)
+        {
+            if (pet)
+                Send(player, "|cffff8000Your demon must live to claim this power.|r");
+            else
+                Send(player, "|cffff8000No demon answers the Bloodseal — learn Metamorphosis, or summon a servant.|r");
+            return true;
+        }
+
         uint32 burn = player->CountPctFromCurHealth(25);
         if (burn >= player->GetHealth())
             burn = player->GetHealth() - 1;
         if (burn)
             Unit::DealDamage(player, player, burn, nullptr, SELF_DAMAGE, SPELL_SCHOOL_MASK_SHADOW, nullptr, false);
 
-        if (player->HasSpell(SPELL_METAMORPHOSIS))
+        if (hasMeta)
             player->CastSpell(player, SPELL_METAMORPHOSIS, true);
         else
-            player->CastSpell(player, SPELL_BESTIAL_WRATH, true);
+            player->CastSpell(pet, SPELL_BESTIAL_WRATH, true);
 
         Send(player, "|cffff4500Fel Apotheosis!|r |cff9370dbYour blood buys borrowed power.|r");
         StartCooldown(player, ITEM_BLOODSEAL_NETHERKURSE, CD_GENERIC_MS);
@@ -585,17 +626,18 @@ public:
 
         // Voidheart: Corruption becomes permanent. Pinned after the cast lands,
         // because at hook time the new aura application has not happened yet.
-        if (PlayerHasSpecialItem(player, ITEM_VOIDHEART) && info->Id == SPELL_CORRUPTION_MAX)
+        if (PlayerHasSpecialItem(player, ITEM_VOIDHEART) && IsCorruptionSpell(info))
         {
+            uint32 corruptionId = info->Id;
             if (Unit* target = spell->m_targets.GetUnitTarget())
             {
                 ObjectGuid targetGuid = target->GetGUID();
-                player->m_Events.AddEventAtOffset([player, targetGuid]()
+                player->m_Events.AddEventAtOffset([player, targetGuid, corruptionId]()
                 {
                     if (!PlayerHasSpecialItem(player, ITEM_VOIDHEART))
                         return;
                     if (Unit* victim = ObjectAccessor::GetUnit(*player, targetGuid))
-                        if (Aura* aura = victim->GetAura(SPELL_CORRUPTION_MAX, player->GetGUID()))
+                        if (Aura* aura = victim->GetAura(corruptionId, player->GetGUID()))
                         {
                             aura->SetMaxDuration(-1);
                             aura->SetDuration(-1);
@@ -615,11 +657,21 @@ public:
 
         if (PlayerHasSpecialItem(player, ITEM_DEATHS_HEAD_SOUL_PIN))
         {
-            player->ApplySpellPowerBonus(5, true);
-            player->m_Events.AddEventAtOffset([player]()
+            SpecialState* st = State(player);
+            if (st->deathsHeadSpApplied + DEATHS_HEAD_SP_PER_KILL <= DEATHS_HEAD_SP_CAP)
             {
-                player->ApplySpellPowerBonus(5, false);
-            }, Milliseconds(15000));
+                st->deathsHeadSpApplied += DEATHS_HEAD_SP_PER_KILL;
+                player->ApplySpellPowerBonus(DEATHS_HEAD_SP_PER_KILL, true);
+                player->m_Events.AddEventAtOffset([player]()
+                {
+                    SpecialState* state = State(player);
+                    if (state->deathsHeadSpApplied >= DEATHS_HEAD_SP_PER_KILL)
+                    {
+                        state->deathsHeadSpApplied -= DEATHS_HEAD_SP_PER_KILL;
+                        player->ApplySpellPowerBonus(DEATHS_HEAD_SP_PER_KILL, false);
+                    }
+                }, Milliseconds(15000));
+            }
         }
 
         if (PlayerHasSpecialItem(player, ITEM_PRINCESS_SOUL_LOCKET) && victim->GetCreatureType() == CREATURE_TYPE_ELEMENTAL)
@@ -760,7 +812,7 @@ public:
         if (!player || !PlayerHasSpecialItem(player, ITEM_VOIDHEART))
             return;
 
-        if (!unit->HasAura(SPELL_CORRUPTION_MAX, player->GetGUID()))
+        if (!FindPlayerCorruption(unit, player->GetGUID()))
             return;
 
         std::list<Unit*> targets;
@@ -772,7 +824,7 @@ public:
         {
             if (tgt == unit || !player->IsValidAttackTarget(tgt))
                 continue;
-            if (!tgt->HasAura(SPELL_CORRUPTION_MAX, player->GetGUID()))
+            if (!FindPlayerCorruption(tgt, player->GetGUID()))
                 player->AddAura(SPELL_CORRUPTION_MAX, tgt);
             break;
         }

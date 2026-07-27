@@ -1,0 +1,8 @@
+## Interface: 30300
+## Title: ArcturusDebug
+## Notes: Live debug log for Arcturus custom items/spells. /adebug
+## SavedVariables: ArcturusDebugDB
+## Author: Arcturus
+## Version: 1.0.0
+
+ArcturusDebug.lua

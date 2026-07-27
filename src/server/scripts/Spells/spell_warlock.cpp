@@ -27,6 +27,7 @@
 #include "TemporarySummon.h"
 #include "Unit.h"
 #include "Util.h"
+#include "Custom/warlock_demonic_empowerment.h"
 /*
  * Scripts for spells with SPELLFAMILY_WARLOCK and SPELLFAMILY_GENERIC spells used by warlock players.
  * Ordered alphabetically using scriptname.
@@ -368,6 +369,12 @@ class spell_warl_generic_scaling : public AuraScript
             int32 maximum  = (fire > shadow) ? fire : shadow;
             amount = CalculatePct(std::max<int32>(0, maximum), 15);
 
+            // Arcturus: Demonic Empowerment souls grant flat pet spell power so
+            // caster pets (Imp) scale even when the warlock has little gear SP.
+            amount += WarlockEmpowerment::PetSoulSpellPowerBonus(GetUnitOwner());
+            if (amount < 0)
+                amount = 0;
+
             // Update appropriate player field
             if (owner->IsPlayer())
                 owner->SetUInt32Value(PLAYER_PET_SPELL_POWER, (uint32)amount);
@@ -478,6 +485,11 @@ class spell_warl_infernal_scaling : public AuraScript
             int32 shadow = owner->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_SHADOW);
             int32 maximum  = (fire > shadow) ? fire : shadow;
             amount = CalculatePct(std::max<int32>(0, maximum), 15);
+
+            // Arcturus: Demonic Empowerment soul spell power (matches permanent pets).
+            amount += WarlockEmpowerment::PetSoulSpellPowerBonus(GetUnitOwner());
+            if (amount < 0)
+                amount = 0;
 
             // xinef: Update appropriate player field
             if (owner->IsPlayer())

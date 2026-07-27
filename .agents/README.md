@@ -39,10 +39,23 @@ This folder adds **3.3.5a client + Arcturus** depth that AGENTS.md does not cove
 ## Rules
 
 - **[rules/arcturus-modding.md](rules/arcturus-modding.md)** — do / don't for client patches vs server-only
+- **[rules/arcturus-gates-frozen.md](rules/arcturus-gates-frozen.md)** — never edit `tests/arcturus_gates/**`; run gates before commit
 
 ## Skills
 
 - `skills/generate-pr-description` — PR title/body from branch changes
+
+## Pre-commit gates (required)
+
+```powershell
+# once per clone
+.\.githooks\install.ps1
+
+# before every commit
+python tests/arcturus_gates/run_all.py
+```
+
+Frozen suite + `FROZEN.sha256` + git/Cursor hooks block commits unless all `GATE-*` cases pass. Live post-deploy checks: `tests/arcturus_gates/LIVE_SMOKE.md`.
 
 ## Quick facts
 
@@ -54,3 +67,4 @@ This folder adds **3.3.5a client + Arcturus** depth that AGENTS.md does not cove
 - **This repo's preferred item-icon path today:** server-only stock `displayid` remaps (no client patch). Unique custom art requires restoring an MPQ + ItemDisplayInfo pipeline (see client docs).
 - **Custom bag icons:** still need **CustomItemFix** or client **Item.dbc** — see [knowledge/custom-items-red-question-mark.md](knowledge/custom-items-red-question-mark.md).
 - **Paragon + ALE Lua 5.2 unpack fix:** [patches/paragon-ale-lua52/](patches/paragon-ale-lua52/README.md)
+- **Live client debug:** [client-addons/ArcturusDebug/](client-addons/ArcturusDebug/README.md) — `/adebug`; agents read `WTF/.../SavedVariables/ArcturusDebug.lua` after `/reload`

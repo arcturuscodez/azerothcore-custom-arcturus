@@ -25,7 +25,7 @@ World of Warcraft/
   Fonts/
 ```
 
-Arcturus play client (example): `C:\Games\WOTLK\world of warcraft 3.3.5a hd\`
+Arcturus play client (example): `<WoW client>/`
 — ChromieCraft-style HD pack + DXVK (`d3d9.dll`) + `patchmenu.exe`.
 
 ## MPQ patches

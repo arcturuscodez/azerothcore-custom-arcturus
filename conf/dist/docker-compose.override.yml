@@ -12,6 +12,8 @@ services:
       # WarlockLegendary.Enable / WarlockSpecialItems.Enable (Config.cpp AC_ mapping)
       AC_WARLOCK_LEGENDARY_ENABLE: "1"
       AC_WARLOCK_SPECIAL_ITEMS_ENABLE: "1"
+      # Rate.XP.Kill — creature kill experience
+      AC_RATE_XP_KILL: "3"
       # Optional: pin ALE ScriptPath at Paragon serverside inside the modules volume
       # AC_ELUNA_SCRIPTPATH: "/azerothcore/modules/Paragon-Anniversary/serverside"
     volumes:

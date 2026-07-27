@@ -18,7 +18,7 @@ namespace WarlockLegendaries
 {
     // Rings
     constexpr uint32 ITEM_RING_MALCHEZAAR_PASSAGE   = 900001; // on-use: Blink (1953, mage)
-    constexpr uint32 ITEM_SIGNET_OF_THE_FELTOUCHED  = 900002; // passive: doubles Demonic Empowerment gain
+    constexpr uint32 ITEM_SIGNET_OF_THE_FELTOUCHED  = 900002; // passive: +1 Demonic Empowerment per kill
     constexpr uint32 ITEM_RING_OF_THE_VOIDSWORN     = 900003; // passive: +stamina to active demon
     constexpr uint32 ITEM_CINDERFURY                = 900017; // "Cinderfury, Signet of the Firelord" — Molten Core exclusive: fire amp/leech, persistent Hellfire, Soul Feast, Molten Ward, Infernal Detonation
 
@@ -33,7 +33,7 @@ namespace WarlockLegendaries
     constexpr uint32 ITEM_DOOMSTAFF_OF_NER_ZHUL     = 900008; // on-use: temp Doomguard guardian 45s
     constexpr uint32 ITEM_SACROPHILE_BLADE          = 900009; // proc: Corruption on melee hit (SQL only)
     constexpr uint32 ITEM_FEL_IRON_SKEWER           = 900010; // proc: Corruption on melee   (SQL only)
-    constexpr uint32 ITEM_MANNOROTHS_FEMUR          = 900011; // proc: Shadow Nova AoE       (SQL only)
+    constexpr uint32 ITEM_MANNOROTHS_FEMUR          = 900011; // proc: Shadow Nova AoE (32711)
 
     // Off-hands
     constexpr uint32 ITEM_VOID_GRIP_KIL_JAEDEN      = 900012; // on-use: Death Grip (49576, DK)

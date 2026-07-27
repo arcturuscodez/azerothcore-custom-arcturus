@@ -109,9 +109,16 @@ public:
         }
 
         BonusValues b = LoadedBonus();
-        handler->PSendSysMessage("Demon bonus (current souls): |cff00ffff+{} Sta / +{} Str / +{} Int / +{} AP|r",
-            uint32(b.stamina * float(souls.current)), uint32(b.strength * float(souls.current)),
-            uint32(b.intellect * float(souls.current)), uint32(b.attackPower * float(souls.current)));
+        handler->PSendSysMessage(
+            "Demon bonus (current souls): |cff00ffff+{} Sta / +{} Str / +{} Agi / +{} Int / +{} Spi / +{} AP / +{} SP / +{} Armor|r",
+            uint32(b.stamina * float(souls.current)),
+            uint32(b.strength * float(souls.current)),
+            uint32(b.agility * float(souls.current)),
+            uint32(b.intellect * float(souls.current)),
+            uint32(b.spirit * float(souls.current)),
+            uint32(b.attackPower * float(souls.current)),
+            uint32(b.spellPower * float(souls.current)),
+            uint32(b.armor * float(souls.current)));
 
         uint32 tiers = TemperTiersFor(souls.lifetime);
         TemperValues t = LoadedTemper();
