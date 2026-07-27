@@ -129,3 +129,6 @@ compile_commands.json
 !/src/server/scripts/Custom/cs_demons.cpp
 !/src/server/scripts/Custom/warlock_legendaries.cpp
 !/src/server/scripts/Custom/warlock_legendaries.h
+!/src/server/scripts/Custom/warlock_special_items.cpp
+!/src/server/scripts/Custom/warlock_special_items.h
+!/src/server/scripts/Custom/custom_script_loader.cpp
