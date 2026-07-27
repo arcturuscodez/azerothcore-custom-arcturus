@@ -118,6 +118,9 @@ __pycache__/
 .cache
 compile_commands.json
 
+# Local ALE script path (junction/copy of Paragon serverside → modules/Paragon-Anniversary)
+/lua_scripts/
+
 # Custom scripts we do want to track in this fork
 !/src/server/scripts/Custom/warlock_demonic_empowerment.cpp
 !/src/server/scripts/Custom/warlock_demonic_empowerment.h
