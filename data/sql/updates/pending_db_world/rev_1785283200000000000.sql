@@ -4,6 +4,11 @@
 -- weapon damage, x3 armor, then RequiredLevel 80 / ItemLevel 284.
 -- Custom Arcturus entries (>= 900000) are excluded.
 --
+-- RequiredLevel is both the row filter and part of the same UPDATE, which is what
+-- makes this re-runnable: once a row is at level 80 it no longer matches, so a
+-- retry (updater hash change, interrupted apply) can never multiply stats twice.
+-- Keep the scaling and the level bump in ONE statement for that reason.
+--
 
 UPDATE `item_template` SET
     `stat_value1`  = `stat_value1`  * 4,
@@ -20,13 +25,7 @@ UPDATE `item_template` SET
     `dmg_max1`     = `dmg_max1` * 2.5,
     `dmg_min2`     = `dmg_min2` * 2.5,
     `dmg_max2`     = `dmg_max2` * 2.5,
-    `armor`        = `armor` * 3
-WHERE `Quality` = 5
-  AND `class` IN (2, 4)
-  AND `RequiredLevel` BETWEEN 55 AND 79
-  AND `entry` < 900000;
-
-UPDATE `item_template` SET
+    `armor`        = `armor` * 3,
     `RequiredLevel` = 80,
     `ItemLevel`     = 284
 WHERE `Quality` = 5

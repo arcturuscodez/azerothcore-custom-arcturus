@@ -4,8 +4,9 @@
 -- (see src/server/scripts/Custom/warlock_demonic_empowerment.cpp).
 --
 
-DROP TABLE IF EXISTS `character_warlock_demon_kills`;
-CREATE TABLE `character_warlock_demon_kills` (
+-- CREATE IF NOT EXISTS, never DROP: the updater re-applies this file whenever its hash
+-- changes, and a DROP would take every character's harvested souls with it.
+CREATE TABLE IF NOT EXISTS `character_warlock_demon_kills` (
   `guid` INT UNSIGNED NOT NULL COMMENT 'characters.guid',
   `kills` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Current souls (lifetime minus losses); scales demons',
   `lifetime` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Every soul ever harvested; never decreases',

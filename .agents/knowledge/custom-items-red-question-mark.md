@@ -76,11 +76,28 @@ CSV of Arcturus customs (for import helpers): `.agents/custom-items-Item.dbc.csv
 
 Binary patch so the client skips Item.dbc for icons (e.g. wowmodding “Custom Item Fix”). Must match clean 12340 checksums; Defender may flag. Prefer A or B.
 
-### D) Server `item_dbc` table (needed for core, not sufficient alone)
+### D) Server `item_dbc` table (mandatory for the core, not sufficient alone)
 
-Pending SQL: `data/sql/updates/pending_db_world/rev_1785801600000000000.sql`
+Pending SQL: `data/sql/updates/pending_db_world/rev_1786500000000000000.sql` (same file as the
+`item_template` rows).
 
-Fills `item_dbc` so `sItemStore` knows customs (stops “not in item.dbc” server errors; helps some equip paths). **Client still needs A, B, or C.**
+This one is not optional. `LoadDBCStores` merges the `item_dbc` table into `sItemStore`
+(`DBCStores.cpp` → `LOAD_DBC(sItemStore, "Item.dbc", "item_dbc")`) at `World.cpp:381`, and
+`ObjectMgr::LoadItemTemplates` (`World.cpp:526`) **skips any `item_template` row whose entry is
+missing from `sItemStore`**:
+
+```cpp
+ItemEntry const* dbcitem = sItemStore.LookupEntry(entry);
+if (!dbcitem)
+{
+    LOG_DEBUG("sql.sql", "Item (Entry: {}) does not exist in item.dbc! (not correct id?).", entry);
+    continue;
+}
+```
+
+Without the `item_dbc` row the item does not exist server-side at all — `.additem` fails and no
+tooltip appears. With it, everything server-side works. **The client still needs A, B, or C**;
+right-click equip is resolved locally from the client's `Item.dbc`, so no server change can fix it.
 
 ### Description / tooltip length
 

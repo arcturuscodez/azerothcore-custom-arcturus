@@ -54,8 +54,11 @@ DBC.EnforceItemAttributes = 0
 EndlessInstances.Enable = 1
 WarlockDemonicEmpowerment.Enable = 1
 WarlockLegendary.Enable = 1
-WarlockSpecialItems.Enable = 1
+AccountInstancesPerHour = 100
 ```
+
+`AccountInstancesPerHour` is not optional if `EndlessInstances.Enable = 1`: the core default of
+5 stops instance farming with "You have entered too many instances recently."
 
 Missing keys may log warnings and fall back to C++ defaults (e.g. WarlockLegendary default `true`).
 

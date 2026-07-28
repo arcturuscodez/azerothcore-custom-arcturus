@@ -7,8 +7,10 @@
 -- * Cinderfury Molten Core loot (bosses + Majordomo cache).
 --
 
+-- Charset/collation are deliberately omitted so the column keeps inheriting the
+-- table default (utf8mb4 / utf8mb4_unicode_ci) instead of pinning it here.
 ALTER TABLE `item_template`
-    MODIFY `description` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '';
+    MODIFY `description` varchar(1024) NOT NULL DEFAULT '';
 
 REPLACE INTO `item_template`
     (`entry`, `class`, `subclass`, `name`, `displayid`, `Quality`, `Flags`, `BuyPrice`, `SellPrice`,
@@ -33,7 +35,7 @@ VALUES
      0, 0, 0, 0,
      42945, 0, 120000, 0, 0,
      0, 0, 0, 0,
-     1, 'Cast from the last cooling ember of Ragnaros''s rage. "By fire be purged" is not a threat — it is this ring''s only promise.\n\nEquip: +30% fire damage dealt; fire damage you deal heals you.\nEquip: -20% stamina.\nEquip: Hellfire becomes a persistent toggle that does not burn you.\nEquip: Soul Feast — kills near your Hellfire grant stacking spell power.\nEquip: Molten Ward — below 35% health, gain a fire shield (15% DR, scorches melee) (1 Min ICD).\nUse: Infernal Detonation — burn 20% of your health to unleash a hellfire nova and empower Hellfire by 50% for 10 sec. (2 Min Cooldown)', 1, 0, 0, 'item_cinderfury', 0);
+     1, 'Cast from the last cooling ember of Ragnaros''s rage. "By fire be purged" is not a threat — it is this ring''s only promise.\n\nEquip: +30% fire damage dealt; fire damage you deal heals you (up to 5% of your maximum health each second).\nEquip: -20% stamina.\nEquip: Hellfire becomes a persistent toggle that does not burn you.\nEquip: Soul Feast — kills near your Hellfire grant stacking spell power.\nEquip: Molten Ward — below 35% health, gain a fire shield (15% DR, scorches melee) (1 Min ICD).\nUse: Infernal Detonation — burn 20% of your health to unleash a hellfire nova and empower Hellfire by 50% for 10 sec. (2 Min Cooldown)', 1, 0, 0, 'item_cinderfury', 0);
 
 DELETE FROM `item_dbc` WHERE `ID` IN (900016, 900017);
 INSERT INTO `item_dbc`

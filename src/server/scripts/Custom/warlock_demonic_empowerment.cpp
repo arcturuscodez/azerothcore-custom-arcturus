@@ -18,9 +18,10 @@
  *
  * Balance / flavor:
  *  - Only reward-granting kills count (grey mobs are ignored, preventing farming).
- *  - When a demon is killed by an enemy in combat, a % of CURRENT souls is refunded
- *    to the void (min 1). Dismissing, sacrificing, or unsummoning carries no penalty.
- *    Lifetime progression (ranks/gifts/perks) is never lost.
+ *  - When a demon is killed by anything other than its own master — enemies, or the
+ *    world itself — a % of CURRENT souls is refunded to the void (min 1). Dismissing,
+ *    sacrificing, or unsummoning carries no penalty. Lifetime progression
+ *    (ranks/gifts/perks) is never lost.
  *  - Every qualifying kill also restores a % of the summoned demon's max HP.
  *  - Progress is surfaced through chat announcements and the `.demons` status screen
  *    (cs_demons.cpp). There is deliberately no buff icon — earlier builds tried both
@@ -47,6 +48,7 @@
 #include "SharedDefines.h"
 #include "SpellAuraEffects.h"
 #include "StringFormat.h"
+#include "Timer.h"
 #include "UnitScript.h"
 #include "WorldSession.h"
 
@@ -386,10 +388,17 @@ namespace
     public:
         uint32       appliedTiers = 0;
         TemperValues appliedValues = { 0, 0, 0, 0 };
+        // True while every soul-derived effect is stripped because the feature is off.
+        bool         suspended = false;
+        uint32       nextEnableCheckMs = 0;
     };
 
     constexpr char const* PET_STATE_KEY    = "WarlockDemonicEmpowerment";
     constexpr char const* PLAYER_STATE_KEY = "WarlockSoulTempering";
+
+    // How often a live `WarlockDemonicEmpowerment.Enable` flip is noticed. Config reads
+    // are string lookups, so this is throttled rather than run on every world tick.
+    constexpr uint32 ENABLE_RECHECK_MS = 1000u;
 
     bool IsEnabled()
     {
@@ -483,10 +492,11 @@ namespace
     // spent points — that path hard-resets the talent tree and dismisses the pet.
     void SyncTalentPoints(Player* player, uint32 lifetime)
     {
-        if (!IsEnabled())
-            return; // leave spent bonus talents alone while the feature is off
-
-        uint32 want = BonusTalentPointsFor(lifetime);
+        // Disabling the feature has to hand the points back as well, otherwise the
+        // character keeps up to +145 free talents forever. Talents already spent are
+        // never refunded — the over-budget branch below parks free points at zero
+        // instead of resetting the tree.
+        uint32 want = IsEnabled() ? BonusTalentPointsFor(lifetime) : 0u;
         if (player->GetBonusTalentCount() == want)
             return;
 
@@ -533,6 +543,37 @@ namespace
                 player->removeSpell(gift.spellId, SPEC_MASK_ALL, false);
             }
         }
+    }
+
+    // ---- Whole-character sync -------------------------------------------------
+
+    // Brings every soul-derived effect in line with the character's counters. Each
+    // Sync* helper consults IsEnabled() itself, so one call both grants the bonuses
+    // (feature on) and strips them (feature off) — login and a live `.reload config`
+    // share this one path.
+    void ResyncSoulEffects(Player* player, Souls const& souls)
+    {
+        SyncTempering(player, souls.lifetime);
+        SyncGifts(player, souls.lifetime, false);
+        SyncTalentPoints(player, souls.lifetime);
+
+        // LoadPet() runs before OnPlayerLogin, so OnPlayerAfterGuardianInitStatsForLevel
+        // saw unloaded counters and skipped the flat soul mods (Spell Bonus still works
+        // because PetSoulSpellPowerBonus reads the Mgr live). Re-sync the live demon here.
+        Pet* pet = player->GetPet();
+        if (!pet)
+            return;
+
+        auto* state = pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
+        uint32 want = IsEnabled() ? souls.current : 0u;
+        if (state->applied == want)
+            return;
+
+        if (state->applied)
+            ApplyKillBonus(pet, state->applied, false);
+        if (want)
+            ApplyKillBonus(pet, souls.current, true);
+        state->applied = want;
     }
 
     // Heals the warlock's active demon by a % of its max HP. Skipped if there's no live pet.
@@ -605,6 +646,7 @@ public:
             PLAYERHOOK_ON_LOGIN,
             PLAYERHOOK_ON_LOGOUT,
             PLAYERHOOK_ON_SAVE,
+            PLAYERHOOK_ON_UPDATE,
             PLAYERHOOK_ON_GIVE_EXP,
             PLAYERHOOK_ON_REWARD_KILL_REWARDER,
             PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
@@ -622,36 +664,19 @@ public:
         player->RemoveAurasDueToSpell(SPELL_FEL_DOMINATION_LEGACY);
         player->RemoveAurasDueToSpell(SPELL_DEMONIC_EMPOWERMENT_LEGACY);
 
-        if (!IsEnabled())
-        {
-            // Feature off: strip learned gifts (talented spells are spared). Do NOT
-            // zero bonus talent points — InitTalentForLevel would reset the tree.
-            SyncGifts(player, 0, false);
-            SyncTempering(player, 0); // strip tempering if it was applied this session
-            return;
-        }
-
+        // Always hydrate counters so `.demons` can show progress without a command-path
+        // DB round-trip when the feature is toggled off at login.
         sWarlockEmpower->LoadFromDB(player->GetGUID());
         Souls souls = sWarlockEmpower->Get(player->GetGUID());
 
-        SyncTempering(player, souls.lifetime);
-        SyncGifts(player, souls.lifetime, false);
-        SyncTalentPoints(player, souls.lifetime);
+        // Applies everything when the feature is on, strips gifts (sparing talented
+        // spells), tempering, bonus talents, and the demon's flat stats when it is off.
+        bool enabled = IsEnabled();
+        ResyncSoulEffects(player, souls);
+        player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY)->suspended = !enabled;
 
-        // LoadPet() runs before OnPlayerLogin, so OnPlayerAfterGuardianInitStatsForLevel
-        // saw unloaded counters and skipped the flat soul mods (Spell Bonus still works
-        // because PetSoulSpellPowerBonus reads the Mgr live). Re-sync now.
-        if (Pet* pet = player->GetPet())
-        {
-            auto* state = pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
-            if (state->applied != souls.current)
-            {
-                if (state->applied)
-                    ApplyKillBonus(pet, state->applied, false);
-                ApplyKillBonus(pet, souls.current, true);
-                state->applied = souls.current;
-            }
-        }
+        if (!enabled)
+            return;
 
         RankTier const& tier = RANKS[RankIndexFor(souls.lifetime)];
         if (souls.lifetime)
@@ -673,6 +698,34 @@ public:
             return;
 
         sWarlockEmpower->FlushAndForget(player->GetGUID());
+    }
+
+    // Kill tracking stops on its own when the feature is disabled, but tempering, the
+    // learned gifts, the bonus talent points, and the demon's flat stats would otherwise
+    // stay applied until the next relog. Watch for a live `.reload config` flip in either
+    // direction and re-run exactly what login does.
+    void OnPlayerUpdate(Player* player, uint32 /*diff*/) override
+    {
+        if (!player || !player->IsInWorld() || !IsWarlock(player))
+            return;
+
+        auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
+        uint32 now = getMSTime();
+        if (now < state->nextEnableCheckMs)
+            return;
+
+        state->nextEnableCheckMs = now + ENABLE_RECHECK_MS;
+
+        bool enabled = IsEnabled();
+        if (enabled != state->suspended)
+            return;
+
+        state->suspended = !enabled;
+        ResyncSoulEffects(player, sWarlockEmpower->Get(player->GetGUID()));
+
+        SendMessageIfOnline(player, enabled
+            ? "|cff9370dbDemonic Empowerment:|r the Void stirs again — your legions are restored."
+            : "|cff9370dbDemonic Empowerment:|r the Void falls silent; its gifts are withdrawn.");
     }
 
     void OnPlayerSave(Player* player) override
@@ -814,8 +867,11 @@ public:
         if (!owner || !owner->IsClass(CLASS_WARLOCK, CLASS_CONTEXT_PET))
             return;
 
-        // Ignore self-damage and owner-inflicted deaths (sacrifices, Fel Domination, etc.).
-        if (!killer || killer == owner || killer == pet)
+        // Ignore owner-inflicted deaths (sacrifices, Fel Domination, etc.) and the pet
+        // killing itself. A null killer is the world doing the killing — lava, falling,
+        // environmental traps — which still costs souls; exempting it would turn every
+        // hazard into a free way to unsummon a demon.
+        if (killer == owner || killer == pet)
             return;
 
         Souls souls = sWarlockEmpower->Get(owner->GetGUID());

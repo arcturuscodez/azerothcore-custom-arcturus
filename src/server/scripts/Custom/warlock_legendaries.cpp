@@ -30,40 +30,40 @@
 #include "SpellInfo.h"
 #include "Timer.h"
 #include "UnitScript.h"
+#include "WorldPacket.h"
 #include "WorldSession.h"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
-#include <unordered_map>
 
 using namespace WarlockLegendaries;
 
 namespace
 {
-    // Per-item cooldown durations (ms) for custom on-use items. Tracked via
-    // Player CustomData rather than Player::AddSpellCooldown because the items
-    // ship with spellid_1 = 0 (no real Spell.dbc entry to piggy-back on).
-    class LegendaryCooldowns : public DataMap::Base
-    {
-    public:
-        std::unordered_map<uint32 /*item entry*/, uint32 /*ready-at MSTime*/> readyAtMs;
-    };
+    // Client-side display spells from item_template.spellid_1. Nothing casts them —
+    // the scripted effect lives in this file — but they own the item's cooldown so the
+    // timer both renders on the client and survives a relog: Player::AddSpellCooldown
+    // is persisted through `character_spell_cooldown`, while Player CustomData is
+    // in-memory only (logging out used to clear an active Infernal Detonation).
+    constexpr uint32 SPELL_NOGGENFOGGER_DISPLAY = 16591;
+    constexpr uint32 SPELL_CINDERFURY_DISPLAY   = 42945;
 
-    constexpr char const* COOLDOWNS_KEY = "WarlockLegendaries.Cooldowns";
+    constexpr uint32 CD_NOGGENFOGGER_MS = 5u * 1000u;
 
-    bool IsOnLegendaryCooldown(Player* player, uint32 itemEntry)
+    bool IsOnLegendaryCooldown(Player* player, uint32 displaySpellId)
     {
-        auto* cds = player->CustomData.GetDefault<LegendaryCooldowns>(COOLDOWNS_KEY);
-        auto it = cds->readyAtMs.find(itemEntry);
-        return it != cds->readyAtMs.end() && it->second > getMSTime();
+        return player->HasSpellCooldown(displaySpellId);
     }
 
-    void StartLegendaryCooldown(Player* player, uint32 itemEntry, uint32 durationMs)
+    void StartLegendaryCooldown(Player* player, uint32 displaySpellId, uint32 itemEntry, uint32 durationMs)
     {
-        auto* cds = player->CustomData.GetDefault<LegendaryCooldowns>(COOLDOWNS_KEY);
-        cds->readyAtMs[itemEntry] = getMSTime() + durationMs;
+        player->AddSpellCooldown(displaySpellId, itemEntry, durationMs, true);
+
+        WorldPacket data;
+        player->BuildCooldownPacket(data, SPELL_COOLDOWN_FLAG_NONE, displaySpellId, durationMs);
+        player->SendDirectMessage(&data);
     }
 
     // CreatureDisplayInfo used by Wrathbone Flayer / Shadowmoon Fallen — looks
@@ -147,7 +147,8 @@ namespace
     // Infernal Detonation nova.
     constexpr uint32 SPELL_HELLFIRE_NOVA = 47822;
 
-    // Molten Armor (rank 3) — visual + flavor while the Molten Ward is up.
+    // Reserved for a future display-only serverside spell. Real Molten Armor (43046)
+    // grants combat auras and stacks with the scripted melee scorch — do not apply it.
     constexpr uint32 SPELL_MOLTEN_WARD_VISUAL = 43046;
 
     constexpr int32  CINDERFURY_STAMINA_PCT    = -20;
@@ -167,6 +168,14 @@ namespace
     constexpr uint32 FEAST_DURATION_MS         = 15u * 1000u;
     constexpr float  FEAST_RANGE_YD            = 15.0f;
 
+    // Fire leech budget. Hellfire ticks every enemy in the ring separately, so an
+    // uncapped "healed for the fire damage you deal" scales with pack size.
+    constexpr uint32 LEECH_WINDOW_MS           = 1000u;
+    constexpr int32  LEECH_MAX_PCT_PER_WINDOW  = 5;
+
+    // All session-scoped on purpose: these are in-combat proc windows, and a relog
+    // both drops combat and re-derives them. Only the player-facing Infernal Detonation
+    // cooldown needs to outlive a session, and that one lives in the spell cooldown map.
     class CinderfuryState : public DataMap::Base
     {
     public:
@@ -177,6 +186,11 @@ namespace
         uint32 feastStacks        = 0;
         int32  feastSpApplied     = 0;
         uint32 feastGeneration    = 0;
+        uint32 leechWindowEndsAtMs = 0;
+        uint32 leechedInWindow    = 0;
+        // Set once the ring's effects have been torn down because the feature was
+        // switched off mid-session, so the per-tick cleanup runs exactly once.
+        bool   suspended          = false;
     };
 
     constexpr char const* CINDERFURY_KEY = "WarlockLegendaries.Cinderfury";
@@ -257,11 +271,37 @@ namespace
     {
         auto* state = GetCinderfuryState(player);
         player->RemoveOwnedAura(SPELL_HELLFIRE_TOP_RANK, player->GetGUID());
-        player->RemoveAurasDueToSpell(SPELL_MOLTEN_WARD_VISUAL);
         ClearSoulFeast(player);
         state->wardEndsAtMs = 0;
         state->detonationEndsAtMs = 0;
+        state->leechWindowEndsAtMs = 0;
+        state->leechedInWindow = 0;
         SyncCinderfuryStamina(player);
+    }
+
+    // Returns the fire damage dealt as health, capped per second. Every Hellfire tick
+    // on every enemy reaches the damage hooks separately, so leeching the full amount
+    // each time made a big pull unkillable; the cap keeps single-target leech intact.
+    void LeechFireDamage(Player* player, uint32 amount)
+    {
+        if (!amount || !player->IsAlive())
+            return;
+
+        auto* state = GetCinderfuryState(player);
+        uint32 now = getMSTime();
+        if (now >= state->leechWindowEndsAtMs)
+        {
+            state->leechWindowEndsAtMs = now + LEECH_WINDOW_MS;
+            state->leechedInWindow = 0;
+        }
+
+        uint32 budget = player->CountPctFromMaxHealth(LEECH_MAX_PCT_PER_WINDOW);
+        if (state->leechedInWindow >= budget)
+            return;
+
+        uint32 healed = std::min(amount, budget - state->leechedInWindow);
+        state->leechedInWindow += healed;
+        player->ModifyHealth(int32(healed));
     }
 
     // Fire amp + Hellfire self-damage negation + detonation empowerment + fire
@@ -292,15 +332,16 @@ namespace
             return;
 
         int64 total = int64(damage) + int64(damage) * CINDERFURY_FIRE_AMP_PCT / 100;
+
+        // Detonation compounds on the amplified total ("half again as hot"), not on
+        // the pre-amp base.
         if (hellfire && getMSTime() < GetCinderfuryState(player)->detonationEndsAtMs)
-            total += int64(damage) * DETONATION_HELLFIRE_PCT / 100;
+            total += total * DETONATION_HELLFIRE_PCT / 100;
 
         damage = DamageType(std::min<int64>(total, std::numeric_limits<int32>::max()));
 
-        // Fire leech: every point of fire spell damage dealt to others returns
-        // as health. ModifyHealth clamps to max health on its own.
-        if (target != attacker && player->IsAlive())
-            player->ModifyHealth(int32(damage));
+        if (target != attacker)
+            LeechFireDamage(player, uint32(damage));
     }
 }
 
@@ -323,18 +364,24 @@ public:
         if (!IsEnabled())
             return true;
 
+        if (IsOnLegendaryCooldown(player, SPELL_NOGGENFOGGER_DISPLAY))
+            return true;
+
         NoggenfoggerState* state = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
         if ((state && state->active) || player->GetDisplayId() == DISPLAY_NOGGENFOGGER)
         {
             ClearNoggenfoggerMorph(player);
             SendMessageIfOnline(player, "|cff9370dbFlesh, regrettably, returns.|r");
-            return true;
+        }
+        else
+        {
+            // Direct SetDisplayId (not spell 16591) so we can shrink CreatureDisplayInfo
+            // 21151 — at native scale the model is boss-sized.
+            ApplyNoggenfoggerMorph(player);
+            SendMessageIfOnline(player, "|cff9370dbYour flesh boils away. Noggenfogger's masterpiece holds.|r");
         }
 
-        // Direct SetDisplayId (not spell 16591) so we can shrink CreatureDisplayInfo
-        // 21151 — at native scale the model is boss-sized.
-        ApplyNoggenfoggerMorph(player);
-        SendMessageIfOnline(player, "|cff9370dbYour flesh boils away. Noggenfogger's masterpiece holds.|r");
+        StartLegendaryCooldown(player, SPELL_NOGGENFOGGER_DISPLAY, ITEM_NOGGENFOGGER_MAGNUM_OPUS, CD_NOGGENFOGGER_MS);
         return true;
     }
 };
@@ -358,7 +405,7 @@ public:
         if (!IsEnabled())
             return true;
 
-        if (IsOnLegendaryCooldown(player, ITEM_CINDERFURY))
+        if (IsOnLegendaryCooldown(player, SPELL_CINDERFURY_DISPLAY))
         {
             SendMessageIfOnline(player, "|cffff8000Cinderfury smolders, gathering heat.|r");
             return true;
@@ -379,7 +426,7 @@ public:
 
         SendMessageIfOnline(player, "|cffff4500Infernal Detonation!|r |cff9370dbFor ten seconds your Hellfire burns half again as hot.|r");
 
-        StartLegendaryCooldown(player, ITEM_CINDERFURY, CD_CINDERFURY_MS);
+        StartLegendaryCooldown(player, SPELL_CINDERFURY_DISPLAY, ITEM_CINDERFURY, CD_CINDERFURY_MS);
         return true;
     }
 };
@@ -410,6 +457,12 @@ public:
         // The equip hook may not fire for items restored during login; the sync
         // is idempotent, so covering both paths is safe.
         SyncCinderfuryStamina(player);
+
+        // The pinned Hellfire has no duration, so it saves to character_aura and comes
+        // back on login. A channel can never survive logout, so any copy here is ours:
+        // keep it only while the ring is still on.
+        if (!IsEnabled() || !HasCinderfury(player))
+            player->RemoveOwnedAura(SPELL_HELLFIRE_TOP_RANK, player->GetGUID());
     }
 
     void OnPlayerJustDied(Player* player) override
@@ -422,15 +475,34 @@ public:
         if (!player || !player->IsInWorld())
             return;
 
-        // Cheap reject: only players who toggled the morph have CustomData.
-        NoggenfoggerState* state = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
-        if (!state || !state->active)
+        // Cheap reject: only characters that touched a legendary this session carry our
+        // CustomData, and DataMap::Get short-circuits while the container is empty.
+        NoggenfoggerState* morph = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
+        CinderfuryState* ring = player->CustomData.Get<CinderfuryState>(CINDERFURY_KEY);
+        if (!morph && !ring)
             return;
 
+        // WarlockLegendary.Enable can be flipped live with `.reload config`. Every combat
+        // hook bails while it is off, so whatever is already applied has to be undone
+        // here — otherwise the pinned Hellfire starts burning its master again and the
+        // -20% stamina / Soul Feast spell power linger until the next relog.
         if (!IsEnabled())
         {
             ClearNoggenfoggerMorph(player);
+
+            if (ring && !ring->suspended)
+            {
+                ShutDownCinderfury(player);
+                ring->suspended = true;
+            }
             return;
+        }
+
+        if (ring && ring->suspended)
+        {
+            // Switched back on: re-arm whatever the character is still wearing.
+            ring->suspended = false;
+            SyncCinderfuryStamina(player);
         }
 
         MaintainNoggenfoggerMorph(player);
@@ -458,35 +530,55 @@ public:
         if (Aura* pinned = player->GetAura(SPELL_HELLFIRE_TOP_RANK, player->GetGUID()))
             turnOff = pinned->GetDuration() < 0;
 
-        player->m_Events.AddEventAtOffset([player, turnOff]()
+        // This hook runs inside Spell::cast, before Spell::TakePower, so the channel
+        // charges its mana no matter what we do here. Lighting the flame should cost
+        // that mana; quenching it should not, so refund the cost when toggling off
+        // (the deferred event below runs after TakePower has debited it).
+        int32 refund = 0;
+        if (turnOff && spellInfo->PowerType == POWER_MANA)
+            refund = spell->GetPowerCost();
+
+        ObjectGuid guid = player->GetGUID();
+        player->m_Events.AddEventAtOffset([guid, turnOff, refund]()
         {
-            player->InterruptSpell(CURRENT_CHANNELED_SPELL);
+            Player* owner = ObjectAccessor::FindPlayer(guid);
+            if (!owner)
+                return;
+
+            owner->InterruptSpell(CURRENT_CHANNELED_SPELL);
 
             if (turnOff)
             {
-                player->RemoveOwnedAura(SPELL_HELLFIRE_TOP_RANK, player->GetGUID());
-                SendMessageIfOnline(player, "|cff9370dbThe Firelord's flame banks, waiting.|r");
+                owner->RemoveOwnedAura(SPELL_HELLFIRE_TOP_RANK, guid);
+                if (refund > 0)
+                    owner->ModifyPower(POWER_MANA, refund);
+                SendMessageIfOnline(owner, "|cff9370dbThe Firelord's flame banks, waiting.|r");
                 return;
             }
 
-            if (Aura* aura = player->AddAura(SPELL_HELLFIRE_TOP_RANK, player))
+            if (Aura* aura = owner->AddAura(SPELL_HELLFIRE_TOP_RANK, owner))
             {
                 aura->SetMaxDuration(-1);
                 aura->SetDuration(-1);
-                SendMessageIfOnline(player, "|cffff4500Hellfire wreathes you — unbound.|r |cff9370db(Cast Hellfire again to quench it.)|r");
+                SendMessageIfOnline(owner, "|cffff4500Hellfire wreathes you — unbound.|r |cff9370db(Cast Hellfire again to quench it.)|r");
             }
         }, Milliseconds(1));
     }
 
     void OnPlayerEquip(Player* player, Item* it, uint8 /*bag*/, uint8 /*slot*/, bool /*update*/) override
     {
-        if (!IsEnabled() || !IsWarlock(player) || !it)
+        if (!IsWarlock(player) || !it)
             return;
 
         if (it->GetEntry() != ITEM_CINDERFURY)
             return;
 
+        // Sync unconditionally — it resolves to "remove everything" while the feature
+        // is off — but only announce the ring when it is actually going to do something.
         SyncCinderfuryStamina(player);
+        if (!IsEnabled())
+            return;
+
         SendMessageIfOnline(player,
             "|cffff4500Cinderfury ignites.|r |cff9370dbYour fire burns 30% hotter and feeds you its "
             "harvest, Hellfire toggles into an unquenchable aura that spares its master, souls slain in your "
@@ -496,14 +588,18 @@ public:
 
     void OnPlayerUnequip(Player* player, Item* it) override
     {
-        if (!IsEnabled() || !IsWarlock(player) || !it)
+        if (!IsWarlock(player) || !it)
             return;
 
         if (it->GetEntry() != ITEM_CINDERFURY)
             return;
 
+        // Never gate the teardown on the config flag: taking the ring off while the
+        // feature is disabled would otherwise leave the stamina penalty, the Soul Feast
+        // spell power, and the pinned Hellfire behind until relog.
         ShutDownCinderfury(player);
-        SendMessageIfOnline(player, "|cff9370dbCinderfury gutters out.|r");
+        if (IsEnabled())
+            SendMessageIfOnline(player, "|cff9370dbCinderfury gutters out.|r");
     }
 };
 
@@ -555,15 +651,15 @@ public:
             return;
         }
 
+        // The triggering hit is reduced too, and a lethal one still arms the ward —
+        // gating on "not fatal" would mean the shield never helps against the blow it
+        // exists to survive. HealthBelowPctDamaged is int64-safe for overkill damage.
         if (now >= state->wardReadyAtMs
-            && damage < player->GetHealth()
             && player->HealthBelowPctDamaged(WARD_TRIGGER_HEALTH_PCT, damage))
         {
             state->wardEndsAtMs = now + WARD_DURATION_MS;
             state->wardReadyAtMs = now + WARD_COOLDOWN_MS;
-
-            if (Aura* aura = player->AddAura(SPELL_MOLTEN_WARD_VISUAL, player))
-                aura->SetDuration(WARD_DURATION_MS);
+            damage -= CalculatePct(damage, WARD_REDUCTION_PCT);
 
             SendMessageIfOnline(player, "|cffff4500Molten Ward!|r |cff9370dbA shell of living flame drinks the blows meant for you.|r");
         }
@@ -584,17 +680,26 @@ public:
         if (getMSTime() >= GetCinderfuryState(player)->wardEndsAtMs)
             return;
 
-        uint32 scorch = CalculatePct(damage, WARD_MELEE_SCORCH_PCT);
+        // This hook runs pre-armor in Unit::CalculateMeleeDamage, and the ward's own 15%
+        // reduction is applied later in OnDamage, so scorch off what the wearer will
+        // actually take rather than off the raw swing.
+        uint32 taken = damage - CalculatePct(damage, WARD_REDUCTION_PCT);
+        uint32 scorch = CalculatePct(taken, WARD_MELEE_SCORCH_PCT);
         if (!scorch)
             return;
 
+        ObjectGuid guid = player->GetGUID();
         ObjectGuid attackerGuid = attacker->GetGUID();
-        player->m_Events.AddEventAtOffset([player, attackerGuid, scorch]()
+        player->m_Events.AddEventAtOffset([guid, attackerGuid, scorch]()
         {
-            Unit* melee = ObjectAccessor::GetUnit(*player, attackerGuid);
+            Player* owner = ObjectAccessor::FindPlayer(guid);
+            if (!owner)
+                return;
+
+            Unit* melee = ObjectAccessor::GetUnit(*owner, attackerGuid);
             if (!melee || !melee->IsAlive())
                 return;
-            Unit::DealDamage(player, melee, scorch, nullptr, SPELL_DIRECT_DAMAGE, SPELL_SCHOOL_MASK_FIRE, nullptr, false);
+            Unit::DealDamage(owner, melee, scorch, nullptr, SPELL_DIRECT_DAMAGE, SPELL_SCHOOL_MASK_FIRE, nullptr, false);
         }, Milliseconds(1));
     }
 
@@ -629,10 +734,15 @@ public:
         }
 
         uint32 generation = ++state->feastGeneration;
-        player->m_Events.AddEventAtOffset([player, generation]()
+        ObjectGuid guid = player->GetGUID();
+        player->m_Events.AddEventAtOffset([guid, generation]()
         {
-            if (GetCinderfuryState(player)->feastGeneration == generation)
-                ClearSoulFeast(player);
+            Player* owner = ObjectAccessor::FindPlayer(guid);
+            if (!owner)
+                return;
+
+            if (GetCinderfuryState(owner)->feastGeneration == generation)
+                ClearSoulFeast(owner);
         }, Milliseconds(FEAST_DURATION_MS));
     }
 };

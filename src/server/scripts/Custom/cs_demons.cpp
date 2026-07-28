@@ -42,6 +42,11 @@ namespace
             handler->PSendSysMessage("|cff9370dbDemonic Empowerment|r is a Warlock-only feature.");
             return nullptr;
         }
+
+        // Fallback if login hydration was skipped (e.g. mid-session enable flip).
+        if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
+            sWarlockEmpower->LoadFromDB(player->GetGUID());
+
         return player;
     }
 
