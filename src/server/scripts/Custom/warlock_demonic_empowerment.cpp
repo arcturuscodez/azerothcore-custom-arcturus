@@ -24,10 +24,11 @@
  *    sacrificing, or unsummoning carries no penalty. Lifetime progression
  *    (ranks/gifts/perks) is never lost.
  *  - Every qualifying kill also restores a % of the summoned demon's max HP.
- *  - Progress is surfaced through chat announcements and the `.demons` status screen
- *    (cs_demons.cpp). There is deliberately no buff icon — earlier builds tried both
- *    a repurposed Fel Domination (18708) and a custom spell (900000); both are now
- *    only cleaned up on login so characters that saved them lose the stale aura.
+ *  - Progress is surfaced through the Void Ledger client addon, chat announcements,
+ *    and the `.demons` status screen (cs_demons.cpp). There is deliberately no buff
+ *    icon — earlier builds tried both a repurposed Fel Domination (18708) and a custom
+ *    spell (900000); both are now only cleaned up on login so characters that saved
+ *    them lose the stale aura.
  *
  * Persistence: `character_warlock_demon_kills` (guid, kills, lifetime, souls_lost)
  * in the characters DB. See data/sql/updates/pending_db_characters/.
@@ -41,6 +42,7 @@
 #include "DatabaseEnv.h"
 #include "Formulas.h"
 #include "KillRewarder.h"
+#include "Log.h"
 #include "ObjectGuid.h"
 #include "Pet.h"
 #include "Player.h"
@@ -55,6 +57,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string_view>
 
 namespace WarlockEmpowerment
 {
@@ -752,6 +755,79 @@ namespace
 
         return victim->GetLevel() > Acore::XP::GetGrayLevel(player->GetLevel());
     }
+
+    // ---- Void Ledger addon (ArcturusVoidLedger) --------------------------------
+    // Compact whisper-addon protocol. Client SendAddonMessage("ARCTURUS_VL","REQ",...).
+    // Payload must stay under the 255-char addon chat limit.
+    constexpr char const* ADDON_PREFIX = "ARCTURUS_VL";
+
+    void SendVoidLedgerSync(Player* player)
+    {
+        if (!player || !player->GetSession())
+            return;
+        if (!IsWarlock(player))
+            return;
+
+        if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
+            sWarlockEmpower->LoadFromDB(player->GetGUID());
+
+        Souls souls = sWarlockEmpower->Get(player->GetGUID());
+        std::size_t rankIdx = RankIndexFor(souls.lifetime);
+        uint32 temperTiers = TemperTiersFor(souls.lifetime);
+        TemperValues t = LoadedTemper();
+        BonusValues b = LoadedBonus();
+
+        uint32 giftMask = 0;
+        for (std::size_t i = 0; i < GIFTS.size(); ++i)
+            if (souls.lifetime >= GIFTS[i].souls)
+                giftMask |= (1u << i);
+
+        uint32 talentMask = 0;
+        for (std::size_t i = 0; i < TALENT_GRANTS.size(); ++i)
+            if (souls.lifetime >= TALENT_GRANTS[i].souls)
+                talentMask |= (1u << i);
+
+        // S:current:lifetime:lost:rank:temperTiers:tSta:tInt:tSp:tMp5:xp:death:heal:income:chMp5:talents:dSta:dStr:dAgi:dInt:dSpi:dAp:dSpx10:dArmor:gifts:tmask:enabled
+        // dSpx10 = spell power * 10 so we stay integer over the wire.
+        int32 demonSpX10 = int32(b.spellPower * float(souls.current) * 10.0f + 0.5f);
+        std::string body = Acore::StringFormat(
+            "S:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            souls.current,
+            souls.lifetime,
+            souls.lost,
+            uint32(rankIdx),
+            temperTiers,
+            t.stamina * int32(temperTiers),
+            t.intellect * int32(temperTiers),
+            t.spellPower * int32(temperTiers),
+            t.manaPer5 * int32(temperTiers),
+            XpBonusPctFor(souls.lifetime),
+            DeathPenaltyPctFor(souls.lifetime),
+            PetHealPctFor(souls.lifetime),
+            BonusSoulIncomeFor(souls.lifetime),
+            ChannelerManaPer5For(souls.lifetime),
+            BonusTalentPointsFor(souls.lifetime),
+            uint32(b.stamina * float(souls.current)),
+            uint32(b.strength * float(souls.current)),
+            uint32(b.agility * float(souls.current)),
+            uint32(b.intellect * float(souls.current)),
+            uint32(b.spirit * float(souls.current)),
+            uint32(b.attackPower * float(souls.current)),
+            demonSpX10,
+            uint32(b.armor * float(souls.current)),
+            giftMask,
+            talentMask,
+            IsEnabled() ? 1u : 0u);
+
+        std::string msg = Acore::StringFormat("{}\t{}", ADDON_PREFIX, body);
+        if (msg.size() > 255)
+        {
+            LOG_ERROR("scripts", "Void Ledger sync exceeds addon message limit ({} bytes)", msg.size());
+            return;
+        }
+
+        player->Whisper(msg, LANG_ADDON, player);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -772,8 +848,33 @@ public:
             PLAYERHOOK_ON_GIVE_EXP,
             PLAYERHOOK_ON_REWARD_KILL_REWARDER,
             PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
-            PLAYERHOOK_ON_AFTER_SPEC_SLOT_CHANGED
+            PLAYERHOOK_ON_AFTER_SPEC_SLOT_CHANGED,
+            PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT
         }) { }
+
+    // Void Ledger addon requests a sync via whisper-addon: ARCTURUS_VL\tREQ
+    bool OnPlayerCanUseChat(Player* player, uint32 type, uint32 language, std::string& msg, Player* /*receiver*/) override
+    {
+        if (!player || language != LANG_ADDON || type != CHAT_MSG_WHISPER)
+            return true;
+
+        // msg is "PREFIX\tbody"
+        constexpr char const* prefix = "ARCTURUS_VL\t";
+        constexpr std::size_t prefixLen = 12; // strlen("ARCTURUS_VL\t")
+        if (msg.size() < prefixLen || msg.compare(0, prefixLen, prefix) != 0)
+            return true;
+
+        std::string_view body(msg.c_str() + prefixLen, msg.size() - prefixLen);
+        if (body == "REQ" || body == "HELLO")
+        {
+            if (IsWarlock(player) && IsEnabled())
+                SendVoidLedgerSync(player);
+            return false; // swallow; do not echo the request whisper
+        }
+
+        // Server-originated SYNC payloads (S:...) fall through and are delivered.
+        return true;
+    }
 
     void OnPlayerLogin(Player* player) override
     {
@@ -800,17 +901,21 @@ public:
         if (!enabled)
             return;
 
+        SendVoidLedgerSync(player);
+
         RankTier const& tier = RANKS[RankIndexFor(souls.lifetime)];
         if (souls.lifetime)
         {
             SendMessageIfOnline(player, Acore::StringFormat(
                 "|cff9370dbDemonic Empowerment:|r your legions ({}) have grown strong on {} souls. "
-                "Type |cffffff00.demons|r for your status.", tier.name, souls.lifetime));
+                "Open the |cffffff00Void Ledger|r (keybind / minimap) or type |cffffff00.demons|r.",
+                tier.name, souls.lifetime));
         }
         else
         {
             SendMessageIfOnline(player,
-                "|cff9370dbDemonic Empowerment:|r ready for your first soul. Type |cffffff00.demons|r for your status.");
+                "|cff9370dbDemonic Empowerment:|r ready for your first soul. "
+                "Open the |cffffff00Void Ledger|r (keybind / minimap) or type |cffffff00.demons|r.");
         }
     }
 
@@ -938,7 +1043,10 @@ public:
             if (gained)
                 SendMessageIfOnline(player, Acore::StringFormat(
                     "|cff9370dbThe system stirs:|r |cff00ff00+{}|r bonus talent points!", gained));
+            SendVoidLedgerSync(player);
         }
+        else if ((total.lifetime % 5u) < killDelta)
+            SendVoidLedgerSync(player);
 
         if (int32 announceEvery = sConfigMgr->GetOption<int32>(CONFIG_ANNOUNCE_KILLS, 100))
             if (announceEvery > 0 && (total.lifetime % uint32(announceEvery)) < killDelta)
@@ -1031,6 +1139,7 @@ public:
 
         Souls remaining = sWarlockEmpower->Penalize(owner->GetGUID(), penalty);
         sWarlockEmpower->FlushIfDirty(owner->GetGUID());
+        SendVoidLedgerSync(owner);
 
         SendMessageIfOnline(owner, Acore::StringFormat(
             "|cffff4040Your demon has fallen!|r Demonic empowerment: -{} souls ({} remaining).",
