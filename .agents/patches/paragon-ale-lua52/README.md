@@ -1,42 +1,42 @@
-# Paragon + ALE (Lua 5.2+) unpack fix
-
-## Problem
-
-`mod-ale` embeds **Lua 5.2+**, where global `unpack` is `nil` (moved to `table.unpack`).
-Paragon's Mediator crashes at load:
-
-```text
-mediator.lua:82: attempt to call global 'unpack' (a nil value)
-```
-
-## Durable fix (this repo)
+# Paragon + ALE compatibility overlays
 
 Upstream [Grim-Batol/Paragon-Anniversary](https://github.com/Grim-Batol/Paragon-Anniversary)
-cannot be pushed from this machine (403). Until a fork/PR lands, **tracked copies**
-live here and override the submodule:
+targets Eluna. This repo runs **mod-ale**, so tracked overlays live here and override
+the submodule (Docker volume mounts and/or `apps/patches/apply-paragon-ale-lua52.*`).
 
 | Tracked file | Overrides |
 |--------------|-----------|
 | `000_lua_compat.lua` | `modules/Paragon-Anniversary/serverside/000_lua_compat.lua` |
 | `mediator.lua` | `.../paragon/lib/Mediator/mediator.lua` |
+| `paragon_hook.lua` | `.../paragon/paragon_hook.lua` |
+| `paragon_target_level.lua` | `.../paragon/modules/paragon_target_level.lua` |
 
-### Apply after `git submodule update`
+## Problems fixed
 
-PowerShell (Windows host / bind mounts):
+1. **Lua 5.2+ `unpack`** — global `unpack` is nil (`table.unpack`). Mediator crashed at load.
+2. **Missing `GetData` / `SetData`** — Eluna player session data APIs are not bound in mod-ale.
+   Without a shim, login/XP/kill/logout throw on the world thread (severe under playerbots).
+
+## GetData / SetData approach (plan B)
+
+Player userdata methods cannot reliably be extended from Lua, so the overlay replaces
+call sites with a GUID-keyed in-memory cache (`ParagonSession`) and helpers
+`ParagonGet` / `ParagonSet` / `ParagonClear`. If native `GetData`/`SetData` exist, they
+are preferred. Cache is cleared on logout and character delete.
+
+## Apply after `git submodule update`
+
+PowerShell:
 
 ```powershell
 .\apps\patches\apply-paragon-ale-lua52.ps1
 ```
 
 Or rely on `docker-compose.override.yml` volume mounts (see `conf/dist/docker-compose.override.yml`).
-
-### What the patch does
-
-1. `local unpack = table.unpack or unpack` at top of `mediator.lua`
-2. Early `000_lua_compat.lua` sets global `unpack` if missing (belt-and-suspenders)
+Lua overlays do **not** require a worldserver rebuild — restart/reload scripts is enough.
 
 ## Upstream path
 
 1. Fork Paragon-Anniversary under the Arcturus org
-2. Push commit `Fix ALE Lua 5.2+ unpack crash in Mediator`
+2. Land unpack + ALE session-cache (or real GetData/SetData) upstream
 3. Point `.gitmodules` at the fork (or open PR to Grim-Batol and drop the overlay mounts)

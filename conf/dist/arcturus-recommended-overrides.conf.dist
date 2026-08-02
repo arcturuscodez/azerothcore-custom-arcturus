@@ -21,7 +21,9 @@ Rate.XP.Kill = 3
 
 EndlessInstances.Enable = 1
 WarlockDemonicEmpowerment.Enable = 1
-# Per current soul on the active demon (explicit keys silence missing-option spam):
+# Explicit keys silence Config "Missing property" spam on every kill/login under bots.
+# Merge into live env/dist/etc/worldserver.conf (gitignored) or rely on AC_* env in
+# docker-compose.override.yml — .dist alone is not auto-applied.
 WarlockDemonicEmpowerment.PerKill.Stamina = 2
 WarlockDemonicEmpowerment.PerKill.Strength = 1
 WarlockDemonicEmpowerment.PerKill.Agility = 1
@@ -34,9 +36,15 @@ WarlockDemonicEmpowerment.Tempering.Stamina = 2
 WarlockDemonicEmpowerment.Tempering.Intellect = 2
 WarlockDemonicEmpowerment.Tempering.SpellPower = 3
 WarlockDemonicEmpowerment.Tempering.ManaPer5 = 1
-# WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100
-# Channeler rank (250 souls): flat Mana/5 while casting (default 50).
-# WarlockDemonicEmpowerment.Channeler.ManaPer5 = 50
+WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100
+WarlockDemonicEmpowerment.Tempering.MaxTiers = 0
+WarlockDemonicEmpowerment.PetHealOnKillPct = 5
+WarlockDemonicEmpowerment.DeathPenaltyPct = 5
+WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
+WarlockDemonicEmpowerment.XpBonusPctPerRank = 2
+WarlockDemonicEmpowerment.Gifts.Enable = 1
+# Channeler rank (250 souls): flat Mana/5 while casting.
+WarlockDemonicEmpowerment.Channeler.ManaPer5 = 50
 
 # Warlock legendaries currently in tree: Noggenfogger 900016 + Cinderfury 900017 only.
 # (src/server/scripts/Custom/warlock_legendaries.cpp). Default in code is 1 if unset.
@@ -105,12 +113,21 @@ Transmogrification.EnablePlus = 0
 # AuctionHouseBot.Alliance.MaxItems = 1200
 
 ####################################################################################################
-# mod_ollama_chat.conf  — disable unless Ollama is running locally
+# mod_ollama_chat.conf  — LLM bot talk (requires Ollama running)
 ####################################################################################################
 
-OllamaChat.Enable = 0
+OllamaChat.Enable = 1
+# From Docker worldserver, host Ollama is not "localhost" — use host.docker.internal.
+# For a bare-metal worldserver on the same machine, use http://localhost:11434/api/generate
+OllamaChat.Url = http://host.docker.internal:11434/api/generate
+OllamaChat.Model = llama3.2:1b
+OllamaChat.EnableRandomChatter = 1
+OllamaChat.EnableEventChatter = 1
+OllamaChat.EnableGuildRandomAmbientChatter = 1
+OllamaChat.EnableWhisperReplies = 1
 
-# When Ollama is running, also disable native playerbot chatter in playerbots.conf:
+# Keep canned playerbot chatter off so LLM owns the talk (playerbots.conf.dist already
+# sets these to 0). Uncomment only if you want both systems at once:
 # AiPlayerbot.EnableBroadcasts = 0
 # AiPlayerbot.RandomBotTalk = 0
 # AiPlayerbot.RandomBotEmote = 0
