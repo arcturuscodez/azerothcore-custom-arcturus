@@ -35,6 +35,8 @@ WarlockDemonicEmpowerment.Tempering.Intellect = 2
 WarlockDemonicEmpowerment.Tempering.SpellPower = 3
 WarlockDemonicEmpowerment.Tempering.ManaPer5 = 1
 # WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100
+# Channeler rank (250 souls): flat Mana/5 while casting (default 50).
+# WarlockDemonicEmpowerment.Channeler.ManaPer5 = 50
 
 # Warlock legendaries currently in tree: Noggenfogger 900016 + Cinderfury 900017 only.
 # (src/server/scripts/Custom/warlock_legendaries.cpp). Default in code is 1 if unset.

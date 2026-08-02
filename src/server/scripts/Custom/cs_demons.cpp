@@ -136,6 +136,9 @@ public:
             XpBonusPctFor(souls.lifetime), DeathPenaltyPctFor(souls.lifetime),
             PetHealPctFor(souls.lifetime), BonusSoulIncomeFor(souls.lifetime));
 
+        if (int32 channelerMp5 = ChannelerManaPer5For(souls.lifetime))
+            handler->PSendSysMessage("Channeler: |cff00ffff+{} Mana/5|r (regenerates while casting)", channelerMp5);
+
         handler->PSendSysMessage("Bonus talents: |cff00ff00+{}|r of +145 (every warlock talent at Dark Titan)",
             BonusTalentPointsFor(souls.lifetime));
 
@@ -172,6 +175,11 @@ public:
 
         handler->PSendSysMessage("|cff9370db===== Passive milestones =====|r");
         struct Milestone { uint32 souls; char const* text; };
+        int32 channelerMp5 = sConfigMgr->GetOption<int32>(CONFIG_CHANNELER_MANA_PER5, CHANNELER_MANA_PER5_DEFAULT);
+        if (channelerMp5 < 0)
+            channelerMp5 = 0;
+        std::string channelerText = Acore::StringFormat(
+            "+{} Mana/5 (Channeler; regenerates while casting)", channelerMp5);
         static constexpr std::array<Milestone, 5> MILESTONES = {{
             { 10000u,  "+1 soul per kill; demon death penalty eased to 4%" },
             { 25000u,  "demon healing per kill raised to 7%"               },
@@ -179,6 +187,13 @@ public:
             { 100000u, "+3 souls per kill; healing 10%; penalty 2%"        },
             { 250000u, "death penalty eased to its floor of 1%"            }
         }};
+        if (channelerMp5 > 0)
+        {
+            if (souls.lifetime >= RANK_CHANNELER_SOULS)
+                handler->PSendSysMessage("|cff00ff00[unlocked]|r {}", channelerText);
+            else
+                handler->PSendSysMessage("|cff808080[{} souls]|r {}", RANK_CHANNELER_SOULS, channelerText);
+        }
         for (Milestone const& m : MILESTONES)
         {
             if (souls.lifetime >= m.souls)

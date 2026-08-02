@@ -13,8 +13,9 @@
  *    (interval, values, and an optional tier cap all configurable).
  *  - Gifts of the Void: permanently learned spells at rank thresholds (see GIFTS in
  *    the header). All are client-known spells, so they render with full icon/tooltip.
- *  - Passive rank perks: +1% XP per rank, demon-death penalty easing (5% down to 1%),
- *    stronger on-kill pet healing, and bonus soul income at high ranks.
+ *  - Passive rank perks: +2% XP per rank (config), demon-death penalty easing (5% down to 1%),
+ *    stronger on-kill pet healing, bonus soul income at high ranks, and Channeler (+50 Mp5
+ *    at 250 lifetime souls, regenerates while casting).
  *
  * Balance / flavor:
  *  - Only reward-granting kills count (grey mobs are ignored, preventing farming).
@@ -159,6 +160,15 @@ namespace WarlockEmpowerment
         if (maxTiers > 0 && tiers > uint32(maxTiers))
             tiers = uint32(maxTiers);
         return tiers;
+    }
+
+    int32 ChannelerManaPer5For(uint32 lifetime)
+    {
+        if (lifetime < RANK_CHANNELER_SOULS)
+            return 0;
+
+        int32 amount = sConfigMgr->GetOption<int32>(CONFIG_CHANNELER_MANA_PER5, CHANNELER_MANA_PER5_DEFAULT);
+        return amount > 0 ? amount : 0;
     }
 
     void ApplyKillBonus(Unit* pet, uint32 kills, bool apply)
@@ -388,6 +398,8 @@ namespace
     public:
         uint32       appliedTiers = 0;
         TemperValues appliedValues = { 0, 0, 0, 0 };
+        // Channeler rank Mp5 currently applied (0 when below threshold / feature off).
+        int32        appliedChannelerMp5 = 0;
         // True while every soul-derived effect is stripped because the feature is off.
         bool         suspended = false;
         uint32       nextEnableCheckMs = 0;
@@ -485,6 +497,24 @@ namespace
         state->appliedValues = values;
     }
 
+    // ---- Channeler rank Mana/5 ----------------------------------------------
+
+    // Flat Mp5 from the Channeler rank. Uses ApplyManaRegenBonus so it regenerates
+    // even while casting (same path as item Mana/5). Idempotent; safe every kill.
+    void SyncChannelerMana(Player* player, uint32 lifetime)
+    {
+        auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
+        int32 target = IsEnabled() ? ChannelerManaPer5For(lifetime) : 0;
+        if (state->appliedChannelerMp5 == target)
+            return;
+
+        if (state->appliedChannelerMp5)
+            player->ApplyManaRegenBonus(state->appliedChannelerMp5, false);
+        if (target)
+            player->ApplyManaRegenBonus(target, true);
+        state->appliedChannelerMp5 = target;
+    }
+
     // ---- Bonus talent points --------------------------------------------------
 
     // Brings the engine's persisted bonus-talent counter in line with the lifetime
@@ -554,6 +584,7 @@ namespace
     void ResyncSoulEffects(Player* player, Souls const& souls)
     {
         SyncTempering(player, souls.lifetime);
+        SyncChannelerMana(player, souls.lifetime);
         SyncGifts(player, souls.lifetime, false);
         SyncTalentPoints(player, souls.lifetime);
 
@@ -614,6 +645,15 @@ namespace
         if (uint32 xpPct = XpBonusPctFor(after))
             SendMessageIfOnline(player, Acore::StringFormat(
                 "|cff9370dbThe system stirs:|r experience gains increased to |cff00ff00+{}%|r.", xpPct));
+
+        if (before < RANK_CHANNELER_SOULS && after >= RANK_CHANNELER_SOULS)
+        {
+            int32 mp5 = ChannelerManaPer5For(after);
+            if (mp5)
+                SendMessageIfOnline(player, Acore::StringFormat(
+                    "|cff9370dbThe system stirs:|r your veins drink the Void — |cff00ffff+{} Mana/5|r "
+                    "(regenerates even while casting).", mp5));
+        }
 
         return true;
     }
@@ -772,6 +812,7 @@ public:
             sWarlockEmpower->LoadFromDB(player->GetGUID());
             Souls loaded = sWarlockEmpower->Get(player->GetGUID());
             SyncTempering(player, loaded.lifetime);
+            SyncChannelerMana(player, loaded.lifetime);
             SyncGifts(player, loaded.lifetime, false);
             SyncTalentPoints(player, loaded.lifetime);
         }
@@ -793,6 +834,7 @@ public:
 
         HealSummonedDemon(player, total.lifetime);
         SyncTempering(player, total.lifetime);
+        SyncChannelerMana(player, total.lifetime);
         if (MaybeAnnounceRankUp(player, before.lifetime, total.lifetime))
         {
             SyncGifts(player, total.lifetime, true);

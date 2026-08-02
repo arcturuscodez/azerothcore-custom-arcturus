@@ -61,6 +61,13 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_GIFTS_ENABLED     = "WarlockDemonicEmpowerment.Gifts.Enable";
     constexpr char const* CONFIG_XP_PCT_PER_RANK   = "WarlockDemonicEmpowerment.XpBonusPctPerRank";
 
+    // Channeler (250 souls): flat Mana/5 that ticks even while casting (same path as
+    // item Mp5 / ApplyManaRegenBonus). Default 50 is slightly ahead of a strong
+    // Mana Spring without deleting mana as a resource.
+    constexpr char const* CONFIG_CHANNELER_MANA_PER5 = "WarlockDemonicEmpowerment.Channeler.ManaPer5";
+    constexpr uint32 RANK_CHANNELER_SOULS = 250u;
+    constexpr int32  CHANNELER_MANA_PER5_DEFAULT = 50;
+
     // Legacy spell IDs, kept only so login can strip stale auras saved by older
     // builds: the system used to surface the kill count as a visible buff — first
     // a repurposed Fel Domination, then a custom spell_dbc spell. Progress is now
@@ -77,9 +84,10 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    inline constexpr std::array<RankTier, 11> RANKS = {{
+    inline constexpr std::array<RankTier, 12> RANKS = {{
         { 0u,      "Apprentice"            },
         { 100u,    "Warlock"               },
+        { 250u,    "Channeler"             },
         { 500u,    "Feltouched"            },
         { 1000u,   "Demonologist"          },
         { 2500u,   "Dread Warlock"         },
@@ -166,6 +174,7 @@ namespace WarlockEmpowerment
     uint32 BonusSoulIncomeFor(uint32 lifetime);  // +1 soul/kill @10k, +2 @50k, +3 @100k
     uint32 XpBonusPctFor(uint32 lifetime);       // +N% per rank index (config, default 2)
     uint32 TemperTiersFor(uint32 lifetime);      // lifetime / interval, clamped by MaxTiers
+    int32  ChannelerManaPer5For(uint32 lifetime); // +50 Mp5 @ Channeler (250); 0 before
 
     struct BonusValues
     {

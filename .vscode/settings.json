@@ -130,4 +130,6 @@
     "C_Cpp.default.compilerPath": "/usr/bin/clang",
     "cmake.sourceDirectory": ["${workspaceFolder}"],
     "cmake.buildDirectory": "${workspaceFolder}/var/build",
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
 }
