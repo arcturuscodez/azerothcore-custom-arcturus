@@ -149,7 +149,9 @@ namespace
 
     // Reserved for a future display-only serverside spell. Real Molten Armor (43046)
     // grants combat auras and stacks with the scripted melee scorch — do not apply it.
-    constexpr uint32 SPELL_MOLTEN_WARD_VISUAL = 43046;
+    // [[maybe_unused]]: kept as a named sentinel (GATE-LEG-003) so nobody "helpfully"
+    // wires 43046 into the ward path.
+    [[maybe_unused]] constexpr uint32 SPELL_MOLTEN_WARD_VISUAL = 43046;
 
     constexpr int32  CINDERFURY_STAMINA_PCT    = -20;
     constexpr int32  CINDERFURY_FIRE_AMP_PCT   = 30;

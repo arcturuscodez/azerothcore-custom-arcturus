@@ -188,7 +188,7 @@ namespace WarlockEmpowerment
         float armor;
     };
 
-    // Reads the per-kill demon bonus values from config.
+    // Reads the per-kill demon bonus values from config (live; safe with `.reload config`).
     BonusValues LoadedBonus();
 
     // Flat spell power granted to `pet` from Demonic Empowerment souls.
@@ -204,7 +204,7 @@ namespace WarlockEmpowerment
         int32 manaPer5; // mana regenerated per 5 seconds (Mp5)
     };
 
-    // Reads the per-tier Soul Tempering values from config.
+    // Reads the per-tier Soul Tempering values from config (live; safe with `.reload config`).
     TemperValues LoadedTemper();
 
     // Applies (or removes) `kills` worth of the balanced bonus to `pet`.

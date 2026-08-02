@@ -13,7 +13,7 @@
  *    (interval, values, and an optional tier cap all configurable).
  *  - Gifts of the Void: permanently learned spells at rank thresholds (see GIFTS in
  *    the header). All are client-known spells, so they render with full icon/tooltip.
- *  - Passive rank perks: +2% XP per rank (config), demon-death penalty easing (5% down to 1%),
+ *  - Passive rank perks: +2% kill XP per rank (config), demon-death penalty easing (5% down to 1%),
  *    stronger on-kill pet healing, bonus soul income at high ranks, and Channeler (+50 Mp5
  *    at 250 lifetime souls, regenerates while casting).
  *
@@ -67,11 +67,12 @@ namespace WarlockEmpowerment
         return idx;
     }
 
-    // Config is immutable after world start for these keys; cache once so
-    // pet re-inits / kills do not spam "missing option" when conf omits them.
+    // Read live so `.reload config` can retune PerKill / Tempering without a restart.
+    // Callers that strip mods must use the BonusValues / TemperValues they applied with,
+    // not a fresh Loaded*(), or a mid-session retune would remove the wrong amounts.
     BonusValues LoadedBonus()
     {
-        static BonusValues const cached = {
+        return BonusValues{
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_STAMINA,     2)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_STRENGTH,    1)),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_AGILITY,     1)),
@@ -82,18 +83,30 @@ namespace WarlockEmpowerment
             sConfigMgr->GetOption<float>(CONFIG_BONUS_SPELLPOWER, 0.1f),
             float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_ARMOR,       5))
         };
-        return cached;
     }
 
     TemperValues LoadedTemper()
     {
-        static TemperValues const cached = {
+        return TemperValues{
             sConfigMgr->GetOption<int32>(CONFIG_TEMPER_STAMINA,    2),
             sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTELLECT,  2),
             sConfigMgr->GetOption<int32>(CONFIG_TEMPER_SPELLPOWER, 3),
             sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MANA_PER5,  1)
         };
-        return cached;
+    }
+
+    bool BonusValuesEqual(BonusValues const& a, BonusValues const& b)
+    {
+        return a.stamina == b.stamina && a.strength == b.strength && a.agility == b.agility
+            && a.intellect == b.intellect && a.spirit == b.spirit
+            && a.attackPower == b.attackPower && a.spellPower == b.spellPower
+            && a.armor == b.armor;
+    }
+
+    bool TemperValuesEqual(TemperValues const& a, TemperValues const& b)
+    {
+        return a.stamina == b.stamina && a.intellect == b.intellect
+            && a.spellPower == b.spellPower && a.manaPer5 == b.manaPer5;
     }
 
     uint32 DeathPenaltyPctFor(uint32 lifetime)
@@ -171,7 +184,7 @@ namespace WarlockEmpowerment
         return amount > 0 ? amount : 0;
     }
 
-    void ApplyKillBonus(Unit* pet, uint32 kills, bool apply)
+    void ApplyKillBonusWith(Unit* pet, uint32 kills, BonusValues const& b, bool apply)
     {
         if (!pet || !kills)
             return;
@@ -188,7 +201,6 @@ namespace WarlockEmpowerment
             ? float(pet->GetPower(POWER_MANA)) / float(maxManaBefore)
             : 1.0f;
 
-        BonusValues b = LoadedBonus();
         float mult = float(kills);
 
         pet->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA,   TOTAL_VALUE, b.stamina     * mult, apply);
@@ -233,6 +245,11 @@ namespace WarlockEmpowerment
                 if (aurEff)
                     aurEff->RecalculateAmount();
         }
+    }
+
+    void ApplyKillBonus(Unit* pet, uint32 kills, bool apply)
+    {
+        ApplyKillBonusWith(pet, kills, LoadedBonus(), apply);
     }
 
     int32 PetSoulSpellPowerBonus(Unit const* pet)
@@ -384,10 +401,14 @@ namespace
     // level-up; without this bookkeeping every re-init would stack the full bonus again
     // (HandleStatFlatModifier is additive). Stored in Object::CustomData so it dies with the
     // pet object — no GUID-reuse or cleanup hazards.
+    // `appliedValues` is the PerKill config snapshot used for those mods so a live
+    // `.reload config` can strip the old amounts before applying the new ones.
     class EmpowermentPetState : public DataMap::Base
     {
     public:
-        uint32 applied = 0;
+        uint32      applied = 0;
+        BonusValues appliedValues{};
+        bool        hasValues = false;
     };
 
     // Per-player record of the Soul Tempering currently applied to the character.
@@ -400,6 +421,10 @@ namespace
         TemperValues appliedValues = { 0, 0, 0, 0 };
         // Channeler rank Mp5 currently applied (0 when below threshold / feature off).
         int32        appliedChannelerMp5 = 0;
+        // Soul-granted share of m_extraBonusTalentCount (Add/Remove, never Set — preserves
+        // foreign bonus talents from Paragon / quests / GM tools).
+        uint32       appliedSoulTalents = 0;
+        bool         soulTalentsAdopted = false;
         // True while every soul-derived effect is stripped because the feature is off.
         bool         suspended = false;
         uint32       nextEnableCheckMs = 0;
@@ -482,16 +507,17 @@ namespace
     }
 
     // Brings the player's applied tempering in line with the lifetime soul total.
-    // Idempotent; safe to call on every kill (no-op unless the tier count moved).
+    // Idempotent; safe to call on every kill (no-op unless the tier count or
+    // Tempering.* config values moved).
     void SyncTempering(Player* player, uint32 lifetime)
     {
         auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
         uint32 target = IsEnabled() ? TemperTiersFor(lifetime) : 0u;
-        if (state->appliedTiers == target)
+        TemperValues values = LoadedTemper();
+        if (state->appliedTiers == target && TemperValuesEqual(state->appliedValues, values))
             return;
 
         ApplyTempering(player, state->appliedTiers, state->appliedValues, false);
-        TemperValues values = LoadedTemper();
         ApplyTempering(player, target, values, true);
         state->appliedTiers  = target;
         state->appliedValues = values;
@@ -517,20 +543,48 @@ namespace
 
     // ---- Bonus talent points --------------------------------------------------
 
-    // Brings the engine's persisted bonus-talent counter in line with the lifetime
-    // soul total. Never call InitTalentForLevel when the new pool is smaller than
-    // spent points — that path hard-resets the talent tree and dismisses the pet.
+    // Brings this system's share of m_extraBonusTalentCount in line with lifetime
+    // souls via Add/Remove — never SetBonusTalentCount, which would clobber foreign
+    // grants (Paragon, quests, GM tools). Never call InitTalentForLevel when the new
+    // pool is smaller than spent points — that path hard-resets the talent tree and
+    // dismisses the pet.
     void SyncTalentPoints(Player* player, uint32 lifetime)
     {
+        auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
+
         // Disabling the feature has to hand the points back as well, otherwise the
         // character keeps up to +145 free talents forever. Talents already spent are
         // never refunded — the over-budget branch below parks free points at zero
         // instead of resetting the tree.
         uint32 want = IsEnabled() ? BonusTalentPointsFor(lifetime) : 0u;
-        if (player->GetBonusTalentCount() == want)
+
+        // First sync this session: older builds wrote our full grant with
+        // SetBonusTalentCount, so the overlapping DB counter is already ours.
+        // Adopt that share without Add-ing again. Excess above our historical grant
+        // is left alone (foreign systems).
+        if (!state->soulTalentsAdopted)
+        {
+            uint32 historical = BonusTalentPointsFor(lifetime);
+            uint32 have = player->GetBonusTalentCount();
+            state->appliedSoulTalents = (have >= historical) ? historical : 0u;
+            state->soulTalentsAdopted = true;
+        }
+
+        if (state->appliedSoulTalents == want)
             return;
 
-        player->SetBonusTalentCount(want);
+        if (want > state->appliedSoulTalents)
+            player->AddBonusTalent(want - state->appliedSoulTalents);
+        else
+        {
+            uint32 remove = state->appliedSoulTalents - want;
+            uint32 have = player->GetBonusTalentCount();
+            if (remove > have)
+                remove = have;
+            if (remove)
+                player->RemoveBonusTalent(remove);
+        }
+        state->appliedSoulTalents = want;
 
         uint32 talentPointsForLevel = player->CalculateTalentsPoints();
         if (player->GetUsedTalentCount() > talentPointsForLevel)
@@ -544,6 +598,28 @@ namespace
         }
 
         player->InitTalentForLevel(); // refreshes free talent points on the client
+    }
+
+    // Bring the live demon's flat soul mods in line with `want` current souls,
+    // using the PerKill snapshot stored on the pet for correct strip-on-retune.
+    void SyncPetSoulBonus(Unit* pet, uint32 want)
+    {
+        auto* state = pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
+        BonusValues fresh = LoadedBonus();
+        if (state->applied == want && state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
+            return;
+
+        if (state->applied)
+        {
+            BonusValues const& strip = state->hasValues ? state->appliedValues : fresh;
+            ApplyKillBonusWith(pet, state->applied, strip, false);
+        }
+        if (want)
+            ApplyKillBonusWith(pet, want, fresh, true);
+
+        state->applied = want;
+        state->appliedValues = fresh;
+        state->hasValues = true;
     }
 
     // ---- Gifts of the Void (learned spells) ----------------------------------
@@ -597,14 +673,20 @@ namespace
 
         auto* state = pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
         uint32 want = IsEnabled() ? souls.current : 0u;
-        if (state->applied == want)
+        BonusValues fresh = LoadedBonus();
+        if (state->applied == want && state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
             return;
 
         if (state->applied)
-            ApplyKillBonus(pet, state->applied, false);
+        {
+            BonusValues const& strip = state->hasValues ? state->appliedValues : fresh;
+            ApplyKillBonusWith(pet, state->applied, strip, false);
+        }
         if (want)
             ApplyKillBonus(pet, souls.current, true);
         state->applied = want;
+        state->appliedValues = fresh;
+        state->hasValues = true;
     }
 
     // Heals the warlock's active demon by a % of its max HP. Skipped if there's no live pet.
@@ -757,15 +839,28 @@ public:
         state->nextEnableCheckMs = now + ENABLE_RECHECK_MS;
 
         bool enabled = IsEnabled();
-        if (enabled != state->suspended)
+        if (enabled == state->suspended)
+        {
+            // suspended tracks the inverted last-known Enable bit; equality means it flipped.
+            state->suspended = !enabled;
+            ResyncSoulEffects(player, sWarlockEmpower->Get(player->GetGUID()));
+
+            SendMessageIfOnline(player, enabled
+                ? "|cff9370dbDemonic Empowerment:|r the Void stirs again — your legions are restored."
+                : "|cff9370dbDemonic Empowerment:|r the Void falls silent; its gifts are withdrawn.");
+            return;
+        }
+
+        // Enable bit stable: still refresh tempering / Channeler / pet flats so a live
+        // `.reload config` of PerKill.* or Tempering.* applies without a relog.
+        if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
             return;
 
-        state->suspended = !enabled;
-        ResyncSoulEffects(player, sWarlockEmpower->Get(player->GetGUID()));
-
-        SendMessageIfOnline(player, enabled
-            ? "|cff9370dbDemonic Empowerment:|r the Void stirs again — your legions are restored."
-            : "|cff9370dbDemonic Empowerment:|r the Void falls silent; its gifts are withdrawn.");
+        Souls souls = sWarlockEmpower->Get(player->GetGUID());
+        SyncTempering(player, souls.lifetime);
+        SyncChannelerMana(player, souls.lifetime);
+        if (Pet* pet = player->GetPet())
+            SyncPetSoulBonus(pet, enabled ? souls.current : 0u);
     }
 
     void OnPlayerSave(Player* player) override
@@ -790,9 +885,11 @@ public:
         SyncGifts(player, sWarlockEmpower->Get(player->GetGUID()).lifetime, false);
     }
 
-    void OnPlayerGiveXP(Player* player, uint32& amount, Unit* /*victim*/, uint8 /*xpSource*/) override
+    void OnPlayerGiveXP(Player* player, uint32& amount, Unit* /*victim*/, uint8 xpSource) override
     {
-        if (!amount || !IsEnabled() || !IsWarlock(player))
+        // Kill XP only — quests / explore / BG already have their own rate knobs,
+        // and stacking a soul-rank bonus on every source snowballs bots and alts.
+        if (!amount || xpSource != XPSOURCE_KILL || !IsEnabled() || !IsWarlock(player))
             return;
 
         uint32 pct = XpBonusPctFor(sWarlockEmpower->Get(player->GetGUID()).lifetime);
@@ -827,10 +924,7 @@ public:
             return;
 
         if (Pet* pet = player->GetPet())
-        {
-            ApplyKillBonus(pet, killDelta, true);
-            pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY)->applied += killDelta;
-        }
+            SyncPetSoulBonus(pet, total.current);
 
         HealSummonedDemon(player, total.lifetime);
         SyncTempering(player, total.lifetime);
@@ -873,14 +967,21 @@ public:
         // "lost most of its health" on level-up). Skip when nothing changed.
         auto* state = guardian->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
         uint32 current = sWarlockEmpower->Get(player->GetGUID()).current;
+        BonusValues fresh = LoadedBonus();
         if (state->applied == current)
-            return;
+            if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
+                return;
 
         if (state->applied)
-            ApplyKillBonus(guardian, state->applied, false);
+        {
+            BonusValues const& strip = state->hasValues ? state->appliedValues : fresh;
+            ApplyKillBonusWith(guardian, state->applied, strip, false);
+        }
 
         ApplyKillBonus(guardian, current, true);
         state->applied = current;
+        state->appliedValues = fresh;
+        state->hasValues = true;
     }
 };
 
