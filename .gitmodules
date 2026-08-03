@@ -16,9 +16,3 @@
 [submodule "modules/mod-transmog"]
 	path = modules/mod-transmog
 	url = https://github.com/azerothcore/mod-transmog.git
-[submodule "modules/mod-ale"]
-	path = modules/mod-ale
-	url = https://github.com/azerothcore/mod-ale.git
-[submodule "modules/Paragon-Anniversary"]
-	path = modules/Paragon-Anniversary
-	url = https://github.com/Grim-Batol/Paragon-Anniversary.git

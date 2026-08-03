@@ -403,7 +403,7 @@ namespace
     }
 
     // Brings this system's share of m_extraBonusTalentCount in line with lifetime
-    // souls via Add/Remove — never SetBonusTalentCount (preserves Paragon / GM grants).
+    // souls via Add/Remove — never SetBonusTalentCount (preserves other bonus / GM grants).
     // Never InitTalentForLevel when over-spent — that hard-resets the tree.
     void SyncTalentPoints(Player* player, uint32 lifetime)
     {

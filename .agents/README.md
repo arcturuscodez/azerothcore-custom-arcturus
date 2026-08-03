@@ -10,6 +10,7 @@ Source of truth for **agent skills, rules, and project knowledge** for Arcturus
 | `skills/<name>/SKILL.md` | Invokable agent skills |
 | `rules/<name>.md` | Persistent agent rules for this repo |
 | `knowledge/` | Deep reference: client modding, server, Wowhead, customs |
+| `TODO.md` | Open polish / follow-ups (spellbook Rank text, …) |
 | `warlock-custom-item-icons.md` / `.json` | Active customs (900016/900017) displayid map |
 
 Agent-specific dirs may symlink here (e.g. Claude Code):
@@ -67,7 +68,6 @@ Frozen suite + `FROZEN.sha256` + git/Cursor hooks block commits unless all `GATE
 - **This repo's preferred item-icon path today:** server-only stock `displayid` remaps (no client patch). Unique custom art requires restoring an MPQ + ItemDisplayInfo pipeline (see client docs).
 - **Custom bag icons:** still need **CustomItemFix** or client **Item.dbc** — see [knowledge/custom-items-red-question-mark.md](knowledge/custom-items-red-question-mark.md).
 - **Custom right-click equip:** [client-addons/ArcturusItemFix/](client-addons/ArcturusItemFix/README.md) — fixes “Item not found” on bag right-click
-- **Paragon + ALE Lua 5.2 unpack fix:** [patches/paragon-ale-lua52/](patches/paragon-ale-lua52/README.md)
 - **Live client debug:** [client-addons/ArcturusDebug/](client-addons/ArcturusDebug/README.md) — `/adebug`; agents read `WTF/.../SavedVariables/ArcturusDebug.lua` after `/reload`
 - **Inferno / Doomguard tooltips:** edit stock spells **1122** / **18540** in Spell Editor → export `Spell.dbc` into a late-loading MPQ (server permanent-pet behaviour stays in `SpellInfoCorrections.cpp`)
 

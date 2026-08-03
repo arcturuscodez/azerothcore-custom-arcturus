@@ -25,9 +25,6 @@ services:
       AC_WARLOCK_DEMONIC_EMPOWERMENT_XP_BONUS_PCT_PER_RANK: "2"
       AC_WARLOCK_DEMONIC_EMPOWERMENT_GIFTS_ENABLE: "1"
       AC_WARLOCK_DEMONIC_EMPOWERMENT_CHANNELER_MANA_PER5: "50"
-      # Paragon Anniversary via mod-ale (ALE.* keys; not Eluna)
-      AC_ALE_ENABLED: "1"
-      AC_ALE_SCRIPT_PATH: "/azerothcore/modules/Paragon-Anniversary/serverside"
       # mod-ollama-chat — bots talk via host Ollama (must be running on :11434)
       AC_OLLAMA_CHAT_ENABLE: "1"
       AC_OLLAMA_CHAT_URL: "http://host.docker.internal:11434/api/generate"
@@ -36,11 +33,3 @@ services:
       AC_OLLAMA_CHAT_ENABLE_EVENT_CHATTER: "1"
       AC_OLLAMA_CHAT_ENABLE_GUILD_RANDOM_AMBIENT_CHATTER: "1"
       AC_OLLAMA_CHAT_ENABLE_WHISPER_REPLIES: "1"
-    volumes:
-      # Survive `git submodule update` wiping ALE overlays (upstream push 403)
-      - ./.agents/patches/paragon-ale-lua52/000_lua_compat.lua:/azerothcore/modules/Paragon-Anniversary/serverside/000_lua_compat.lua:ro
-      - ./.agents/patches/paragon-ale-lua52/mediator.lua:/azerothcore/modules/Paragon-Anniversary/serverside/paragon/lib/Mediator/mediator.lua:ro
-      - ./.agents/patches/paragon-ale-lua52/paragon_hook.lua:/azerothcore/modules/Paragon-Anniversary/serverside/paragon/paragon_hook.lua:ro
-      - ./.agents/patches/paragon-ale-lua52/paragon_target_level.lua:/azerothcore/modules/Paragon-Anniversary/serverside/paragon/modules/paragon_target_level.lua:ro
-      # Prefer mounting the submodule tree (not a host symlink) for lua_scripts:
-      # - ./modules/Paragon-Anniversary/serverside:/azerothcore/modules/Paragon-Anniversary/serverside:ro
