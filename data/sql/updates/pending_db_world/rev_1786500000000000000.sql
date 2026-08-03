@@ -23,7 +23,7 @@ REPLACE INTO `item_template`
      `bonding`, `description`, `Material`, `sheath`, `MaxDurability`, `ScriptName`, `flagsCustom`)
 VALUES
     (900016, 4, 0, 'Noggenfogger''s Magnum Opus', 17403, 5, 524288, 0, 250000,
-     12, 256, -1, 284, 80, 1, 1,
+     12, 256, -1, 284, 10, 1, 1,
      45, 145, 36, 60, 7, 55, 0, 0, 0, 0,
      0, 0, 0, 0,
      16591, 0, 5000, 0, 0,

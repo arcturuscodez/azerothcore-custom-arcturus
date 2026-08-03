@@ -69,5 +69,5 @@ Frozen suite + `FROZEN.sha256` + git/Cursor hooks block commits unless all `GATE
 - **Custom right-click equip:** [client-addons/ArcturusItemFix/](client-addons/ArcturusItemFix/README.md) — fixes “Item not found” on bag right-click
 - **Paragon + ALE Lua 5.2 unpack fix:** [patches/paragon-ale-lua52/](patches/paragon-ale-lua52/README.md)
 - **Live client debug:** [client-addons/ArcturusDebug/](client-addons/ArcturusDebug/README.md) — `/adebug`; agents read `WTF/.../SavedVariables/ArcturusDebug.lua` after `/reload`
-- **Inferno / Doomguard tooltips:** [client-addons/ArcturusSpellFix/](client-addons/ArcturusSpellFix/README.md) — rewrites stock ritual text (reagents still required)
+- **Inferno / Doomguard tooltips:** edit stock spells **1122** / **18540** in Spell Editor → export `Spell.dbc` into a late-loading MPQ (server permanent-pet behaviour stays in `SpellInfoCorrections.cpp`)
 

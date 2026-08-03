@@ -6,6 +6,7 @@
  *   current  — lifetime minus demon-death losses; flat stats on the summoned demon
  *
  * Login strips borrowed class spells left on characters from older builds.
+ * Lifetime ranks teach custom passives 90001–90003 (see RANK_SPELLS).
  *
  * See warlock_demonic_empowerment.cpp.
  */
@@ -54,12 +55,31 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_FEL_DOMINATION_LEGACY     = 18708;
     constexpr uint32 SPELL_DEMONIC_EMPOWERMENT_LEGACY = 900000;
 
+    // Custom rank passives (client Spell.dbc + server spell_dbc).
+    constexpr uint32 SPELL_NECROTIC_EMBRACE      = 90001; // Warlock (100)
+    constexpr uint32 SPELL_NETHER_PRESENCE      = 90002; // Channeler (250)
+    constexpr uint32 SPELL_FELTOUCHED_COMMUNION = 90003; // Feltouched (500)
+
     // Rank ladder (lifetime souls).
     struct RankTier
     {
         uint32      minKills;
         char const* name;
     };
+
+    // Lifetime milestones that teach custom passives (not the stripped LEGACY_GIFT_SPELLS).
+    struct RankSpell
+    {
+        uint32      minSouls;
+        uint32      id;
+        char const* name;
+    };
+
+    inline constexpr std::array<RankSpell, 3> RANK_SPELLS = {{
+        { 100u,  SPELL_NECROTIC_EMBRACE,      "Necrotic Embrace"      },
+        { 250u,  SPELL_NETHER_PRESENCE,      "Nether Presence"      },
+        { 500u,  SPELL_FELTOUCHED_COMMUNION, "Feltouched Communion" }
+    }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{
         { 0u,      "Apprentice"            },

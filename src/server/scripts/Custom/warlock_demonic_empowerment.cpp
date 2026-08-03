@@ -6,7 +6,7 @@
  *  - CURRENT souls → flat stats on every summoned demon (config PerKill.*)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
- *  - Rank thresholds → chat announcement (hooks for future custom spells)
+ *  - Rank thresholds → custom passives 90001–90003 (RANK_SPELLS) + chat announcement
  *  - Demon death (not owner-caused) → lose % of CURRENT souls (config DeathPenaltyPct)
  *
  * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost).
@@ -477,10 +477,44 @@ namespace
         }
     }
 
+    // Teach / revoke custom rank passives from lifetime souls (never touches LEGACY_GIFT_SPELLS).
+    void SyncRankSpells(Player* player, uint32 lifetime, bool announce)
+    {
+        bool const enabled = IsEnabled();
+        for (RankSpell const& entry : RANK_SPELLS)
+        {
+            bool const want = enabled && lifetime >= entry.minSouls;
+            bool const have = player->HasSpell(entry.id);
+            if (want == have)
+                continue;
+
+            if (want)
+            {
+                player->learnSpell(entry.id);
+                if (announce && !player->GetSession()->PlayerLoading())
+                    SendMessageIfOnline(player, Acore::StringFormat(
+                        "|cff9370dbGift of the Void:|r you learn |cffffff00{}|r.", entry.name));
+            }
+            else
+                player->removeSpell(entry.id, SPEC_MASK_ALL, false);
+        }
+    }
+
+    // Feltouched Communion effect 2 targets the pet; re-apply when a demon is summoned.
+    void RefreshFeltouchedPetAura(Player* player)
+    {
+        if (!player->HasSpell(SPELL_FELTOUCHED_COMMUNION))
+            return;
+
+        player->RemoveAurasDueToSpell(SPELL_FELTOUCHED_COMMUNION);
+        player->CastSpell(player, SPELL_FELTOUCHED_COMMUNION, true);
+    }
+
     void ResyncSoulEffects(Player* player, Souls const& souls)
     {
         SyncTempering(player, souls.lifetime);
         SyncTalentPoints(player, souls.lifetime);
+        SyncRankSpells(player, souls.lifetime, false);
 
         // LoadPet() runs before OnPlayerLogin, so OnPlayerAfterGuardianInitStatsForLevel
         // saw unloaded counters and skipped the flat soul mods (Spell Bonus still works
@@ -490,6 +524,7 @@ namespace
             return;
 
         SyncPetSoulBonus(pet, IsEnabled() ? souls.current : 0u);
+        RefreshFeltouchedPetAura(player);
     }
 
     bool MaybeAnnounceRankUp(Player* player, uint32 before, uint32 after)
@@ -539,6 +574,11 @@ namespace
             if (souls.lifetime >= TALENT_GRANTS[i].souls)
                 talentMask |= (1u << i);
 
+        uint32 giftMask = 0;
+        for (std::size_t i = 0; i < RANK_SPELLS.size(); ++i)
+            if (souls.lifetime >= RANK_SPELLS[i].minSouls)
+                giftMask |= (1u << i);
+
         int32 demonSpX10 = int32(b.spellPower * float(souls.current) * 10.0f + 0.5f);
         std::string body = Acore::StringFormat(
             "S:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
@@ -565,7 +605,7 @@ namespace
             uint32(b.attackPower * float(souls.current)),
             demonSpX10,
             uint32(b.armor * float(souls.current)),
-            0u,
+            giftMask,
             talentMask,
             IsEnabled() ? 1u : 0u);
 
@@ -691,8 +731,12 @@ public:
         Souls souls = sWarlockEmpower->Get(player->GetGUID());
         SyncTempering(player, souls.lifetime);
         SyncTalentPoints(player, souls.lifetime);
+        SyncRankSpells(player, souls.lifetime, false);
         if (Pet* pet = player->GetPet())
+        {
             SyncPetSoulBonus(pet, enabled ? souls.current : 0u);
+            RefreshFeltouchedPetAura(player);
+        }
     }
 
     void OnPlayerSave(Player* player) override
@@ -714,6 +758,7 @@ public:
             Souls loaded = sWarlockEmpower->Get(player->GetGUID());
             SyncTempering(player, loaded.lifetime);
             SyncTalentPoints(player, loaded.lifetime);
+            SyncRankSpells(player, loaded.lifetime, false);
         }
 
         Souls before = sWarlockEmpower->Get(player->GetGUID());
@@ -727,6 +772,7 @@ public:
             SyncPetSoulBonus(pet, total.current);
 
         SyncTempering(player, total.lifetime);
+        SyncRankSpells(player, total.lifetime, true);
 
         uint32 temperAfter = TemperTiersFor(total.lifetime);
         if (temperAfter > temperBefore)
@@ -788,6 +834,8 @@ public:
         state->applied = current;
         state->appliedValues = fresh;
         state->hasValues = true;
+
+        RefreshFeltouchedPetAura(player);
     }
 };
 

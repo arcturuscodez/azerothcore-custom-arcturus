@@ -9,6 +9,8 @@ version: "3.8"
 services:
   ac-worldserver:
     environment:
+      # Apply pending_db_* SQL on worldserver startup (auth|characters|world bitmask = 7).
+      AC_UPDATES_ENABLE_DATABASES: "7"
       # WarlockLegendary.Enable (Config.cpp AC_ mapping)
       AC_WARLOCK_LEGENDARY_ENABLE: "1"
       # Rate.XP.Kill — creature kill experience

@@ -143,6 +143,15 @@ public:
                 handler->PSendSysMessage("|cff808080[{} souls]|r {}", rank.minKills, rank.name);
         }
 
+        handler->PSendSysMessage("|cff9370db===== Rank spells =====|r");
+        for (RankSpell const& entry : RANK_SPELLS)
+        {
+            if (souls.lifetime >= entry.minSouls)
+                handler->PSendSysMessage("|cff00ff00[unlocked]|r {} ({})", entry.name, entry.id);
+            else
+                handler->PSendSysMessage("|cff808080[{} souls]|r {} ({})", entry.minSouls, entry.name, entry.id);
+        }
+
         handler->PSendSysMessage("|cff9370db===== Bonus talent points =====|r");
         for (TalentGrant const& grant : TALENT_GRANTS)
         {

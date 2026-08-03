@@ -1,7 +1,0 @@
-## Interface: 30300
-## Title: Arcturus Spell Fix
-## Notes: Corrects Inferno / Ritual of Doom tooltips for Arcturus permanent-pet summons (reagents still required, solo cast).
-## Author: Arcturus
-## Version: 1.0.1
-
-ArcturusSpellFix.lua
