@@ -3,9 +3,8 @@
  *
  * SQL defines the items; ScriptMgr owns scripted on-use / equip behaviour.
  *
- *   * Noggenfogger's Magnum Opus: toggle CreatureDisplayInfo 21151 at a
- *     reduced object scale (default 0.35 — the model is huge at 1.0). Death
- *     clears the morph; use the trinket again.
+ *   * Noggenfogger's Magnum Opus: toggle the stock Noggenfogger Elixir morph
+ *     (spell 16591). Death clears it; use again to re-apply.
  *   * Cinderfury, Signet of the Firelord: +30% fire damage, fire spell damage
  *     leeches back as health, -20% stamina, Hellfire becomes a persistent
  *     no-self-damage aura, Soul Feast SP stacks on kills near Hellfire, Molten
@@ -35,18 +34,15 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <limits>
 
 using namespace WarlockLegendaries;
 
 namespace
 {
-    // Client-side display spells from item_template.spellid_1. Nothing casts them —
-    // the scripted effect lives in this file — but they own the item's cooldown so the
-    // timer both renders on the client and survives a relog: Player::AddSpellCooldown
-    // is persisted through `character_spell_cooldown`, while Player CustomData is
-    // in-memory only (logging out used to clear an active Infernal Detonation).
+    // item_template.spellid_1 owns the item cooldown (persisted via character_spell_cooldown).
+    // Noggenfogger: script also CastSpell(16591) for the morph. Cinderfury: 42945 is CD-only —
+    // the scripted effect never casts it.
     constexpr uint32 SPELL_NOGGENFOGGER_DISPLAY = 16591;
     constexpr uint32 SPELL_CINDERFURY_DISPLAY   = 42945;
 
@@ -66,16 +62,13 @@ namespace
         player->SendDirectMessage(&data);
     }
 
-    // CreatureDisplayInfo used by Wrathbone Flayer / Shadowmoon Fallen — looks
-    // right for the Magnum Opus, but native size is enormous; scale it down.
-    constexpr uint32 DISPLAY_NOGGENFOGGER = 21151;
-    constexpr float  NOGGENFOGGER_SCALE_DEFAULT = 0.35f;
+    // Older builds used scaled Wrathbone display 21151; clear it on toggle/death.
+    constexpr uint32 DISPLAY_NOGGENFOGGER_LEGACY = 21151;
 
     class NoggenfoggerState : public DataMap::Base
     {
     public:
         bool active = false;
-        float scale = NOGGENFOGGER_SCALE_DEFAULT;
     };
 
     constexpr char const* NOGGENFOGGER_KEY = "WarlockLegendaries.Noggenfogger";
@@ -85,34 +78,33 @@ namespace
         return player->CustomData.GetDefault<NoggenfoggerState>(NOGGENFOGGER_KEY);
     }
 
-    float GetNoggenfoggerScale()
-    {
-        float scale = sConfigMgr->GetOption<float>(CONFIG_NOGGENFOGGER_SCALE, NOGGENFOGGER_SCALE_DEFAULT);
-        if (scale < 0.1f)
-            scale = 0.1f;
-        if (scale > 2.0f)
-            scale = 2.0f;
-        return scale;
-    }
-
     void ApplyNoggenfoggerMorph(Player* player)
     {
         NoggenfoggerState* state = GetNoggenfoggerState(player);
         state->active = true;
-        state->scale = GetNoggenfoggerScale();
-        player->SetDisplayId(DISPLAY_NOGGENFOGGER, state->scale);
+        // Stock elixir model/scale; pin infinite duration (item is a permanent toggle).
+        player->CastSpell(player, SPELL_NOGGENFOGGER_DISPLAY, true);
+        if (Aura* aura = player->GetAura(SPELL_NOGGENFOGGER_DISPLAY))
+        {
+            aura->SetMaxDuration(-1);
+            aura->SetDuration(-1);
+        }
     }
 
     void ClearNoggenfoggerMorph(Player* player)
     {
         // Use Get (not GetDefault) so death/update paths never allocate CustomData.
         NoggenfoggerState* state = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
-        bool ourMorph = (state && state->active) || player->GetDisplayId() == DISPLAY_NOGGENFOGGER;
+        bool ourMorph = (state && state->active)
+            || player->HasAura(SPELL_NOGGENFOGGER_DISPLAY)
+            || player->GetDisplayId() == DISPLAY_NOGGENFOGGER_LEGACY;
         if (!ourMorph)
             return;
 
         if (state)
             state->active = false;
+
+        player->RemoveAurasDueToSpell(SPELL_NOGGENFOGGER_DISPLAY);
         player->DeMorph();
     }
 
@@ -122,15 +114,13 @@ namespace
         if (!state || !state->active)
             return;
 
-        if (player->GetDisplayId() != DISPLAY_NOGGENFOGGER)
-        {
-            // Another transform won; drop our toggle so the next use re-applies.
-            state->active = false;
+        if (player->HasAura(SPELL_NOGGENFOGGER_DISPLAY))
             return;
-        }
 
-        if (std::fabs(player->GetObjectScale() - state->scale) > 0.01f)
-            player->SetObjectScale(state->scale);
+        // Aura stripped (combat cancel, legacy 21151 session, etc.) — re-apply while toggled on.
+        if (player->GetDisplayId() == DISPLAY_NOGGENFOGGER_LEGACY)
+            player->DeMorph();
+        ApplyNoggenfoggerMorph(player);
     }
 
     // ---- Cinderfury, Signet of the Firelord (900017) ----------------------------
@@ -146,12 +136,6 @@ namespace
     // Top-rank Hellfire Effect — reused (with overridden base points) as the
     // Infernal Detonation nova.
     constexpr uint32 SPELL_HELLFIRE_NOVA = 47822;
-
-    // Reserved for a future display-only serverside spell. Real Molten Armor (43046)
-    // grants combat auras and stacks with the scripted melee scorch — do not apply it.
-    // [[maybe_unused]]: kept as a named sentinel (GATE-LEG-003) so nobody "helpfully"
-    // wires 43046 into the ward path.
-    [[maybe_unused]] constexpr uint32 SPELL_MOLTEN_WARD_VISUAL = 43046;
 
     constexpr int32  CINDERFURY_STAMINA_PCT    = -20;
     constexpr int32  CINDERFURY_FIRE_AMP_PCT   = 30;
@@ -370,15 +354,15 @@ public:
             return true;
 
         NoggenfoggerState* state = player->CustomData.Get<NoggenfoggerState>(NOGGENFOGGER_KEY);
-        if ((state && state->active) || player->GetDisplayId() == DISPLAY_NOGGENFOGGER)
+        if ((state && state->active)
+            || player->HasAura(SPELL_NOGGENFOGGER_DISPLAY)
+            || player->GetDisplayId() == DISPLAY_NOGGENFOGGER_LEGACY)
         {
             ClearNoggenfoggerMorph(player);
             SendMessageIfOnline(player, "|cff9370dbFlesh, regrettably, returns.|r");
         }
         else
         {
-            // Direct SetDisplayId (not spell 16591) so we can shrink CreatureDisplayInfo
-            // 21151 — at native scale the model is boss-sized.
             ApplyNoggenfoggerMorph(player);
             SendMessageIfOnline(player, "|cff9370dbYour flesh boils away. Noggenfogger's masterpiece holds.|r");
         }

@@ -21,23 +21,33 @@ Pending SQL never inserts retired `900xxx` customs. A clean install applies only
 
 | Entry | Content | Notes |
 |-------|---------|-------|
-| 900016 | Noggenfogger's Magnum Opus | Display 21151 morph toggle (scaled ~0.35) |
+| 900016 | Noggenfogger's Magnum Opus | Stock elixir morph (spell 16591), permanent toggle; death clears |
 | 900017 | Cinderfury, Signet of the Firelord | MC boss loot; heavy C++ kit |
+
+## Demonic Empowerment
+
+- Qualifying kills: **+1 soul** (lifetime + current)
+- **Current** souls → flat pet stats (`PerKill.*`)
+- **Lifetime** → Soul Tempering every N (`Tempering.*`), rank ladder, bonus talents (+145 at Dark Titan)
+- Demon death: lose `%` of current (`DeathPenaltyPct`)
+- Login strips borrowed class spells from older builds (`LEGACY_GIFT_SPELLS`); no auto-learn
 
 ## C++ modules (Custom)
 
 | Files | Responsibility |
 |-------|----------------|
 | `warlock_legendaries.h/.cpp` | Noggenfogger + Cinderfury only |
-| `warlock_demonic_empowerment.*` | `.demons` / souls progression |
+| `warlock_demonic_empowerment.*` | Souls / tempering / talents / `.demons` |
 | `custom_script_loader.cpp` | `AddSC_*` registration |
 
 ### Config keys
 
 ```text
 WarlockLegendary.Enable
-WarlockLegendary.Noggenfogger.Scale
 WarlockDemonicEmpowerment.Enable
+WarlockDemonicEmpowerment.PerKill.*
+WarlockDemonicEmpowerment.Tempering.*
+WarlockDemonicEmpowerment.DeathPenaltyPct
 EndlessInstances.Enable
 ```
 

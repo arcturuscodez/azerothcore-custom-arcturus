@@ -38,19 +38,13 @@ WarlockDemonicEmpowerment.Tempering.SpellPower = 3
 WarlockDemonicEmpowerment.Tempering.ManaPer5 = 1
 WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100
 WarlockDemonicEmpowerment.Tempering.MaxTiers = 0
-WarlockDemonicEmpowerment.PetHealOnKillPct = 5
 WarlockDemonicEmpowerment.DeathPenaltyPct = 5
 WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
-WarlockDemonicEmpowerment.XpBonusPctPerRank = 2
-WarlockDemonicEmpowerment.Gifts.Enable = 1
-# Channeler rank (250 souls): flat Mana/5 while casting.
-WarlockDemonicEmpowerment.Channeler.ManaPer5 = 50
 
 # Warlock legendaries currently in tree: Noggenfogger 900016 + Cinderfury 900017 only.
 # (src/server/scripts/Custom/warlock_legendaries.cpp). Default in code is 1 if unset.
 WarlockLegendary.Enable = 1
-# Noggenfogger morph uses CreatureDisplayInfo 21151; object scale (default 0.35).
-# WarlockLegendary.Noggenfogger.Scale = 0.35
+# Noggenfogger uses stock elixir morph (spell 16591).
 
 ####################################################################################################
 # AutoBalance.conf  (modules/mod-autobalance/conf/)

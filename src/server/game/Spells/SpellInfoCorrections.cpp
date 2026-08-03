@@ -1100,16 +1100,6 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->DurationEntry        = nullptr;
     });
 
-    // Custom: Anti-Magic Shell (48707) and Icebound Fortitude (48792) are Gifts of the
-    // Void taught to warlocks by the Demonic Empowerment system (src/server/scripts/
-    // Custom/warlock_demonic_empowerment.cpp). Their costs are paid in runic power, which
-    // no other class has — zero the cost so a warlock can cast them. Side effect: death
-    // knights cast them cost-free too, which is acceptable on this solo-progression fork.
-    ApplySpellFix({ 48707, 48792 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->ManaCost = 0;
-    });
-
     // Combustion, make this passive
     ApplySpellFix({ 11129 }, [](SpellInfo* spellInfo)
     {
