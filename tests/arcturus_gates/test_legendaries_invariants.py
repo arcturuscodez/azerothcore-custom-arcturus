@@ -1,53 +1,34 @@
 # Frozen suite — do not edit without ARCTURUS_UNLOCK_GATES=1.
-"""GATE-LEG-* Warlock legendary source contracts (Cinderfury + Noggenfogger only)."""
+"""GATE-LEG-* Warlock legendaries must stay retired."""
 
 from __future__ import annotations
 
 import unittest
 
-from _repo import CUSTOM, read_text, require_exists
+from _repo import CUSTOM
 
 
-class LegendariesInvariants(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.h = read_text(require_exists(CUSTOM / "warlock_legendaries.h"))
-        cls.cpp = read_text(require_exists(CUSTOM / "warlock_legendaries.cpp"))
+class LegendariesRetired(unittest.TestCase):
+    def test_GATE_LEG_001_legendaries_sources_removed(self):
+        """GATE-LEG-001: warlock_legendaries.* must not exist."""
+        self.assertFalse((CUSTOM / "warlock_legendaries.h").exists())
+        self.assertFalse((CUSTOM / "warlock_legendaries.cpp").exists())
 
-    def test_GATE_LEG_001_only_noggenfogger_and_cinderfury(self):
-        """GATE-LEG-001: Only 900016 and 900017 item constants remain."""
-        self.assertRegex(self.h, r"ITEM_NOGGENFOGGER_MAGNUM_OPUS\s*=\s*900016")
-        self.assertRegex(self.h, r"ITEM_CINDERFURY\s*=\s*900017")
-        self.assertNotIn("900001", self.h)
-        self.assertNotIn("900015", self.h)
-        self.assertNotIn("LEGENDARY_POOL", self.cpp)
+    def test_GATE_LEG_002_loader_does_not_register_legendaries(self):
+        """GATE-LEG-002: custom_script_loader no longer calls AddSC_warlock_legendaries."""
+        text = (CUSTOM / "custom_script_loader.cpp").read_text(encoding="utf-8")
+        self.assertNotIn("AddSC_warlock_legendaries", text)
+        self.assertNotIn("warlock_legendaries", text)
 
-    def test_GATE_LEG_002_enable_gate(self):
-        """GATE-LEG-002: WarlockLegendary.Enable gates scripted behaviour."""
-        self.assertIn('CONFIG_ENABLED = "WarlockLegendary.Enable"', self.h)
-        self.assertIn("GetOption<bool>(CONFIG_ENABLED, true)", self.cpp)
-
-    def test_GATE_LEG_003_cinderfury_kit_present(self):
-        """GATE-LEG-003: Cinderfury fire amp, Hellfire toggle, ward, detonation exist."""
-        self.assertIn("CINDERFURY_FIRE_AMP_PCT", self.cpp)
-        self.assertIn("SPELL_HELLFIRE_TOP_RANK", self.cpp)
-        self.assertIn("WARD_TRIGGER_HEALTH_PCT", self.cpp)
-        self.assertIn("item_cinderfury", self.cpp)
-        self.assertIn("Infernal Detonation", self.cpp)
-
-    def test_GATE_LEG_004_noggenfogger_elixir_morph(self):
-        """GATE-LEG-004: Noggenfogger toggles stock elixir morph (spell 16591)."""
-        self.assertIn("SPELL_NOGGENFOGGER_DISPLAY = 16591", self.cpp)
-        self.assertIn("CastSpell(player, SPELL_NOGGENFOGGER_DISPLAY, true)", self.cpp)
-        self.assertIn("item_noggenfogger_magnum_opus", self.cpp)
-        # Retired scaled Wrathbone path must stay gone.
-        self.assertNotIn("SetDisplayId(DISPLAY_NOGGENFOGGER", self.cpp)
-        self.assertNotIn("WarlockLegendary.Noggenfogger.Scale", self.h)
-
-    def test_GATE_LEG_005_no_mail_drop_pipeline(self):
-        """GATE-LEG-005: Retired mail legendary drop pipeline is gone."""
-        self.assertNotIn("SendLegendaryMail", self.cpp)
-        self.assertNotIn("HandleLegendaryDropRoll", self.cpp)
+    def test_GATE_LEG_003_no_legendary_item_ids_in_empowerment(self):
+        """GATE-LEG-003: Empowerment sources do not revive 900016/900017."""
+        for name in ("warlock_demonic_empowerment.h", "warlock_demonic_empowerment.cpp"):
+            text = (CUSTOM / name).read_text(encoding="utf-8")
+            self.assertNotIn("900016", text)
+            self.assertNotIn("900017", text)
+            self.assertNotIn("WarlockLegendary", text)
+            self.assertNotIn("Cinderfury", text)
+            self.assertNotIn("Noggenfogger", text)
 
 
 if __name__ == "__main__":

@@ -38,13 +38,7 @@ WarlockDemonicEmpowerment.Tempering.SpellPower = 3
 WarlockDemonicEmpowerment.Tempering.ManaPer5 = 1
 WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100
 WarlockDemonicEmpowerment.Tempering.MaxTiers = 0
-WarlockDemonicEmpowerment.DeathPenaltyPct = 5
 WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
-
-# Warlock legendaries currently in tree: Noggenfogger 900016 + Cinderfury 900017 only.
-# (src/server/scripts/Custom/warlock_legendaries.cpp). Default in code is 1 if unset.
-WarlockLegendary.Enable = 1
-# Noggenfogger uses stock elixir morph (spell 16591).
 
 ####################################################################################################
 # AutoBalance.conf  (modules/mod-autobalance/conf/)
@@ -102,7 +96,7 @@ Transmogrification.EnablePlus = 0
 # AuctionHouseBot.GUIDs = <your_dedicated_ah_bot_guid>
 # AuctionHouseBot.EnableSeller = true
 # AuctionHouseBot.Buyer.Enabled = false
-# AuctionHouseBot.DisabledCustomItemIDs = 900017,900058-900101
+# AuctionHouseBot.DisabledCustomItemIDs =
 # AuctionHouseBot.Alliance.MinItems = 800
 # AuctionHouseBot.Alliance.MaxItems = 1200
 

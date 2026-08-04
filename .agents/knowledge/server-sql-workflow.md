@@ -83,7 +83,7 @@ When effects are C++-only (no Equip spell tooltip):
 UPDATE `item_template` SET `description` = 'Equip: … Use: …' WHERE `entry` = 900017;
 ```
 
-Keep accurate to script constants in `warlock_legendaries.cpp` / headers.
+Keep accurate to script constants in `warlock_demonic_empowerment.*` / headers.
 
 ## Wipe / fresh install
 
@@ -91,6 +91,6 @@ Prefer a **final-state** pending rev (delete+insert / REPLACE) for customs you w
 Do **not** leave insert-then-purge chains in `pending_db_*` — a wiped DB would still
 temporarily (or permanently if purge is dropped) pollute `item_template`.
 
-Arcturus wipe baseline: only `rev_1786500000000000000.sql` registers 900016/900017.
+Arcturus wipe baseline: `rev_1786500000000000000.sql` deletes retired 900016/900017.
 See [arcturus-customs.md](arcturus-customs.md).
 

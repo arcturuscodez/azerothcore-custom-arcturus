@@ -1052,36 +1052,24 @@ void SpellMgr::LoadSpellInfoCorrections()
     });
 
     // Custom: promote Inferno to a permanent pet summon (mirrors Summon Water Elemental permanent, spell 70908).
-    // Inferno's Effect_0 is already SPELL_EFFECT_SUMMON with MiscValue = NPC_INFERNAL (89); we swap the summon
-    // type to SUMMON_PET and null the duration so Pet::LoadPetFromDB accepts it on relog.
-    // DISMISS_PET_FIRST is required for SPELL_EFFECT_SUMMON_PET spells: without it Spell::CheckCast fails with
-    // SPELL_FAILED_ALREADY_HAVE_SUMMON while another demon is out (EffectSummonPet stables the old pet itself).
-    // Infernal Stone reagent (DBC) is kept — casting still consumes one.
+    // DISMISS_PET_FIRST lets CheckCast succeed while another demon is out. Infernal Stone reagent is kept.
     ApplySpellFix({ 1122 }, [](SpellInfo* spellInfo)
     {
-        for (uint8 i = EFFECT_0; i < MAX_SPELL_EFFECTS; ++i)
+        SpellEffectInfo& eff = spellInfo->Effects[EFFECT_0];
+        if (eff.Effect == SPELL_EFFECT_SUMMON || eff.Effect == SPELL_EFFECT_SUMMON_PET)
         {
-            SpellEffectInfo& eff = spellInfo->Effects[i];
-            if (eff.Effect == SPELL_EFFECT_SUMMON && eff.MiscValue == 89 /*NPC_INFERNAL*/)
-            {
-                eff.Effect = SPELL_EFFECT_SUMMON_PET;
-                eff.MiscValueB = 0;
-            }
+            eff.Effect = SPELL_EFFECT_SUMMON_PET;
+            eff.MiscValue = 89; // NPC_INFERNAL (also corrects bad client exports like 19973)
+            eff.MiscValueB = 0;
         }
         spellInfo->AttributesEx |= SPELL_ATTR1_DISMISS_PET_FIRST;
         spellInfo->DurationEntry = nullptr;
+        spellInfo->CategoryRecoveryTime = 0;
+        spellInfo->RecoveryTime = 0;
     });
 
-    // Custom: turn Ritual of Doom (18540) into a solo, instant Summon Doomguard.
-    // Vanilla 18540 is a channeled group ritual: it spawns a Doom Portal gameobject that requires
-    // 5 warlocks channeling, consumes a Demonic Figurine, and has a 30-minute cooldown. Effect_0 is
-    // SPELL_EFFECT_TRANS_DOOR (spawns the GO 177193), not a direct summon — which is why the old
-    // conditional-only fix silently did nothing. Here we rewire the spell entirely:
-    //   * Effect_0 → SPELL_EFFECT_SUMMON_PET on NPC_DOOMGUARD (11859)
-    //   * Instant cast, no channel / no cooldown
-    //   * Demonic Figurine reagent kept from DBC
-    //   * Permanent-pet duration (nulled) so LoadPetFromDB accepts it
-    // Remaining effects (sacrificing a group member, GO portals) are wiped so nothing else fires.
+    // Custom: Ritual of Doom (18540) → instant permanent Summon Doomguard (11859).
+    // Stock 18540 is a channeled group ritual (TRANS_DOOR portal); rewire Effect_0 and clear the rest.
     ApplySpellFix({ 18540 }, [](SpellInfo* spellInfo)
     {
         spellInfo->Effects[EFFECT_0].Effect      = SPELL_EFFECT_SUMMON_PET;

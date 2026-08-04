@@ -11,20 +11,13 @@ services:
     environment:
       # Apply pending_db_* SQL on worldserver startup (auth|characters|world bitmask = 7).
       AC_UPDATES_ENABLE_DATABASES: "7"
-      # WarlockLegendary.Enable (Config.cpp AC_ mapping)
-      AC_WARLOCK_LEGENDARY_ENABLE: "1"
       # Rate.XP.Kill — creature kill experience
       AC_RATE_XP_KILL: "3"
       # Silence WarlockDemonicEmpowerment missing-option spam if live worldserver.conf
       # was not merged from arcturus-recommended-overrides.conf.dist yet.
       AC_WARLOCK_DEMONIC_EMPOWERMENT_TEMPERING_SOULS_PER_TIER: "100"
       AC_WARLOCK_DEMONIC_EMPOWERMENT_TEMPERING_MAX_TIERS: "0"
-      AC_WARLOCK_DEMONIC_EMPOWERMENT_PET_HEAL_ON_KILL_PCT: "5"
-      AC_WARLOCK_DEMONIC_EMPOWERMENT_DEATH_PENALTY_PCT: "5"
       AC_WARLOCK_DEMONIC_EMPOWERMENT_ANNOUNCE_EVERY_NKILLS: "100"
-      AC_WARLOCK_DEMONIC_EMPOWERMENT_XP_BONUS_PCT_PER_RANK: "2"
-      AC_WARLOCK_DEMONIC_EMPOWERMENT_GIFTS_ENABLE: "1"
-      AC_WARLOCK_DEMONIC_EMPOWERMENT_CHANNELER_MANA_PER5: "50"
       # mod-ollama-chat — bots talk via host Ollama (must be running on :11434)
       AC_OLLAMA_CHAT_ENABLE: "1"
       AC_OLLAMA_CHAT_URL: "http://host.docker.internal:11434/api/generate"

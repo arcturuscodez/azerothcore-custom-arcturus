@@ -33,9 +33,10 @@ class ConfigKeys(unittest.TestCase):
         ):
             self.assertIn(key, self.conf)
 
-    def test_GATE_CFG_003_legendary_enable(self):
-        """GATE-CFG-003: Dist enables WarlockLegendary."""
-        self.assertIn("WarlockLegendary.Enable = 1", self.conf)
+    def test_GATE_CFG_003_no_legendary_enable(self):
+        """GATE-CFG-003: Dist no longer enables WarlockLegendary."""
+        self.assertNotIn("WarlockLegendary.Enable", self.conf)
+        self.assertNotIn("DeathPenaltyPct", self.conf)
 
     def test_GATE_CFG_004_xp_kill_rate(self):
         """GATE-CFG-004: Dist sets Rate.XP.Kill = 3."""

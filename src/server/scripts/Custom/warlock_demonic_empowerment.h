@@ -3,10 +3,10 @@
  *
  * Live progression:
  *   lifetime — never decreases; ranks, Soul Tempering, and bonus talent points
- *   current  — lifetime minus demon-death losses; flat stats on the summoned demon
+ *   current  — same as lifetime (souls are never lost); flat stats on the summoned demon
  *
  * Login strips borrowed class spells left on characters from older builds.
- * Lifetime ranks teach custom passives 90001–90003 (see RANK_SPELLS).
+ * Lifetime ranks teach custom spells 90001–90005 (see RANK_SPELLS; 90006 is hidden hop).
  *
  * See warlock_demonic_empowerment.cpp.
  */
@@ -40,7 +40,6 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_BONUS_ATTACKPOWER = "WarlockDemonicEmpowerment.PerKill.AttackPower";
     constexpr char const* CONFIG_BONUS_SPELLPOWER  = "WarlockDemonicEmpowerment.PerKill.SpellPower";
     constexpr char const* CONFIG_BONUS_ARMOR       = "WarlockDemonicEmpowerment.PerKill.Armor";
-    constexpr char const* CONFIG_DEATH_PENALTY_PCT = "WarlockDemonicEmpowerment.DeathPenaltyPct";
     constexpr char const* CONFIG_ANNOUNCE_KILLS    = "WarlockDemonicEmpowerment.AnnounceEveryNKills";
 
     // Soul Tempering: permanent player stats per N lifetime souls (default every 100).
@@ -55,10 +54,13 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_FEL_DOMINATION_LEGACY     = 18708;
     constexpr uint32 SPELL_DEMONIC_EMPOWERMENT_LEGACY = 900000;
 
-    // Custom rank passives (client Spell.dbc + server spell_dbc).
+    // Custom rank spells (client Spell.dbc + server spell_dbc).
     constexpr uint32 SPELL_NECROTIC_EMBRACE      = 90001; // Warlock (100)
     constexpr uint32 SPELL_NETHER_PRESENCE      = 90002; // Channeler (250)
     constexpr uint32 SPELL_FELTOUCHED_COMMUNION = 90003; // Feltouched (500)
+    constexpr uint32 SPELL_EMBRACE_UNDEATH      = 90004; // Feltouched (500) active morph toggle
+    constexpr uint32 SPELL_SCARLET_SCOURGE      = 90005; // Demonologist (1000) jumping DoT
+    constexpr uint32 SPELL_SCARLET_SCOURGE_JUMP = 90006; // hidden hop helper
 
     // Rank ladder (lifetime souls).
     struct RankTier
@@ -67,7 +69,7 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    // Lifetime milestones that teach custom passives (not the stripped LEGACY_GIFT_SPELLS).
+    // Lifetime milestones that teach custom spells (not the stripped LEGACY_GIFT_SPELLS).
     struct RankSpell
     {
         uint32      minSouls;
@@ -75,10 +77,12 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    inline constexpr std::array<RankSpell, 3> RANK_SPELLS = {{
+    inline constexpr std::array<RankSpell, 5> RANK_SPELLS = {{
         { 100u,  SPELL_NECROTIC_EMBRACE,      "Necrotic Embrace"      },
         { 250u,  SPELL_NETHER_PRESENCE,      "Nether Presence"      },
-        { 500u,  SPELL_FELTOUCHED_COMMUNION, "Feltouched Communion" }
+        { 500u,  SPELL_FELTOUCHED_COMMUNION, "Feltouched Communion" },
+        { 500u,  SPELL_EMBRACE_UNDEATH,      "Embrace Undeath"      },
+        { 1000u, SPELL_SCARLET_SCOURGE,      "Scarlet Scourge"      }
     }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{
@@ -171,7 +175,7 @@ namespace WarlockEmpowerment
     {
         uint32 current  = 0;
         uint32 lifetime = 0;
-        uint32 lost     = 0;
+        uint32 lost     = 0; // legacy DB column only; never incremented
     };
 
     class Mgr
@@ -181,7 +185,6 @@ namespace WarlockEmpowerment
 
         Souls Get(ObjectGuid guid) const;
         Souls Add(ObjectGuid guid, uint32 delta);
-        Souls Penalize(ObjectGuid guid, uint32 delta);
 
         void LoadFromDB(ObjectGuid guid);
         void FlushAndForget(ObjectGuid guid);

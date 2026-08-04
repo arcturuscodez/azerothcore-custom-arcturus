@@ -6,7 +6,7 @@ Companion to root [`AGENTS.md`](../../AGENTS.md). Focus: how this **fork** is op
 
 - **Core:** AzerothCore WotLK 3.3.5a (C++20, CMake, MySQL)
 - **Bots:** `modules/mod-playerbots` (and related)
-- **Customs:** `src/server/scripts/Custom/` (warlock legendaries, demonic empowerment, …)
+- **Customs:** `src/server/scripts/Custom/` (demonic empowerment, endless instances, …)
 - **Remotes:** `origin` = Arcturus GitHub; `upstream` = mod-playerbots azerothcore-wotlk
 
 ## Processes
@@ -53,14 +53,14 @@ Important Arcturus keys:
 DBC.EnforceItemAttributes = 0
 EndlessInstances.Enable = 1
 WarlockDemonicEmpowerment.Enable = 1
-WarlockLegendary.Enable = 1
+WarlockDemonicEmpowerment.Enable = 1
 AccountInstancesPerHour = 100
 ```
 
 `AccountInstancesPerHour` is not optional if `EndlessInstances.Enable = 1`: the core default of
 5 stops instance farming with "You have entered too many instances recently."
 
-Missing keys may log warnings and fall back to C++ defaults (e.g. WarlockLegendary default `true`).
+Missing keys may log warnings and fall back to C++ defaults.
 
 ## Custom scripts registration
 

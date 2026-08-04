@@ -85,8 +85,8 @@ public:
 
         handler->PSendSysMessage("|cff9370db===== Demonic Empowerment =====|r");
         handler->PSendSysMessage("Rank:  |cff9370db{}|r", tier.name);
-        handler->PSendSysMessage("Souls: |cffffff00{}|r current | |cffffff00{}|r lifetime | |cffff4040{}|r lost",
-            souls.current, souls.lifetime, souls.lost);
+        handler->PSendSysMessage("Souls: |cffffff00{}|r current | |cffffff00{}|r lifetime",
+            souls.current, souls.lifetime);
 
         if (rankIdx + 1 < RANKS.size())
         {

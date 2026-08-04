@@ -17,8 +17,6 @@ CONF_DIST = REPO_ROOT / "conf" / "dist"
 GATED_CPP = (
     CUSTOM / "warlock_demonic_empowerment.h",
     CUSTOM / "warlock_demonic_empowerment.cpp",
-    CUSTOM / "warlock_legendaries.h",
-    CUSTOM / "warlock_legendaries.cpp",
     CUSTOM / "cs_demons.cpp",
     SPELLS / "spell_warlock.cpp",
 )

@@ -1,5 +1,5 @@
 # Frozen suite — do not edit without ARCTURUS_UNLOCK_GATES=1.
-"""GATE-SQL-* Wipe-ready pending SQL: keepers only, no retired-item pollution."""
+"""GATE-SQL-* Wipe-ready pending SQL contracts (no custom legendaries)."""
 
 from __future__ import annotations
 
@@ -28,22 +28,20 @@ class SqlWarlockContracts(unittest.TestCase):
         ).read_text(encoding="utf-8")
         cls.pending_names = {p.name for p in PENDING_WORLD.glob("rev_*.sql")}
 
-    def test_GATE_SQL_001_keepers_baseline_inserts_only_two_customs(self):
-        """GATE-SQL-001: Wipe baseline INSERT/REPLACE only 900016 and 900017."""
+    def test_GATE_SQL_001_keepers_baseline_retires_legendaries(self):
+        """GATE-SQL-001: Wipe baseline deletes 900016/900017 (no INSERT of customs)."""
         self.assertIn("900016", self.keepers)
         self.assertIn("900017", self.keepers)
-        self.assertIn("Noggenfogger", self.keepers)
-        self.assertIn("Cinderfury", self.keepers)
-        self.assertIn("item_dbc", self.keepers)
-        self.assertNotIn("900001", self.keepers)
-        self.assertNotIn("900018", self.keepers)
+        self.assertIn("DELETE FROM `item_template`", self.keepers)
+        self.assertIn("DELETE FROM `item_dbc`", self.keepers)
+        self.assertNotIn("INSERT INTO `item_template`", self.keepers)
+        self.assertNotIn("Noggenfogger", self.keepers)
+        self.assertNotIn("Cinderfury", self.keepers)
 
-    def test_GATE_SQL_002_cinderfury_mc_loot_in_keepers_baseline(self):
-        """GATE-SQL-002: Cinderfury MC creature + Majordomo cache loot in baseline."""
+    def test_GATE_SQL_002_keepers_clears_mc_loot_rows(self):
+        """GATE-SQL-002: Retirement clears creature/gameobject loot for 900016/900017."""
         self.assertIn("creature_loot_template", self.keepers)
         self.assertIn("gameobject_loot_template", self.keepers)
-        self.assertIn("11502", self.keepers)  # Ragnaros
-        self.assertIn("16719", self.keepers)  # Cache of the Firelord
 
     def test_GATE_SQL_003_no_retired_expansion_pending_files(self):
         """GATE-SQL-003: Expansion / purge pending revs must not exist on wipe path."""
@@ -62,6 +60,7 @@ class SqlWarlockContracts(unittest.TestCase):
             "rev_1786147200000000000.sql",
             "rev_1786233600000000000.sql",
             "rev_1786406400000000000.sql",  # world purge
+            "rev_1786663000000000000.sql",  # Noggenfogger RequiredLevel tweak
         }
         self.assertTrue(banned.isdisjoint(self.pending_names), banned & self.pending_names)
 

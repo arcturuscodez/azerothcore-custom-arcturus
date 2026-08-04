@@ -11,7 +11,7 @@ Source of truth for **agent skills, rules, and project knowledge** for Arcturus
 | `rules/<name>.md` | Persistent agent rules for this repo |
 | `knowledge/` | Deep reference: client modding, server, Wowhead, customs |
 | `TODO.md` | Open polish / follow-ups (spellbook Rank text, …) |
-| `warlock-custom-item-icons.md` / `.json` | Active customs (900016/900017) displayid map |
+| `warlock-custom-item-icons.md` / `.json` | Retired custom item icon notes (no active legendaries) |
 
 Agent-specific dirs may symlink here (e.g. Claude Code):
 
@@ -63,7 +63,7 @@ Frozen suite + `FROZEN.sha256` + git/Cursor hooks block commits unless all `GATE
 - **Client build:** WoW 3.3.5a **12340**
 - **Best public DB for stock IDs/icons/spells:** [Wowhead Wrath](https://www.wowhead.com/wotlk/) (`/wotlk/` path)
 - **Server DB for content:** `acore_world` (`item_template`, creatures, loot, …)
-- **Custom item range (Arcturus):** `900016` Noggenfogger + `900017` Cinderfury (other 900xxx retired)
+- **Custom item range (Arcturus):** no active custom legendary items (900016/900017 retired)
 - **Branches:** `development` → merge → `live`
 - **This repo's preferred item-icon path today:** server-only stock `displayid` remaps (no client patch). Unique custom art requires restoring an MPQ + ItemDisplayInfo pipeline (see client docs).
 - **Custom bag icons:** still need **CustomItemFix** or client **Item.dbc** — see [knowledge/custom-items-red-question-mark.md](knowledge/custom-items-red-question-mark.md).

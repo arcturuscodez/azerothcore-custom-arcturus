@@ -6,10 +6,10 @@
  *  - CURRENT souls → flat stats on every summoned demon (config PerKill.*)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
- *  - Rank thresholds → custom passives 90001–90003 (RANK_SPELLS) + chat announcement
- *  - Demon death (not owner-caused) → lose % of CURRENT souls (config DeathPenaltyPct)
+ *  - Rank thresholds → custom spells 90001–90005 (RANK_SPELLS) + chat announcement
+ *  - Embrace Undeath (90004) toggles stock morph 16591 (death clears)
  *
- * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost).
+ * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost legacy).
  */
 
 #include "warlock_demonic_empowerment.h"
@@ -27,16 +27,24 @@
 #include "PlayerScript.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
+#include "Spell.h"
+#include "SpellAuras.h"
 #include "SpellAuraEffects.h"
+#include "SpellInfo.h"
+#include "SpellMgr.h"
+#include "SpellScript.h"
+#include "SpellScriptLoader.h"
 #include "StringFormat.h"
 #include "Timer.h"
-#include "UnitScript.h"
+#include "WorldObject.h"
 #include "WorldSession.h"
 
 #include <algorithm>
 #include <cmath>
+#include <list>
 #include <string_view>
 
+using namespace WarlockEmpowerment;
 namespace WarlockEmpowerment
 {
     std::size_t RankIndexFor(uint32 kills)
@@ -220,19 +228,6 @@ namespace WarlockEmpowerment
         return it->second;
     }
 
-    Souls Mgr::Penalize(ObjectGuid guid, uint32 delta)
-    {
-        std::unique_lock<std::shared_mutex> lock(_mutex);
-        auto it = _souls.find(guid.GetCounter());
-        if (it == _souls.end())
-            return Souls{};
-        uint32 taken = std::min(delta, it->second.current);
-        it->second.current -= taken;
-        it->second.lost    += taken;
-        _dirty.insert(guid.GetCounter());
-        return it->second;
-    }
-
     void Mgr::LoadFromDB(ObjectGuid guid)
     {
         uint32 low = guid.GetCounter();
@@ -240,6 +235,7 @@ namespace WarlockEmpowerment
             "SELECT kills, lifetime, souls_lost FROM character_warlock_demon_kills WHERE guid = {}", low);
         std::unique_lock<std::shared_mutex> lock(_mutex);
         Souls souls;
+        bool repaired = false;
         if (result)
         {
             souls.current  = (*result)[0].Get<uint32>();
@@ -247,9 +243,19 @@ namespace WarlockEmpowerment
             souls.lost     = (*result)[2].Get<uint32>();
             if (souls.lifetime < souls.current)
                 souls.lifetime = souls.current;
+            // Soul-loss mechanic retired: restore current and clear leftover lost counters.
+            if (souls.current < souls.lifetime || souls.lost != 0)
+            {
+                souls.current = souls.lifetime;
+                souls.lost = 0;
+                repaired = true;
+            }
         }
         _souls[low] = souls;
-        _dirty.erase(low);
+        if (repaired)
+            _dirty.insert(low);
+        else
+            _dirty.erase(low);
     }
 
     void Mgr::FlushAndForget(ObjectGuid guid)
@@ -295,7 +301,7 @@ namespace WarlockEmpowerment
     {
         CharacterDatabase.DirectExecute(
             "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime, souls_lost) VALUES ({}, {}, {}, {})",
-            low, souls.current, souls.lifetime, souls.lost);
+            low, souls.current, souls.lifetime, 0u);
     }
 }
 
@@ -567,8 +573,7 @@ namespace
         TemperValues t = LoadedTemper();
         BonusValues b = LoadedBonus();
 
-        // ARCTURUS_VL wire: current:lifetime:lost:rank:temper…:deathPct:…:talents:demonStats…:gifts:talentMask:enabled
-        // Unused legacy slots stay 0 so older Void Ledger addons keep parsing.
+        // ARCTURUS_VL wire format is fixed-width; retired fields stay 0.
         uint32 talentMask = 0;
         for (std::size_t i = 0; i < TALENT_GRANTS.size(); ++i)
             if (souls.lifetime >= TALENT_GRANTS[i].souls)
@@ -584,7 +589,7 @@ namespace
             "S:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
             souls.current,
             souls.lifetime,
-            souls.lost,
+            0u, // lost — mechanic retired; slot kept for Void Ledger wire format
             uint32(rankIdx),
             temperTiers,
             t.stamina * int32(temperTiers),
@@ -592,7 +597,7 @@ namespace
             t.spellPower * int32(temperTiers),
             t.manaPer5 * int32(temperTiers),
             0u,
-            uint32(std::max(0, sConfigMgr->GetOption<int32>(CONFIG_DEATH_PENALTY_PCT, 5))),
+            0u, // death-penalty — retired; slot kept for Void Ledger wire format
             0u,
             0u,
             0u,
@@ -618,6 +623,71 @@ namespace
 
         player->Whisper(msg, LANG_ADDON, player);
     }
+
+    // ---- Embrace Undeath (90004) morph toggle ---------------------------------
+
+    constexpr uint32 SPELL_EMBRACE_UNDEATH_DISPLAY = 16591;
+    constexpr char const* EMBRACE_UNDEATH_KEY = "WarlockEmpowerment.EmbraceUndeath";
+
+    class EmbraceUndeathState : public DataMap::Base
+    {
+    public:
+        bool active = false;
+    };
+
+    EmbraceUndeathState* GetEmbraceUndeathState(Player* player)
+    {
+        return player->CustomData.GetDefault<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+    }
+
+    void ApplyEmbraceUndeathMorph(Player* player)
+    {
+        EmbraceUndeathState* state = GetEmbraceUndeathState(player);
+        state->active = true;
+        player->CastSpell(player, SPELL_EMBRACE_UNDEATH_DISPLAY, true);
+        if (Aura* aura = player->GetAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+        {
+            aura->SetMaxDuration(-1);
+            aura->SetDuration(-1);
+        }
+    }
+
+    void ClearEmbraceUndeathMorph(Player* player)
+    {
+        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+        bool ourMorph = (state && state->active) || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        if (!ourMorph)
+            return;
+
+        if (state)
+            state->active = false;
+
+        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        player->DeMorph();
+    }
+
+    void MaintainEmbraceUndeathMorph(Player* player)
+    {
+        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+        if (!state || !state->active || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+            return;
+
+        ApplyEmbraceUndeathMorph(player);
+    }
+
+    void ToggleEmbraceUndeathMorph(Player* player)
+    {
+        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+        if ((state && state->active) || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+        {
+            ClearEmbraceUndeathMorph(player);
+            SendMessageIfOnline(player, "|cff9370dbFlesh returns. Undeath loosens its grip.|r");
+            return;
+        }
+
+        ApplyEmbraceUndeathMorph(player);
+        SendMessageIfOnline(player, "|cff9370dbAshen bones take the place of flesh.|r");
+    }
 }
 
 class warlock_demonic_empowerment_playerscript : public PlayerScript
@@ -630,6 +700,7 @@ public:
             PLAYERHOOK_ON_LOGOUT,
             PLAYERHOOK_ON_SAVE,
             PLAYERHOOK_ON_UPDATE,
+            PLAYERHOOK_ON_PLAYER_JUST_DIED,
             PLAYERHOOK_ON_REWARD_KILL_REWARDER,
             PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
             PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT
@@ -702,10 +773,17 @@ public:
         sWarlockEmpower->FlushAndForget(player->GetGUID());
     }
 
+    void OnPlayerJustDied(Player* player) override
+    {
+        ClearEmbraceUndeathMorph(player);
+    }
+
     void OnPlayerUpdate(Player* player, uint32 /*diff*/) override
     {
         if (!player || !player->IsInWorld() || !IsWarlock(player))
             return;
+
+        MaintainEmbraceUndeathMorph(player);
 
         auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
         uint32 now = getMSTime();
@@ -839,54 +917,133 @@ public:
     }
 };
 
-class warlock_demonic_empowerment_unitscript : public UnitScript
+// -----------------------------------------------------------------------------
+// Scarlet Scourge (90005 / 90006) — player-scaled jumping DoT (Necrotic Plague-like).
+// -----------------------------------------------------------------------------
+
+namespace
 {
-public:
-    warlock_demonic_empowerment_unitscript() : UnitScript(
-        "warlock_demonic_empowerment_unitscript",
-        true,
-        { UNITHOOK_ON_UNIT_DEATH }) { }
+    constexpr uint8 SCARLET_SCOURGE_MAX_STACKS = 3;
 
-    void OnUnitDeath(Unit* unit, Unit* killer) override
+    void JumpScarletScourge(Unit* infected, ObjectGuid casterGuid, uint8 stacks)
     {
-        if (!IsEnabled())
+        if (!infected)
             return;
 
-        Pet* pet = unit ? unit->ToPet() : nullptr;
-        if (!pet)
+        CustomSpellValues values;
+        values.AddSpellMod(SPELLVALUE_AURA_STACK, std::max<uint8>(1, stacks));
+        // Centered on the infected; FilterTargets keeps only warlock hostiles.
+        infected->CastCustomSpell(SPELL_SCARLET_SCOURGE_JUMP, values, nullptr, TRIGGERED_FULL_MASK, nullptr, nullptr, casterGuid);
+    }
+
+    void HopOnScarletRemove(Unit* target, ObjectGuid casterGuid, uint8 stacks, AuraRemoveMode mode)
+    {
+        bool dispel = false;
+        switch (mode)
+        {
+            case AURA_REMOVE_BY_ENEMY_SPELL:
+                dispel = true;
+                break;
+            case AURA_REMOVE_BY_EXPIRE:
+            case AURA_REMOVE_BY_DEATH:
+                break;
+            default:
+                return;
+        }
+
+        if (!dispel && stacks < SCARLET_SCOURGE_MAX_STACKS)
+            ++stacks;
+
+        JumpScarletScourge(target, casterGuid, stacks);
+    }
+}
+
+class spell_warlock_embrace_undeath : public SpellScript
+{
+    PrepareSpellScript(spell_warlock_embrace_undeath);
+
+    void HandleDummy(SpellEffIndex /*effIndex*/)
+    {
+        Player* player = GetCaster()->ToPlayer();
+        if (!player)
             return;
 
-        Player* owner = pet->GetOwner();
-        if (!owner || !owner->IsClass(CLASS_WARLOCK, CLASS_CONTEXT_PET))
+        ToggleEmbraceUndeathMorph(player);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_warlock_embrace_undeath::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+class spell_warlock_scarlet_scourge_aura : public AuraScript
+{
+    PrepareAuraScript(spell_warlock_scarlet_scourge_aura);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_SCARLET_SCOURGE_JUMP });
+    }
+
+    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        HopOnScarletRemove(GetTarget(), GetCasterGUID(), GetStackAmount(), GetTargetApplication()->GetRemoveMode());
+    }
+
+    void Register() override
+    {
+        AfterEffectRemove += AuraEffectRemoveFn(spell_warlock_scarlet_scourge_aura::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
+class spell_warlock_scarlet_scourge_jump : public SpellScript
+{
+    PrepareSpellScript(spell_warlock_scarlet_scourge_jump);
+
+    void FilterTargets(std::list<WorldObject*>& targets)
+    {
+        Unit* infected = GetCaster();
+        Unit* warlock = GetOriginalCaster();
+        targets.remove_if([infected, warlock](WorldObject* obj)
+        {
+            Unit* unit = obj->ToUnit();
+            if (!unit || !unit->IsAlive() || unit == infected)
+                return true;
+            if (!warlock || !warlock->IsValidAttackTarget(unit))
+                return true;
+            return false;
+        });
+
+        if (targets.empty())
             return;
 
-        if (killer == owner || killer == pet)
+        targets.sort(Acore::ObjectDistanceOrderPred(infected));
+        if (targets.size() > 1)
+            targets.resize(1);
+    }
+
+    void HandleHit()
+    {
+        Unit* target = GetHitUnit();
+        if (!target)
             return;
 
-        Souls souls = sWarlockEmpower->Get(owner->GetGUID());
-        if (!souls.current)
-            return;
+        if (Aura* initial = target->GetAura(SPELL_SCARLET_SCOURGE))
+            initial->Remove(AURA_REMOVE_BY_DEFAULT);
+    }
 
-        int32 pct = sConfigMgr->GetOption<int32>(CONFIG_DEATH_PENALTY_PCT, 5);
-        if (pct <= 0)
-            return;
-
-        uint32 penalty = uint32(std::ceil(double(souls.current) * double(pct) / 100.0));
-        if (penalty < 1u)
-            penalty = 1u;
-
-        Souls remaining = sWarlockEmpower->Penalize(owner->GetGUID(), penalty);
-        sWarlockEmpower->FlushIfDirty(owner->GetGUID());
-        SendVoidLedgerSync(owner);
-
-        SendMessageIfOnline(owner, Acore::StringFormat(
-            "|cffff4040Your demon has fallen!|r Demonic empowerment: -{} souls ({} remaining).",
-            penalty, remaining.current));
+    void Register() override
+    {
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_warlock_scarlet_scourge_jump::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENTRY);
+        OnHit += SpellHitFn(spell_warlock_scarlet_scourge_jump::HandleHit);
     }
 };
 
 void AddSC_warlock_demonic_empowerment()
 {
     new warlock_demonic_empowerment_playerscript();
-    new warlock_demonic_empowerment_unitscript();
+    RegisterSpellScript(spell_warlock_embrace_undeath);
+    RegisterSpellScript(spell_warlock_scarlet_scourge_aura);
+    RegisterSpellAndAuraScriptPair(spell_warlock_scarlet_scourge_jump, spell_warlock_scarlet_scourge_aura);
 }
