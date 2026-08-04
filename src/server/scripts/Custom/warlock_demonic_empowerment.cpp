@@ -35,8 +35,8 @@
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "StringFormat.h"
+#include "Object.h"
 #include "Timer.h"
-#include "WorldObject.h"
 #include "WorldSession.h"
 
 #include <algorithm>
