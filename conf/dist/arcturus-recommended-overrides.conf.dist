@@ -19,6 +19,16 @@ Updates.EnableDatabases = 7
 # Creature kill XP (quests/explore stay at 1x unless you change them too)
 Rate.XP.Kill = 3
 
+# Allow learning every primary profession from trainers (still learn/rank normally).
+# Range 0-11; secondaries (First Aid/Cooking/Fishing) are already unlimited.
+# Must be present in the live worldserver.conf (or AC_MAX_PRIMARY_TRADE_SKILL) — .dist alone is not auto-applied.
+# Playerbots are forced back to 2 free primary slots on login by arcturus_trade_skills.
+MaxPrimaryTradeSkill = 11
+
+# Warlocks can buy all weapon skills from weapon masters (cloth armor unchanged).
+# Requires rebuild; disable needs a worldserver restart (DBC patch is applied at startup).
+Arcturus.WarlockWeaponTrainers.Enable = 1
+
 EndlessInstances.Enable = 1
 WarlockDemonicEmpowerment.Enable = 1
 # Explicit keys silence Config "Missing property" spam on every kill/login under bots.

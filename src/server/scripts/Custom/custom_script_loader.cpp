@@ -19,6 +19,7 @@
 void AddSC_warlock_demonic_empowerment();
 void AddSC_demons_commandscript();
 void AddSC_endless_instances();
+void AddSC_arcturus_trade_skills();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
@@ -27,4 +28,5 @@ void AddCustomScripts()
     AddSC_warlock_demonic_empowerment();
     AddSC_demons_commandscript();
     AddSC_endless_instances();
+    AddSC_arcturus_trade_skills();
 }
