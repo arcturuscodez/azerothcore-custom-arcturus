@@ -13,6 +13,9 @@ services:
       AC_UPDATES_ENABLE_DATABASES: "7"
       # Rate.XP.Kill — creature kill experience
       AC_RATE_XP_KILL: "3"
+      # All primary professions learnable from trainers (0-11)
+      AC_MAX_PRIMARY_TRADE_SKILL: "11"
+      AC_ARCTURUS_WARLOCK_WEAPON_TRAINERS_ENABLE: "1"
       # Silence WarlockDemonicEmpowerment missing-option spam if live worldserver.conf
       # was not merged from arcturus-recommended-overrides.conf.dist yet.
       AC_WARLOCK_DEMONIC_EMPOWERMENT_TEMPERING_SOULS_PER_TIER: "100"
