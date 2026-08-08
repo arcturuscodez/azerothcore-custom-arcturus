@@ -7,6 +7,12 @@ Apply on every task that touches items, spells, icons, tooltips, or HD clients.
 - Treat **Wowhead `/wotlk/`** as the primary public reference for stock 3.3.5a-era IDs,
   icons, and spell ranks (`knowledge/wowhead-research.md`).
 - Keep custom world SQL in `data/sql/updates/pending_db_*/` only.
+- For **client spell identity** (name, icon, tooltip, Rank/Passive, visuals, new Spell.dbc
+  rows): edit the **live Spell Editor SQLite DB** at
+  `C:\Games\WoW Spell Editor\SpellEditor.db` via `WoW-Spell-Editor/Arcturus/apply_to_spell_editor_db.py`
+  (close the editor first if locked). Then user Exports Spell.dbc → MPQ.
+  Mirror mechanics in this repo via `spell_dbc` + scripts. Never patch Spell.dbc from this repo
+  or use a separate `spell-patch/` folder.
 - For **new custom items**, always add matching **`item_dbc`** rows and plan a **client**
   fix (CustomItemFix addon and/or Item.dbc MPQ). See
   `knowledge/custom-items-red-question-mark.md` — `item_template` alone causes red `?`.
@@ -24,7 +30,14 @@ Apply on every task that touches items, spells, icons, tooltips, or HD clients.
 
 - Do not configure/build the server unless the user asks.
 - Do not edit `data/sql/base|archive|updates/db_*` unless explicitly requested.
-- Do not reintroduce `client-patches/` or ship MPQs into git without an explicit request.
+- Do not create Spell.dbc patch scripts, `spell-patch/` workflows, or `.agents/spell-editor/`
+  DBC tooling in this server repo — that belongs in **WoW-Spell-Editor**.
+- Do not ship a **server-only** custom spell when Spell Editor + MPQ is the better/more
+  complete path (tooltips, icons, Rank text, visuals). Server-only is OK only for pure
+  logic with no new client-facing spell identity, or when the user explicitly opts out of
+  a client patch.
+- Do not reintroduce `client-patches/` or commit binary MPQs into git without an explicit
+  request.
 - Do not install DLL injectors / exe patchers (AwesomeWotLK, random "crack" patchers)
   without explicit user approval (Defender false positives / real risk).
 - Do not assume NVIDIA Control Panel AA works under DXVK.

@@ -302,10 +302,6 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
     uint8 petlevel = petInfo->Level;
     ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
     SetName(petInfo->Name);
-    // Infernal shares Doomguard's creature family; older saves may still carry the wrong name.
-    if (GetEntry() == NPC_INFERNAL)
-        if (CreatureTemplate const* ct = GetCreatureTemplate())
-            SetName(ct->Name);
 
     switch (getPetType())
     {
@@ -982,7 +978,8 @@ bool Pet::CreateBaseAtCreatureInfo(CreatureTemplate const* cinfo, Unit* owner)
     if (!CreateBaseAtTamed(cinfo, owner->GetMap(), owner->GetPhaseMask()))
         return false;
 
-    // Infernal reuses CREATURE_FAMILY_DOOMGUARD; prefer the creature template name.
+    // Infernal reuses CREATURE_FAMILY_DOOMGUARD; use template name as a placeholder so it is
+    // not labeled "Doomguard". EffectSummonPet / SummonPet overwrite via GeneratePetName.
     if (cinfo->Entry == NPC_INFERNAL)
         SetName(cinfo->Name);
     else if (CreatureFamilyEntry const* cFamily = sCreatureFamilyStore.LookupEntry(cinfo->family))

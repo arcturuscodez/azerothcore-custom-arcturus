@@ -6,7 +6,8 @@
  *   current  — same as lifetime (souls are never lost); flat stats on the summoned demon
  *
  * Login strips borrowed class spells left on characters from older builds.
- * Lifetime ranks teach custom spells 90001–90005 (see RANK_SPELLS; 90006 is hidden hop).
+ * Lifetime ranks teach custom spells 90001–90005 / 90007 (see RANK_SPELLS;
+ * 90006 hop + 90008 absorb are script-triggered only).
  *
  * See warlock_demonic_empowerment.cpp.
  */
@@ -61,6 +62,8 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_EMBRACE_UNDEATH      = 90004; // Feltouched (500) active morph toggle
     constexpr uint32 SPELL_SCARLET_SCOURGE      = 90005; // Demonologist (1000) jumping DoT
     constexpr uint32 SPELL_SCARLET_SCOURGE_JUMP = 90006; // hidden hop helper
+    constexpr uint32 SPELL_UMBRAL_REMNANT       = 90007; // Dread Warlock (2500) passive
+    constexpr uint32 SPELL_UMBRAL_REMNANT_ABSORB = 90008; // triggered absorb (not taught)
 
     // Rank ladder (lifetime souls).
     struct RankTier
@@ -77,12 +80,13 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    inline constexpr std::array<RankSpell, 5> RANK_SPELLS = {{
+    inline constexpr std::array<RankSpell, 6> RANK_SPELLS = {{
         { 100u,  SPELL_NECROTIC_EMBRACE,      "Necrotic Embrace"      },
         { 250u,  SPELL_NETHER_PRESENCE,      "Nether Presence"      },
         { 500u,  SPELL_FELTOUCHED_COMMUNION, "Feltouched Communion" },
         { 500u,  SPELL_EMBRACE_UNDEATH,      "Embrace Undeath"      },
-        { 1000u, SPELL_SCARLET_SCOURGE,      "Scarlet Scourge"      }
+        { 1000u, SPELL_SCARLET_SCOURGE,      "Scarlet Scourge"      },
+        { 2500u, SPELL_UMBRAL_REMNANT,       "Umbral Remnant"       }
     }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{
