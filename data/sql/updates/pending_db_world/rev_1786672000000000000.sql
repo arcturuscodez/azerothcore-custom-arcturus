@@ -1,22 +1,21 @@
 --
 -- Marrowthrall polish: scale, charge, Bone Storm (VFX + periodic AoE), taunt, hover.
 -- Fixes:
---   * DisplayScale 0.35 -> 0.50; display 900110 = BoneGuard clone with SoundID 0 (no Marrowgar grunts)
---   * Hover: BoneGuard floor-glow clips into terrain at pet scale; Ground=Hover + HoverHeight
---     lifts the model so the intentional aura sits on the ground (Wowhead-style)
+--   * DisplayScale 0.35 -> 0.50; display 900110 = BoneGuard clone, SoundID 1668 (BoneGolem kit, not Marrowgar VO)
+--   * HoverHeight 2 + C++ force-hover: pets skip UpdateMovementFlags, so SQL hover alone never applied
 --   * 90013 Marrow Lunge: was warrior Intercept (Berserker Stance / rage) -> Felguard Intercept
 --   * 90012 Bone Storm: was one-shot damage + ThunderClap/Marrowgar screen-wipe VFX ->
 --     haste + periodic AoE ticks (90017), Bladestorm-style caster swirl (10704)
 --   * 90014 Rattle the Bones: align with Voidwalker Suffering so PetAI autocasts
 --
 
--- Scale + silent display (900110 = BoneGuard look, SoundID 0 — no Marrowgar male grunts)
+-- Scale + silent-ish display (900110 = BoneGuard look; client DBC SoundID 1668 = BoneGolem kit)
 DELETE FROM `creature_template_model` WHERE `CreatureID` = 900110;
 INSERT INTO `creature_template_model` (`CreatureID`,`Idx`,`CreatureDisplayID`,`DisplayScale`,`Probability`,`VerifiedBuild`) VALUES
 (900110,0,900110,0.50,1,12340);
 
 -- Float slightly so BoneGuard ground glow is not buried (tune HoverHeight if needed)
-UPDATE `creature_template` SET `HoverHeight` = 0.5 WHERE `entry` = 900110;
+UPDATE `creature_template` SET `HoverHeight` = 2 WHERE `entry` = 900110;
 DELETE FROM `creature_template_movement` WHERE `CreatureId` = 900110;
 INSERT INTO `creature_template_movement` (`CreatureId`,`Ground`,`Swim`,`Flight`,`Rooted`,`Chase`,`Random`,`InteractionPauseTimer`) VALUES
 (900110,2,1,0,0,0,0,NULL);
