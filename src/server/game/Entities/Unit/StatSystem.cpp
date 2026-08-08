@@ -1255,6 +1255,7 @@ void Guardian::UpdateMaxHealth()
             multiplicator = 7.5f;
             break;
         case NPC_VOIDWALKER:
+        case NPC_MARROWTHRALL: // Arcturus tank pet — Voidwalker stamina→HP ratio
             multiplicator = 11.0f;
             break;
         case NPC_SUCCUBUS:
@@ -1297,6 +1298,7 @@ void Guardian::UpdateMaxPower(Powers power)
             multiplicator = 4.95f;
             break;
         case NPC_VOIDWALKER:
+        case NPC_MARROWTHRALL: // Arcturus tank pet — Voidwalker intellect→mana ratio
         case NPC_SUCCUBUS:
         case NPC_FELHUNTER:
         case NPC_FELGUARD:

@@ -9,12 +9,12 @@
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
- *  - Rank thresholds → custom spells 90001–90005 / 90007 (RANK_SPELLS) + chat announcement
+ *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90010 (RANK_SPELLS) + chat announcement
  *  - Passives (90001–90003 / 90007): learnSpell only — stock Player::_addSpell casts them
  *  - Feltouched pet half: spell_pet_auras → Pet::CastPetAuras (Soul Link style)
- *  - Embrace Undeath (90004): permanent SPELL_AURA_TRANSFORM toggle (death clears)
+ *  - Embrace Undeath (90004): DUMMY toggle → stock morph 16591 (death clears)
  *  - Umbral Remnant (90007/90008) converts Necrotic Embrace overheal into a short absorb
- *  - WorldScript (5s): rare Enable config flips only (no per-player aura babysitting)
+ *  - WorldScript (5s): Enable flips + Embrace morph maintain for online warlocks only
  *
  * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost legacy).
  */
@@ -441,6 +441,73 @@ namespace
         ChatHandler(session).SendSysMessage(msg);
     }
 
+    // ---- Embrace Undeath (90004) morph toggle ---------------------------------
+    // 90004 is SPELL_EFFECT_DUMMY; script applies stock skeleton morph 16591
+    // with infinite duration. TRANSFORM-on-90004 itself never stuck for players.
+
+    constexpr uint32 SPELL_EMBRACE_UNDEATH_DISPLAY = 16591;
+    constexpr char const* EMBRACE_UNDEATH_KEY = "WarlockEmpowerment.EmbraceUndeath";
+
+    class EmbraceUndeathState : public DataMap::Base
+    {
+    public:
+        bool active = false;
+    };
+
+    EmbraceUndeathState* GetEmbraceUndeathState(Player* player)
+    {
+        return player->CustomData.GetDefault<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+    }
+
+    void ApplyEmbraceUndeathMorph(Player* player)
+    {
+        EmbraceUndeathState* state = GetEmbraceUndeathState(player);
+        state->active = true;
+        player->CastSpell(player, SPELL_EMBRACE_UNDEATH_DISPLAY, true);
+        if (Aura* aura = player->GetAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+        {
+            aura->SetMaxDuration(-1);
+            aura->SetDuration(-1);
+        }
+    }
+
+    void ClearEmbraceUndeathMorph(Player* player)
+    {
+        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+        bool ourMorph = (state && state->active) || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        if (!ourMorph)
+            return;
+
+        if (state)
+            state->active = false;
+
+        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        player->DeMorph();
+    }
+
+    void MaintainEmbraceUndeathMorph(Player* player)
+    {
+        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+        if (!state || !state->active || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+            return;
+
+        ApplyEmbraceUndeathMorph(player);
+    }
+
+    void ToggleEmbraceUndeathMorph(Player* player)
+    {
+        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+        if ((state && state->active) || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+        {
+            ClearEmbraceUndeathMorph(player);
+            SendMessageIfOnline(player, "|cff9370dbFlesh returns. Undeath loosens its grip.|r");
+            return;
+        }
+
+        ApplyEmbraceUndeathMorph(player);
+        SendMessageIfOnline(player, "|cff9370dbAshen bones take the place of flesh.|r");
+    }
+
     void ApplyTempering(Player* player, uint32 tiers, TemperValues const& values, bool apply)
     {
         if (!tiers)
@@ -733,24 +800,20 @@ namespace
         player->Whisper(msg, LANG_ADDON, player);
     }
 
-    // Embrace Undeath (90004) is a permanent SPELL_AURA_TRANSFORM on the spell itself;
-    // toggle/death handling lives in spell_warlock_embrace_undeath + OnPlayerJustDied.
-}
-
-class warlock_demonic_empowerment_playerscript : public PlayerScript
-{
-public:
-    warlock_demonic_empowerment_playerscript() : PlayerScript(
-        "warlock_demonic_empowerment_playerscript",
-        {
-            PLAYERHOOK_ON_LOGIN,
-            PLAYERHOOK_ON_LOGOUT,
-            PLAYERHOOK_ON_SAVE,
-            PLAYERHOOK_ON_PLAYER_JUST_DIED,
-            PLAYERHOOK_ON_REWARD_KILL_REWARDER,
-            PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
-            PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT
-        }) { }
+    class warlock_demonic_empowerment_playerscript : public PlayerScript
+    {
+    public:
+        warlock_demonic_empowerment_playerscript() : PlayerScript(
+            "warlock_demonic_empowerment_playerscript",
+            {
+                PLAYERHOOK_ON_LOGIN,
+                PLAYERHOOK_ON_LOGOUT,
+                PLAYERHOOK_ON_SAVE,
+                PLAYERHOOK_ON_PLAYER_JUST_DIED,
+                PLAYERHOOK_ON_REWARD_KILL_REWARDER,
+                PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
+                PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT
+            }) { }
 
     bool OnPlayerCanUseChat(Player* player, uint32 type, uint32 language, std::string& msg, Player* /*receiver*/) override
     {
@@ -824,7 +887,7 @@ public:
 
     void OnPlayerJustDied(Player* player) override
     {
-        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH);
+        ClearEmbraceUndeathMorph(player);
     }
 
     void OnPlayerSave(Player* player) override
@@ -974,6 +1037,9 @@ public:
             if (!player || !player->IsInWorld() || !IsWarlock(player))
                 continue;
 
+            // Cheap: only re-applies 16591 if our CustomData says active but aura dropped.
+            MaintainEmbraceUndeathMorph(player);
+
             if (!enableFlipped)
                 continue;
 
@@ -1122,38 +1188,18 @@ class spell_warlock_embrace_undeath : public SpellScript
 {
     PrepareSpellScript(spell_warlock_embrace_undeath);
 
-    // Toggle: second cast removes the permanent TRANSFORM aura (Shadowform-style).
-    SpellCastResult CheckCast()
-    {
-        Unit* caster = GetCaster();
-        if (!caster)
-            return SPELL_CAST_OK;
-
-        if (caster->HasAura(SPELL_EMBRACE_UNDEATH))
-        {
-            caster->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH);
-            if (Player* player = caster->ToPlayer())
-                if (WorldSession* session = player->GetSession(); session && !session->IsBot())
-                    ChatHandler(session).SendSysMessage("|cff9370dbFlesh returns. Undeath loosens its grip.|r");
-            return SPELL_FAILED_DONT_REPORT;
-        }
-
-        return SPELL_CAST_OK;
-    }
-
-    void HandleAfterCast()
+    void HandleDummy(SpellEffIndex /*effIndex*/)
     {
         Player* player = GetCaster() ? GetCaster()->ToPlayer() : nullptr;
         if (!player)
             return;
-        if (WorldSession* session = player->GetSession(); session && !session->IsBot())
-            ChatHandler(session).SendSysMessage("|cff9370dbAshen bones take the place of flesh.|r");
+
+        ToggleEmbraceUndeathMorph(player);
     }
 
     void Register() override
     {
-        OnCheckCast += SpellCheckCastFn(spell_warlock_embrace_undeath::CheckCast);
-        AfterCast += SpellCastFn(spell_warlock_embrace_undeath::HandleAfterCast);
+        OnEffectHitTarget += SpellEffectFn(spell_warlock_embrace_undeath::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
 
