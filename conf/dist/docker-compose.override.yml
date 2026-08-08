@@ -7,7 +7,26 @@ version: "3.8"
 #
 
 services:
+  # In-compose Ollama — worldserver talks to http://ac-ollama:11434 (not host.docker.internal).
+  # Pull a small model once: docker compose exec ac-ollama ollama pull llama3.2:1b
+  ac-ollama:
+    image: ollama/ollama:latest
+    container_name: ac-ollama
+    networks:
+      - ac-network
+    volumes:
+      - ${DOCKER_VOL_OLLAMA:-ac-ollama}:/root/.ollama
+    restart: unless-stopped
+    # Optional GPU (Docker Desktop / NVIDIA): uncomment when available
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+
   ac-worldserver:
+    depends_on:
+      - ac-ollama
     environment:
       # Apply pending_db_* SQL on worldserver startup (auth|characters|world bitmask = 7).
       AC_UPDATES_ENABLE_DATABASES: "7"
@@ -30,11 +49,20 @@ services:
       AC_WARLOCK_DEMONIC_EMPOWERMENT_TEMPERING_SOULS_PER_TIER: "100"
       AC_WARLOCK_DEMONIC_EMPOWERMENT_TEMPERING_MAX_TIERS: "0"
       AC_WARLOCK_DEMONIC_EMPOWERMENT_ANNOUNCE_EVERY_NKILLS: "100"
-      # mod-ollama-chat — bots talk via host Ollama (must be running on :11434)
+      # mod-ollama-chat — talk to compose service ac-ollama (budgeted defaults)
       AC_OLLAMA_CHAT_ENABLE: "1"
-      AC_OLLAMA_CHAT_URL: "http://host.docker.internal:11434/api/generate"
+      AC_OLLAMA_CHAT_URL: "http://ac-ollama:11434/api/generate"
       AC_OLLAMA_CHAT_MODEL: "llama3.2:1b"
+      AC_OLLAMA_CHAT_NUM_PREDICT: "40"
+      AC_OLLAMA_CHAT_MAX_CONCURRENT_QUERIES: "2"
+      AC_OLLAMA_CHAT_DEBUG_ENABLED: "0"
       AC_OLLAMA_CHAT_ENABLE_RANDOM_CHATTER: "1"
-      AC_OLLAMA_CHAT_ENABLE_EVENT_CHATTER: "1"
-      AC_OLLAMA_CHAT_ENABLE_GUILD_RANDOM_AMBIENT_CHATTER: "1"
+      AC_OLLAMA_CHAT_ENABLE_EVENT_CHATTER: "0"
+      AC_OLLAMA_CHAT_ENABLE_GUILD_RANDOM_AMBIENT_CHATTER: "0"
       AC_OLLAMA_CHAT_ENABLE_WHISPER_REPLIES: "1"
+      AC_OLLAMA_CHAT_MIN_RANDOM_INTERVAL: "90"
+      AC_OLLAMA_CHAT_MAX_RANDOM_INTERVAL: "180"
+      AC_OLLAMA_CHAT_RANDOM_CHATTER_REAL_PLAYER_DISTANCE: "40"
+
+volumes:
+  ac-ollama:

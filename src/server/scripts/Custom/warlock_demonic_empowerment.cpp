@@ -795,8 +795,11 @@ public:
         if (!player || !player->IsInWorld() || !IsWarlock(player))
             return;
 
+        // Morph maintain is cheap; keep it every tick so death/morph races clear cleanly.
         MaintainEmbraceUndeathMorph(player);
 
+        // Throttled enable/disable flip only — never per-second tempering / pet / Feltouched
+        // remove+recast (that path ran for every warlock including bots and melted FPS).
         auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
         uint32 now = getMSTime();
         if (now < state->nextEnableCheckMs)
@@ -805,28 +808,14 @@ public:
         state->nextEnableCheckMs = now + ENABLE_RECHECK_MS;
 
         bool enabled = IsEnabled();
-        if (enabled == state->suspended)
-        {
-            state->suspended = !enabled;
-            ResyncSoulEffects(player, sWarlockEmpower->Get(player->GetGUID()));
-            SendMessageIfOnline(player, enabled
-                ? "|cff9370dbDemonic Empowerment:|r the Void stirs again — your legions are restored."
-                : "|cff9370dbDemonic Empowerment:|r the Void falls silent; its blessings are withdrawn.");
-            return;
-        }
-
-        if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
+        if (enabled != state->suspended)
             return;
 
-        Souls souls = sWarlockEmpower->Get(player->GetGUID());
-        SyncTempering(player, souls.lifetime);
-        SyncTalentPoints(player, souls.lifetime);
-        SyncRankSpells(player, souls.lifetime, false);
-        if (Pet* pet = player->GetPet())
-        {
-            SyncPetSoulBonus(pet, enabled ? souls.current : 0u);
-            RefreshFeltouchedPetAura(player);
-        }
+        state->suspended = !enabled;
+        ResyncSoulEffects(player, sWarlockEmpower->Get(player->GetGUID()));
+        SendMessageIfOnline(player, enabled
+            ? "|cff9370dbDemonic Empowerment:|r the Void stirs again — your legions are restored."
+            : "|cff9370dbDemonic Empowerment:|r the Void falls silent; its blessings are withdrawn.");
     }
 
     void OnPlayerSave(Player* player) override
