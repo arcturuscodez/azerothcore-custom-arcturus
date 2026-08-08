@@ -5,6 +5,8 @@
  *  - Qualifying kills harvest +1 soul (lifetime + current)
  *  - CURRENT souls → flat stats on every summoned demon (config PerKill.*)
  *    clamped by PerKill.MaxSoulsApplied (lifetime / tempering / ranks uncapped)
+ *  - WorldScript (5s) maintains Embrace Undeath morph + rare Enable config flips
+ *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
  *  - Rank thresholds → custom spells 90001–90005 / 90007 (RANK_SPELLS) + chat announcement
@@ -38,7 +40,9 @@
 #include "SpellScriptLoader.h"
 #include "StringFormat.h"
 #include "Object.h"
+#include "ObjectAccessor.h"
 #include "Timer.h"
+#include "WorldScript.h"
 #include "WorldSession.h"
 
 #include <algorithm>
@@ -336,13 +340,20 @@ namespace
         uint32       appliedSoulTalents = 0;
         bool         soulTalentsAdopted = false;
         bool         suspended = false;
-        uint32       nextEnableCheckMs = 0;
+    };
+
+    class FeltouchedPetState : public DataMap::Base
+    {
+    public:
+        ObjectGuid petGuid;
     };
 
     constexpr char const* PET_STATE_KEY    = "WarlockDemonicEmpowerment";
     constexpr char const* PLAYER_STATE_KEY = "WarlockSoulTempering";
-    constexpr uint32 ENABLE_RECHECK_MS = 1000u;
+    constexpr char const* FELTOUCHED_PET_KEY = "WarlockEmpowerment.FeltouchedPet";
     constexpr char const* ADDON_PREFIX = "ARCTURUS_VL";
+    // World tick: rare config flip + Embrace Undeath morph maintain (not per-player OnUpdate).
+    constexpr uint32 WORLD_MAINTAIN_MS = 5000u;
 
     bool IsEnabled()
     {
@@ -356,8 +367,10 @@ namespace
 
     void SendMessageIfOnline(Player* player, std::string const& msg)
     {
-        if (WorldSession* session = player->GetSession())
-            ChatHandler(session).SendSysMessage(msg);
+        WorldSession* session = player->GetSession();
+        if (!session || session->IsBot())
+            return;
+        ChatHandler(session).SendSysMessage(msg);
     }
 
     void ApplyTempering(Player* player, uint32 tiers, TemperValues const& values, bool apply)
@@ -517,14 +530,28 @@ namespace
         }
     }
 
-    // Feltouched Communion effect 2 targets the pet; re-apply when a demon is summoned.
+    // Feltouched Communion effect 2 targets the pet; re-apply when the summoned demon changes.
     void RefreshFeltouchedPetAura(Player* player)
     {
         if (!player->HasSpell(SPELL_FELTOUCHED_COMMUNION))
             return;
 
+        auto* tracked = player->CustomData.GetDefault<FeltouchedPetState>(FELTOUCHED_PET_KEY);
+        Pet* pet = player->GetPet();
+        if (!pet)
+        {
+            if (player->HasAura(SPELL_FELTOUCHED_COMMUNION))
+                player->RemoveAurasDueToSpell(SPELL_FELTOUCHED_COMMUNION);
+            tracked->petGuid.Clear();
+            return;
+        }
+
+        if (tracked->petGuid == pet->GetGUID() && player->HasAura(SPELL_FELTOUCHED_COMMUNION))
+            return;
+
         player->RemoveAurasDueToSpell(SPELL_FELTOUCHED_COMMUNION);
         player->CastSpell(player, SPELL_FELTOUCHED_COMMUNION, true);
+        tracked->petGuid = pet->GetGUID();
     }
 
     void ResyncSoulEffects(Player* player, Souls const& souls)
@@ -572,7 +599,7 @@ namespace
 
     void SendVoidLedgerSync(Player* player)
     {
-        if (!player || !player->GetSession() || !IsWarlock(player))
+        if (!player || !player->GetSession() || player->GetSession()->IsBot() || !IsWarlock(player))
             return;
 
         if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
@@ -711,7 +738,6 @@ public:
             PLAYERHOOK_ON_LOGIN,
             PLAYERHOOK_ON_LOGOUT,
             PLAYERHOOK_ON_SAVE,
-            PLAYERHOOK_ON_UPDATE,
             PLAYERHOOK_ON_PLAYER_JUST_DIED,
             PLAYERHOOK_ON_REWARD_KILL_REWARDER,
             PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
@@ -788,34 +814,6 @@ public:
     void OnPlayerJustDied(Player* player) override
     {
         ClearEmbraceUndeathMorph(player);
-    }
-
-    void OnPlayerUpdate(Player* player, uint32 /*diff*/) override
-    {
-        if (!player || !player->IsInWorld() || !IsWarlock(player))
-            return;
-
-        // Morph maintain is cheap; keep it every tick so death/morph races clear cleanly.
-        MaintainEmbraceUndeathMorph(player);
-
-        // Throttled enable/disable flip only — never per-second tempering / pet / Feltouched
-        // remove+recast (that path ran for every warlock including bots and melted FPS).
-        auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
-        uint32 now = getMSTime();
-        if (now < state->nextEnableCheckMs)
-            return;
-
-        state->nextEnableCheckMs = now + ENABLE_RECHECK_MS;
-
-        bool enabled = IsEnabled();
-        if (enabled != state->suspended)
-            return;
-
-        state->suspended = !enabled;
-        ResyncSoulEffects(player, sWarlockEmpower->Get(player->GetGUID()));
-        SendMessageIfOnline(player, enabled
-            ? "|cff9370dbDemonic Empowerment:|r the Void stirs again — your legions are restored."
-            : "|cff9370dbDemonic Empowerment:|r the Void falls silent; its blessings are withdrawn.");
     }
 
     void OnPlayerSave(Player* player) override
@@ -920,9 +918,62 @@ public:
     }
 };
 
+// Single world tick instead of PLAYERHOOK_ON_UPDATE on every player (including ~500 bots).
+class warlock_demonic_empowerment_worldscript : public WorldScript
+{
+public:
+    warlock_demonic_empowerment_worldscript() : WorldScript("warlock_demonic_empowerment_worldscript",
+        { WORLDHOOK_ON_UPDATE }) { }
+
+    void OnUpdate(uint32 diff) override
+    {
+        _elapsedMs += diff;
+        if (_elapsedMs < WORLD_MAINTAIN_MS)
+            return;
+        _elapsedMs = 0;
+
+        bool const enabled = IsEnabled();
+        if (!_initialized)
+        {
+            _knownEnabled = enabled;
+            _initialized = true;
+        }
+
+        bool const enableFlipped = enabled != _knownEnabled;
+        if (enableFlipped)
+            _knownEnabled = enabled;
+
+        for (auto const& pair : ObjectAccessor::GetPlayers())
+        {
+            Player* player = pair.second;
+            if (!player || !player->IsInWorld() || !IsWarlock(player))
+                continue;
+
+            MaintainEmbraceUndeathMorph(player);
+
+            if (!enableFlipped)
+                continue;
+
+            auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
+            state->suspended = !enabled;
+            if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
+                sWarlockEmpower->LoadFromDB(player->GetGUID());
+            ResyncSoulEffects(player, sWarlockEmpower->Get(player->GetGUID()));
+            SendMessageIfOnline(player, enabled
+                ? "|cff9370dbDemonic Empowerment:|r the Void stirs again — your legions are restored."
+                : "|cff9370dbDemonic Empowerment:|r the Void falls silent; its blessings are withdrawn.");
+        }
+    }
+
+private:
+    uint32 _elapsedMs = 0;
+    bool _initialized = false;
+    bool _knownEnabled = true;
+};
+
 // -----------------------------------------------------------------------------
 // Necrotic Embrace (90001) + Umbral Remnant (90007 / 90008)
-// VE-style shadow heal; Dread Warlock passive weaves self-overheal into an absorb.
+// VE-style shadow heal; Dread Warlock passive weaves self-overheal into a short absorb.
 // -----------------------------------------------------------------------------
 
 namespace
@@ -1129,6 +1180,7 @@ class spell_warlock_scarlet_scourge_jump : public SpellScript
 void AddSC_warlock_demonic_empowerment()
 {
     new warlock_demonic_empowerment_playerscript();
+    new warlock_demonic_empowerment_worldscript();
     RegisterSpellScript(spell_warlock_necrotic_embrace);
     RegisterSpellScript(spell_warlock_embrace_undeath);
     RegisterSpellScript(spell_warlock_scarlet_scourge_aura);
