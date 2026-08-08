@@ -4,6 +4,7 @@
  * Live systems:
  *  - Qualifying kills harvest +1 soul (lifetime + current)
  *  - CURRENT souls → flat stats on every summoned demon (config PerKill.*)
+ *    clamped by PerKill.MaxSoulsApplied (lifetime / tempering / ranks uncapped)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
  *  - Rank thresholds → custom spells 90001–90005 / 90007 (RANK_SPELLS) + chat announcement
@@ -60,15 +61,23 @@ namespace WarlockEmpowerment
     BonusValues LoadedBonus()
     {
         return BonusValues{
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_STAMINA,     2)),
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_STRENGTH,    1)),
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_AGILITY,     1)),
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_INTELLECT,   1)),
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_SPIRIT,      1)),
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_ATTACKPOWER, 1)),
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_SPELLPOWER, 0.1f),
-            float(sConfigMgr->GetOption<int32>(CONFIG_BONUS_ARMOR,       5))
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_STAMINA,     0.2f),
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_STRENGTH,    0.1f),
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_AGILITY,     0.1f),
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_INTELLECT,   0.1f),
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_SPIRIT,      0.1f),
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_ATTACKPOWER, 0.1f),
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_SPELLPOWER,  0.05f),
+            sConfigMgr->GetOption<float>(CONFIG_BONUS_ARMOR,       0.5f)
         };
+    }
+
+    uint32 AppliedSoulsFor(uint32 current)
+    {
+        uint32 const cap = sConfigMgr->GetOption<uint32>(CONFIG_MAX_SOULS_APPLIED, 10000u);
+        if (!cap || current <= cap)
+            return current;
+        return cap;
     }
 
     TemperValues LoadedTemper()
@@ -191,7 +200,7 @@ namespace WarlockEmpowerment
         if (!player || !player->IsClass(CLASS_WARLOCK, CLASS_CONTEXT_PET))
             return 0;
 
-        uint32 souls = Mgr::instance()->Get(player->GetGUID()).current;
+        uint32 souls = AppliedSoulsFor(Mgr::instance()->Get(player->GetGUID()).current);
         if (!souls)
             return 0;
 
@@ -455,6 +464,7 @@ namespace
 
     void SyncPetSoulBonus(Unit* pet, uint32 want)
     {
+        want = AppliedSoulsFor(want);
         auto* state = pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
         BonusValues fresh = LoadedBonus();
         if (state->applied == want && state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
@@ -585,7 +595,8 @@ namespace
             if (souls.lifetime >= RANK_SPELLS[i].minSouls)
                 giftMask |= (1u << i);
 
-        int32 demonSpX10 = int32(b.spellPower * float(souls.current) * 10.0f + 0.5f);
+        uint32 const petSouls = AppliedSoulsFor(souls.current);
+        int32 demonSpX10 = int32(b.spellPower * float(petSouls) * 10.0f + 0.5f);
         std::string body = Acore::StringFormat(
             "S:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
             souls.current,
@@ -603,14 +614,14 @@ namespace
             0u,
             0u,
             BonusTalentPointsFor(souls.lifetime),
-            uint32(b.stamina * float(souls.current)),
-            uint32(b.strength * float(souls.current)),
-            uint32(b.agility * float(souls.current)),
-            uint32(b.intellect * float(souls.current)),
-            uint32(b.spirit * float(souls.current)),
-            uint32(b.attackPower * float(souls.current)),
+            uint32(b.stamina * float(petSouls)),
+            uint32(b.strength * float(petSouls)),
+            uint32(b.agility * float(petSouls)),
+            uint32(b.intellect * float(petSouls)),
+            uint32(b.spirit * float(petSouls)),
+            uint32(b.attackPower * float(petSouls)),
             demonSpX10,
-            uint32(b.armor * float(souls.current)),
+            uint32(b.armor * float(petSouls)),
             giftMask,
             talentMask,
             IsEnabled() ? 1u : 0u);
@@ -896,8 +907,9 @@ public:
         if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
             return;
 
+        // Level-up re-init: skip strip/reapply when applied souls and rates already match.
         auto* state = guardian->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
-        uint32 current = sWarlockEmpower->Get(player->GetGUID()).current;
+        uint32 current = AppliedSoulsFor(sWarlockEmpower->Get(player->GetGUID()).current);
         BonusValues fresh = LoadedBonus();
         if (state->applied == current)
             if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
@@ -909,7 +921,8 @@ public:
             ApplyKillBonusWith(guardian, state->applied, strip, false);
         }
 
-        ApplyKillBonus(guardian, current, true);
+        if (current)
+            ApplyKillBonusWith(guardian, current, fresh, true);
         state->applied = current;
         state->appliedValues = fresh;
         state->hasValues = true;

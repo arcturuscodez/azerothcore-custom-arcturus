@@ -34,14 +34,16 @@ WarlockDemonicEmpowerment.Enable = 1
 # Explicit keys silence Config "Missing property" spam on every kill/login under bots.
 # Merge into live env/dist/etc/worldserver.conf (gitignored) or rely on AC_* env in
 # docker-compose.override.yml — .dist alone is not auto-applied.
-WarlockDemonicEmpowerment.PerKill.Stamina = 2
-WarlockDemonicEmpowerment.PerKill.Strength = 1
-WarlockDemonicEmpowerment.PerKill.Agility = 1
-WarlockDemonicEmpowerment.PerKill.Intellect = 1
-WarlockDemonicEmpowerment.PerKill.Spirit = 1
-WarlockDemonicEmpowerment.PerKill.AttackPower = 1
-WarlockDemonicEmpowerment.PerKill.SpellPower = 0.1
-WarlockDemonicEmpowerment.PerKill.Armor = 5
+# PerKill rates are floats; pet flats use min(current, MaxSoulsApplied). 0 = uncapped.
+WarlockDemonicEmpowerment.PerKill.Stamina = 0.2
+WarlockDemonicEmpowerment.PerKill.Strength = 0.1
+WarlockDemonicEmpowerment.PerKill.Agility = 0.1
+WarlockDemonicEmpowerment.PerKill.Intellect = 0.1
+WarlockDemonicEmpowerment.PerKill.Spirit = 0.1
+WarlockDemonicEmpowerment.PerKill.AttackPower = 0.1
+WarlockDemonicEmpowerment.PerKill.SpellPower = 0.05
+WarlockDemonicEmpowerment.PerKill.Armor = 0.5
+WarlockDemonicEmpowerment.PerKill.MaxSoulsApplied = 10000
 WarlockDemonicEmpowerment.Tempering.Stamina = 2
 WarlockDemonicEmpowerment.Tempering.Intellect = 2
 WarlockDemonicEmpowerment.Tempering.SpellPower = 3

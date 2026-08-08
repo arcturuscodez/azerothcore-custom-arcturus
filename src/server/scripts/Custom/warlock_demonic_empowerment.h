@@ -41,6 +41,8 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_BONUS_ATTACKPOWER = "WarlockDemonicEmpowerment.PerKill.AttackPower";
     constexpr char const* CONFIG_BONUS_SPELLPOWER  = "WarlockDemonicEmpowerment.PerKill.SpellPower";
     constexpr char const* CONFIG_BONUS_ARMOR       = "WarlockDemonicEmpowerment.PerKill.Armor";
+    // Cap souls used for PerKill pet flats (0 = unlimited). Lifetime / tempering / ranks ignore this.
+    constexpr char const* CONFIG_MAX_SOULS_APPLIED = "WarlockDemonicEmpowerment.PerKill.MaxSoulsApplied";
     constexpr char const* CONFIG_ANNOUNCE_KILLS    = "WarlockDemonicEmpowerment.AnnounceEveryNKills";
 
     // Soul Tempering: permanent player stats per N lifetime souls (default every 100).
@@ -163,6 +165,8 @@ namespace WarlockEmpowerment
 
     BonusValues LoadedBonus();
     int32 PetSoulSpellPowerBonus(Unit const* pet);
+    // Souls counted toward PerKill pet flats (min(current, MaxSoulsApplied); 0 cap = no clamp).
+    uint32 AppliedSoulsFor(uint32 current);
 
     struct TemperValues
     {
