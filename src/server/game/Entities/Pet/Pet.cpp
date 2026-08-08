@@ -978,9 +978,9 @@ bool Pet::CreateBaseAtCreatureInfo(CreatureTemplate const* cinfo, Unit* owner)
     if (!CreateBaseAtTamed(cinfo, owner->GetMap(), owner->GetPhaseMask()))
         return false;
 
-    // Infernal reuses CREATURE_FAMILY_DOOMGUARD; use template name as a placeholder so it is
-    // not labeled "Doomguard". EffectSummonPet / SummonPet overwrite via GeneratePetName.
-    if (cinfo->Entry == NPC_INFERNAL)
+    // Infernal / Marrowthrall reuse CREATURE_FAMILY_DOOMGUARD; use template name as a
+    // placeholder so they are not labeled "Doomguard". EffectSummonPet overwrites via GeneratePetName.
+    if (cinfo->Entry == NPC_INFERNAL || cinfo->Entry == NPC_MARROWTHRALL)
         SetName(cinfo->Name);
     else if (CreatureFamilyEntry const* cFamily = sCreatureFamilyStore.LookupEntry(cinfo->family))
         SetName(cFamily->Name[sWorld->GetDefaultDbcLocale()]);
@@ -1222,6 +1222,24 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             AddAura(SPELL_WARLOCK_PET_SCALING_05, this);
                             break;
                         }
+                    case NPC_MARROWTHRALL:
+                        {
+                            if (pInfo)
+                            {
+                                SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(pInfo->min_dmg));
+                                SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(pInfo->max_dmg));
+                            }
+                            // Permanent pets skip creature_template_addon; apply tank passives here.
+                            AddAura(SPELL_MARROWTHRALL_OSSIFIED_HIDE, this);
+                            AddAura(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, this);
+                            AddAura(SPELL_PET_AVOIDANCE, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_01, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_02, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_03, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_04, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_05, this);
+                            break;
+                        }
                 }
                 break;
             }
@@ -1276,6 +1294,23 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, lowAmt * lowAmt * lowAmt);
                             SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, highAmt * highAmt * highAmt);
 
+                            AddAura(SPELL_PET_AVOIDANCE, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_01, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_02, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_03, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_04, this);
+                            AddAura(SPELL_WARLOCK_PET_SCALING_05, this);
+                            break;
+                        }
+                    case NPC_MARROWTHRALL:
+                        {
+                            if (pInfo)
+                            {
+                                SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(pInfo->min_dmg));
+                                SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(pInfo->max_dmg));
+                            }
+                            AddAura(SPELL_MARROWTHRALL_OSSIFIED_HIDE, this);
+                            AddAura(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, this);
                             AddAura(SPELL_PET_AVOIDANCE, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_01, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_02, this);

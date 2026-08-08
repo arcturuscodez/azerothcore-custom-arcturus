@@ -46,6 +46,7 @@ This folder adds **3.3.5a client + Arcturus** depth that AGENTS.md does not cove
 ## Skills
 
 - `skills/generate-pr-description` — PR title/body from branch changes
+- `skills/arcturus-custom-warlock-pet` — permanent custom warlock summon pet (Marrowthrall playbook)
 
 ## Pre-commit gates (required)
 

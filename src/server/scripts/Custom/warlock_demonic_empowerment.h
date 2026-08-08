@@ -6,10 +6,10 @@
  *   current  — same as lifetime (souls are never lost); flat stats on the summoned demon
  *
  * Login strips borrowed class spells left on characters from older builds.
- * Lifetime ranks teach custom spells 90001–90005 / 90007 (see RANK_SPELLS;
+ * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90010 (see RANK_SPELLS;
  * 90006 hop, 90008 absorb, 90009 Feltouched pet aura are script/DB-triggered only).
  * Passives use stock learnSpell application; Feltouched pet half uses spell_pet_auras.
- * Embrace Undeath is a permanent TRANSFORM aura toggled on recast.
+ * Embrace Undeath is a DUMMY toggle that applies stock morph 16591 (infinite duration).
  *
  * See warlock_demonic_empowerment.cpp.
  */
@@ -70,6 +70,7 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_UMBRAL_REMNANT_ABSORB = 90008; // triggered absorb (not taught)
     // Feltouched pet mana/5 — applied by spell_pet_auras from 90003 dummy (not taught).
     constexpr uint32 SPELL_FELTOUCHED_COMMUNION_PET = 90009;
+    constexpr uint32 SPELL_SUMMON_MARROWTHRALL     = 90010; // Feltouched (500) — Summon Marrowthrall
 
     // Rank ladder (lifetime souls).
     struct RankTier
@@ -86,11 +87,12 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    inline constexpr std::array<RankSpell, 6> RANK_SPELLS = {{
+    inline constexpr std::array<RankSpell, 7> RANK_SPELLS = {{
         { 100u,  SPELL_NECROTIC_EMBRACE,      "Necrotic Embrace"      },
         { 250u,  SPELL_NETHER_PRESENCE,      "Nether Presence"      },
         { 500u,  SPELL_FELTOUCHED_COMMUNION, "Feltouched Communion" },
         { 500u,  SPELL_EMBRACE_UNDEATH,      "Embrace Undeath"      },
+        { 500u,  SPELL_SUMMON_MARROWTHRALL,  "Summon Marrowthrall"   },
         { 1000u, SPELL_SCARLET_SCOURGE,      "Scarlet Scourge"      },
         { 2500u, SPELL_UMBRAL_REMNANT,       "Umbral Remnant"       }
     }};
