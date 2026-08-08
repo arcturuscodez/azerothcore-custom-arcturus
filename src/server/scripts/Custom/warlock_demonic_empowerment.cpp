@@ -12,7 +12,7 @@
  *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90010 (RANK_SPELLS) + chat announcement
  *  - Passives (90001–90003 / 90007): learnSpell only — stock Player::_addSpell casts them
  *  - Feltouched pet half: spell_pet_auras → Pet::CastPetAuras (Soul Link style)
- *  - Embrace Undeath (90004): DUMMY toggle → stock morph 16591 (death clears)
+ *  - Embrace Undeath (90004): DUMMY toggle → morph aura 90018 (death clears)
  *  - Umbral Remnant (90007/90008) converts Necrotic Embrace overheal into a short absorb
  *  - WorldScript (5s): Enable flips + Embrace morph maintain for online warlocks only
  *
@@ -442,10 +442,10 @@ namespace
     }
 
     // ---- Embrace Undeath (90004) morph toggle ---------------------------------
-    // 90004 is SPELL_EFFECT_DUMMY; script applies stock skeleton morph 16591
-    // with infinite duration. TRANSFORM-on-90004 itself never stuck for players.
+    // 90004 is SPELL_EFFECT_DUMMY; script applies custom TRANSFORM 90018 (display 531)
+    // so the buff bar shows Embrace Undeath — not stock skeleton morph 16591.
 
-    constexpr uint32 SPELL_EMBRACE_UNDEATH_DISPLAY = 16591;
+    constexpr uint32 SPELL_EMBRACE_UNDEATH_DISPLAY = SPELL_EMBRACE_UNDEATH_MORPH;
     constexpr char const* EMBRACE_UNDEATH_KEY = "WarlockEmpowerment.EmbraceUndeath";
 
     class EmbraceUndeathState : public DataMap::Base
@@ -482,6 +482,8 @@ namespace
             state->active = false;
 
         player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        // Legacy builds applied stock skeleton morph 16591 as the buff.
+        player->RemoveAurasDueToSpell(16591);
         player->DeMorph();
     }
 
@@ -1043,7 +1045,7 @@ public:
             if (!player || !player->IsInWorld() || !IsWarlock(player))
                 continue;
 
-            // Cheap: only re-applies 16591 if our CustomData says active but aura dropped.
+            // Cheap: only re-applies morph if our CustomData says active but aura dropped.
             MaintainEmbraceUndeathMorph(player);
 
             if (!enableFlipped)
