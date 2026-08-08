@@ -100,16 +100,19 @@ public:
             handler->PSendSysMessage("Next:  |cff00ff00(max rank)|r");
 
         BonusValues b = LoadedBonus();
+        uint32 const petSouls = AppliedSoulsFor(souls.current);
         handler->PSendSysMessage(
-            "Demon (current souls): |cff00ffff+{} Sta / +{} Str / +{} Agi / +{} Int / +{} Spi / +{} AP / +{:.1f} SP / +{} Armor|r",
-            uint32(b.stamina * float(souls.current)),
-            uint32(b.strength * float(souls.current)),
-            uint32(b.agility * float(souls.current)),
-            uint32(b.intellect * float(souls.current)),
-            uint32(b.spirit * float(souls.current)),
-            uint32(b.attackPower * float(souls.current)),
-            b.spellPower * float(souls.current),
-            uint32(b.armor * float(souls.current)));
+            "Demon ({} applied of {} current; cap {}): |cff00ffff+{} Sta / +{} Str / +{} Agi / +{} Int / +{} Spi / +{} AP / +{:.1f} SP / +{} Armor|r",
+            petSouls, souls.current,
+            sConfigMgr->GetOption<uint32>(CONFIG_MAX_SOULS_APPLIED, 10000u),
+            uint32(b.stamina * float(petSouls)),
+            uint32(b.strength * float(petSouls)),
+            uint32(b.agility * float(petSouls)),
+            uint32(b.intellect * float(petSouls)),
+            uint32(b.spirit * float(petSouls)),
+            uint32(b.attackPower * float(petSouls)),
+            b.spellPower * float(petSouls),
+            uint32(b.armor * float(petSouls)));
 
         uint32 tiers = TemperTiersFor(souls.lifetime);
         TemperValues t = LoadedTemper();
