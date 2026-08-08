@@ -6,8 +6,9 @@
  *  - CURRENT souls → flat stats on every summoned demon (config PerKill.*)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
- *  - Rank thresholds → custom spells 90001–90005 (RANK_SPELLS) + chat announcement
+ *  - Rank thresholds → custom spells 90001–90005 / 90007 (RANK_SPELLS) + chat announcement
  *  - Embrace Undeath (90004) toggles stock morph 16591 (death clears)
+ *  - Umbral Remnant (90007/90008) converts Necrotic Embrace overheal into a short absorb
  *
  * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost legacy).
  */
@@ -918,6 +919,89 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+// Necrotic Embrace (90001) + Umbral Remnant (90007 / 90008)
+// VE-style shadow heal; Dread Warlock passive weaves self-overheal into an absorb.
+// -----------------------------------------------------------------------------
+
+namespace
+{
+    constexpr uint32 SPELL_VAMPIRIC_EMBRACE_HEAL = 15290;
+    constexpr uint32 UMBRAL_REMNANT_ICD_MS = 6000;
+    constexpr int32 UMBRAL_REMNANT_MAX_HP_PCT = 8;
+
+    void TryUmbralRemnant(Unit* owner, int32 overheal)
+    {
+        if (overheal <= 0 || !owner)
+            return;
+
+        Player* player = owner->ToPlayer();
+        if (!player || !player->HasAura(SPELL_UMBRAL_REMNANT))
+            return;
+
+        if (player->HasSpellCooldown(SPELL_UMBRAL_REMNANT_ABSORB))
+            return;
+
+        AuraEffect const* remnant = player->GetAuraEffect(SPELL_UMBRAL_REMNANT, EFFECT_0);
+        int32 const pct = remnant ? remnant->GetAmount() : 50;
+        int32 absorb = CalculatePct(overheal, pct);
+        int32 const cap = int32(CalculatePct(player->GetMaxHealth(), UMBRAL_REMNANT_MAX_HP_PCT));
+        absorb = std::min(absorb, cap);
+        if (absorb <= 0)
+            return;
+
+        player->CastCustomSpell(SPELL_UMBRAL_REMNANT_ABSORB, SPELLVALUE_BASE_POINT0, absorb, player, true);
+        player->AddSpellCooldown(SPELL_UMBRAL_REMNANT_ABSORB, 0, UMBRAL_REMNANT_ICD_MS);
+    }
+}
+
+// 90001 — Necrotic Embrace (Vampiric Embrace heal + Umbral Remnant hook)
+class spell_warlock_necrotic_embrace : public AuraScript
+{
+    PrepareAuraScript(spell_warlock_necrotic_embrace);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_VAMPIRIC_EMBRACE_HEAL, SPELL_UMBRAL_REMNANT_ABSORB });
+    }
+
+    bool CheckProc(ProcEventInfo& eventInfo)
+    {
+        SpellInfo const* procSpell = eventInfo.GetSpellInfo();
+        if (!procSpell)
+            return false;
+
+        // Same filter as priest VE: not Mind Sear family flag.
+        return !(procSpell->SpellFamilyFlags[1] & 0x80000);
+    }
+
+    void HandleProc(AuraEffect const* aurEff, ProcEventInfo& eventInfo)
+    {
+        PreventDefaultAction();
+        DamageInfo* damageInfo = eventInfo.GetDamageInfo();
+        if (!damageInfo || !damageInfo->GetDamage())
+            return;
+
+        Unit* owner = GetTarget();
+        int32 selfHeal = CalculatePct(static_cast<int32>(damageInfo->GetDamage()), aurEff->GetAmount());
+        int32 partyHeal = selfHeal / 5;
+
+        uint32 const missing = owner->GetMaxHealth() > owner->GetHealth()
+            ? owner->GetMaxHealth() - owner->GetHealth()
+            : 0u;
+        int32 const overheal = selfHeal > int32(missing) ? selfHeal - int32(missing) : 0;
+
+        owner->CastCustomSpell(owner, SPELL_VAMPIRIC_EMBRACE_HEAL, &partyHeal, &selfHeal, nullptr, true, nullptr, aurEff);
+        TryUmbralRemnant(owner, overheal);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(spell_warlock_necrotic_embrace::CheckProc);
+        OnEffectProc += AuraEffectProcFn(spell_warlock_necrotic_embrace::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
+    }
+};
+
+// -----------------------------------------------------------------------------
 // Scarlet Scourge (90005 / 90006) — player-scaled jumping DoT (Necrotic Plague-like).
 // -----------------------------------------------------------------------------
 
@@ -1043,6 +1127,7 @@ class spell_warlock_scarlet_scourge_jump : public SpellScript
 void AddSC_warlock_demonic_empowerment()
 {
     new warlock_demonic_empowerment_playerscript();
+    RegisterSpellScript(spell_warlock_necrotic_embrace);
     RegisterSpellScript(spell_warlock_embrace_undeath);
     RegisterSpellScript(spell_warlock_scarlet_scourge_aura);
     RegisterSpellAndAuraScriptPair(spell_warlock_scarlet_scourge_jump, spell_warlock_scarlet_scourge_aura);

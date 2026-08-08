@@ -39,8 +39,9 @@ This folder adds **3.3.5a client + Arcturus** depth that AGENTS.md does not cove
 
 ## Rules
 
-- **[rules/arcturus-modding.md](rules/arcturus-modding.md)** — do / don't for client patches vs server-only
+- **[rules/arcturus-modding.md](rules/arcturus-modding.md)** — client vs server; **Spell.dbc edits only in WoW-Spell-Editor**
 - **[rules/arcturus-gates-frozen.md](rules/arcturus-gates-frozen.md)** — never edit `tests/arcturus_gates/**`; run gates before commit
+- Cursor always-on: `.cursor/rules/prefer-spell-editor-mpq.mdc`
 
 ## Skills
 
@@ -69,5 +70,5 @@ Frozen suite + `FROZEN.sha256` + git/Cursor hooks block commits unless all `GATE
 - **Custom bag icons:** still need **CustomItemFix** or client **Item.dbc** — see [knowledge/custom-items-red-question-mark.md](knowledge/custom-items-red-question-mark.md).
 - **Custom right-click equip:** [client-addons/ArcturusItemFix/](client-addons/ArcturusItemFix/README.md) — fixes “Item not found” on bag right-click
 - **Live client debug:** [client-addons/ArcturusDebug/](client-addons/ArcturusDebug/README.md) — `/adebug`; agents read `WTF/.../SavedVariables/ArcturusDebug.lua` after `/reload`
-- **Inferno / Doomguard tooltips:** edit stock spells **1122** / **18540** in Spell Editor → export `Spell.dbc` into a late-loading MPQ (server permanent-pet behaviour stays in `SpellInfoCorrections.cpp`)
+- **Client spells:** edit only in **WoW-Spell-Editor** → `Arcturus/` (export Spell.dbc to MPQ). Server keeps `spell_dbc` + C++ mechanics.
 
