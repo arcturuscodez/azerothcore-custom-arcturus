@@ -5,13 +5,16 @@
  *  - Qualifying kills harvest +1 soul (lifetime + current)
  *  - CURRENT souls → flat stats on every summoned demon (config PerKill.*)
  *    clamped by PerKill.MaxSoulsApplied (lifetime / tempering / ranks uncapped)
- *  - WorldScript (5s) maintains Embrace Undeath morph + rare Enable config flips
+ *  - WorldScript (5s) handles rare Enable config flips
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
  *  - Rank thresholds → custom spells 90001–90005 / 90007 (RANK_SPELLS) + chat announcement
- *  - Embrace Undeath (90004) toggles stock morph 16591 (death clears)
+ *  - Passives (90001–90003 / 90007): learnSpell only — stock Player::_addSpell casts them
+ *  - Feltouched pet half: spell_pet_auras → Pet::CastPetAuras (Soul Link style)
+ *  - Embrace Undeath (90004): permanent SPELL_AURA_TRANSFORM toggle (death clears)
  *  - Umbral Remnant (90007/90008) converts Necrotic Embrace overheal into a short absorb
+ *  - WorldScript (5s): rare Enable config flips only (no per-player aura babysitting)
  *
  * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost legacy).
  */
@@ -395,17 +398,10 @@ namespace
         bool         suspended = false;
     };
 
-    class FeltouchedPetState : public DataMap::Base
-    {
-    public:
-        ObjectGuid petGuid;
-    };
-
     constexpr char const* PET_STATE_KEY    = "WarlockDemonicEmpowerment";
     constexpr char const* PLAYER_STATE_KEY = "WarlockSoulTempering";
-    constexpr char const* FELTOUCHED_PET_KEY = "WarlockEmpowerment.FeltouchedPet";
     constexpr char const* ADDON_PREFIX = "ARCTURUS_VL";
-    // World tick: rare config flip + Embrace Undeath morph maintain (not per-player OnUpdate).
+    // World tick: rare Enable config flip only.
     constexpr uint32 WORLD_MAINTAIN_MS = 5000u;
 
     std::mutex g_onlineWarlockMutex;
@@ -614,45 +610,35 @@ namespace
         }
     }
 
-    // Feltouched Communion effect 2 targets the pet; re-apply when the summoned demon changes.
-    void RefreshFeltouchedPetAura(Player* player)
-    {
-        if (!player->HasSpell(SPELL_FELTOUCHED_COMMUNION))
-            return;
-
-        auto* tracked = player->CustomData.GetDefault<FeltouchedPetState>(FELTOUCHED_PET_KEY);
-        Pet* pet = player->GetPet();
-        if (!pet)
-        {
-            if (player->HasAura(SPELL_FELTOUCHED_COMMUNION))
-                player->RemoveAurasDueToSpell(SPELL_FELTOUCHED_COMMUNION);
-            tracked->petGuid.Clear();
-            return;
-        }
-
-        if (tracked->petGuid == pet->GetGUID() && player->HasAura(SPELL_FELTOUCHED_COMMUNION))
-            return;
-
-        player->RemoveAurasDueToSpell(SPELL_FELTOUCHED_COMMUNION);
-        player->CastSpell(player, SPELL_FELTOUCHED_COMMUNION, true);
-        tracked->petGuid = pet->GetGUID();
-    }
-
     void ResyncSoulEffects(Player* player, Souls const& souls)
     {
         SyncTempering(player, souls.lifetime);
         SyncTalentPoints(player, souls.lifetime);
+        // learnSpell on PASSIVE ranks (90001–90003 / 90007) casts them via
+        // Player::_addSpell → IsNeedCastPassiveSpellAtLearn (stock path).
+        // Feltouched pet half is spell_pet_auras → Pet::CastPetAuras (Soul Link style).
         SyncRankSpells(player, souls.lifetime, false);
+
+        // Same cast Player::_addSpell uses for passives. Covers the case where the spell
+        // is already known (SyncRankSpells no-ops) but the aura is missing — e.g. old
+        // 90003 TARGET_UNIT_PET failed CastSpell at learn/load before the DBC fix.
+        if (IsEnabled())
+        {
+            for (RankSpell const& entry : RANK_SPELLS)
+            {
+                SpellInfo const* info = sSpellMgr->GetSpellInfo(entry.id);
+                if (!info || !info->IsPassive())
+                    continue;
+                if (player->HasSpell(entry.id) && !player->HasAura(entry.id))
+                    player->CastSpell(player, entry.id, true);
+            }
+        }
 
         // LoadPet() runs before OnPlayerLogin, so OnPlayerAfterGuardianInitStatsForLevel
         // saw unloaded counters and skipped the flat soul mods (Spell Bonus still works
         // because PetSoulSpellPowerBonus reads the Mgr live). Re-sync the live demon here.
-        Pet* pet = player->GetPet();
-        if (!pet)
-            return;
-
-        SyncPetSoulBonus(pet, IsEnabled() ? souls.current : 0u);
-        RefreshFeltouchedPetAura(player);
+        if (Pet* pet = player->GetPet())
+            SyncPetSoulBonus(pet, IsEnabled() ? souls.current : 0u);
     }
 
     bool MaybeAnnounceRankUp(Player* player, uint32 before, uint32 after)
@@ -747,70 +733,8 @@ namespace
         player->Whisper(msg, LANG_ADDON, player);
     }
 
-    // ---- Embrace Undeath (90004) morph toggle ---------------------------------
-
-    constexpr uint32 SPELL_EMBRACE_UNDEATH_DISPLAY = 16591;
-    constexpr char const* EMBRACE_UNDEATH_KEY = "WarlockEmpowerment.EmbraceUndeath";
-
-    class EmbraceUndeathState : public DataMap::Base
-    {
-    public:
-        bool active = false;
-    };
-
-    EmbraceUndeathState* GetEmbraceUndeathState(Player* player)
-    {
-        return player->CustomData.GetDefault<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
-    }
-
-    void ApplyEmbraceUndeathMorph(Player* player)
-    {
-        EmbraceUndeathState* state = GetEmbraceUndeathState(player);
-        state->active = true;
-        player->CastSpell(player, SPELL_EMBRACE_UNDEATH_DISPLAY, true);
-        if (Aura* aura = player->GetAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
-        {
-            aura->SetMaxDuration(-1);
-            aura->SetDuration(-1);
-        }
-    }
-
-    void ClearEmbraceUndeathMorph(Player* player)
-    {
-        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
-        bool ourMorph = (state && state->active) || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY);
-        if (!ourMorph)
-            return;
-
-        if (state)
-            state->active = false;
-
-        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
-        player->DeMorph();
-    }
-
-    void MaintainEmbraceUndeathMorph(Player* player)
-    {
-        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
-        if (!state || !state->active || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
-            return;
-
-        ApplyEmbraceUndeathMorph(player);
-    }
-
-    void ToggleEmbraceUndeathMorph(Player* player)
-    {
-        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
-        if ((state && state->active) || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
-        {
-            ClearEmbraceUndeathMorph(player);
-            SendMessageIfOnline(player, "|cff9370dbFlesh returns. Undeath loosens its grip.|r");
-            return;
-        }
-
-        ApplyEmbraceUndeathMorph(player);
-        SendMessageIfOnline(player, "|cff9370dbAshen bones take the place of flesh.|r");
-    }
+    // Embrace Undeath (90004) is a permanent SPELL_AURA_TRANSFORM on the spell itself;
+    // toggle/death handling lives in spell_warlock_embrace_undeath + OnPlayerJustDied.
 }
 
 class warlock_demonic_empowerment_playerscript : public PlayerScript
@@ -900,7 +824,7 @@ public:
 
     void OnPlayerJustDied(Player* player) override
     {
-        ClearEmbraceUndeathMorph(player);
+        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH);
     }
 
     void OnPlayerSave(Player* player) override
@@ -1010,8 +934,6 @@ public:
             state->appliedValues = fresh;
             state->hasValues = true;
         }
-
-        RefreshFeltouchedPetAura(player);
     }
 };
 
@@ -1051,8 +973,6 @@ public:
             Player* player = ObjectAccessor::FindPlayerByLowGUID(low);
             if (!player || !player->IsInWorld() || !IsWarlock(player))
                 continue;
-
-            MaintainEmbraceUndeathMorph(player);
 
             if (!enableFlipped)
                 continue;
@@ -1202,18 +1122,38 @@ class spell_warlock_embrace_undeath : public SpellScript
 {
     PrepareSpellScript(spell_warlock_embrace_undeath);
 
-    void HandleDummy(SpellEffIndex /*effIndex*/)
+    // Toggle: second cast removes the permanent TRANSFORM aura (Shadowform-style).
+    SpellCastResult CheckCast()
     {
-        Player* player = GetCaster()->ToPlayer();
+        Unit* caster = GetCaster();
+        if (!caster)
+            return SPELL_CAST_OK;
+
+        if (caster->HasAura(SPELL_EMBRACE_UNDEATH))
+        {
+            caster->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH);
+            if (Player* player = caster->ToPlayer())
+                if (WorldSession* session = player->GetSession(); session && !session->IsBot())
+                    ChatHandler(session).SendSysMessage("|cff9370dbFlesh returns. Undeath loosens its grip.|r");
+            return SPELL_FAILED_DONT_REPORT;
+        }
+
+        return SPELL_CAST_OK;
+    }
+
+    void HandleAfterCast()
+    {
+        Player* player = GetCaster() ? GetCaster()->ToPlayer() : nullptr;
         if (!player)
             return;
-
-        ToggleEmbraceUndeathMorph(player);
+        if (WorldSession* session = player->GetSession(); session && !session->IsBot())
+            ChatHandler(session).SendSysMessage("|cff9370dbAshen bones take the place of flesh.|r");
     }
 
     void Register() override
     {
-        OnEffectHitTarget += SpellEffectFn(spell_warlock_embrace_undeath::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        OnCheckCast += SpellCheckCastFn(spell_warlock_embrace_undeath::CheckCast);
+        AfterCast += SpellCastFn(spell_warlock_embrace_undeath::HandleAfterCast);
     }
 };
 
