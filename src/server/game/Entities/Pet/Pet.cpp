@@ -38,6 +38,41 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 
+namespace
+{
+    // Pets with m_movedByPlayer skip Creature::UpdateMovementFlags, so
+    // creature_template_movement Ground=Hover never runs. BoneGuard's floor-glow
+    // sits below the model origin and clips into terrain without a forced hover.
+    void ApplyMarrowthrallPresentation(Pet* pet)
+    {
+        if (!pet || pet->GetEntry() != NPC_MARROWTHRALL)
+            return;
+
+        float scale = 0.5f;
+        if (CreatureTemplate const* cinfo = pet->GetCreatureTemplate())
+        {
+            if (CreatureModel const* model = ObjectMgr::ChooseDisplayId(cinfo))
+                scale = model->DisplayScale > 0.0f ? model->DisplayScale : scale;
+
+            float hover = cinfo->HoverHeight;
+            if (hover < 0.1f)
+                hover = 2.0f;
+            pet->SetFloatValue(UNIT_FIELD_HOVERHEIGHT, hover);
+        }
+        else
+            pet->SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 2.0f);
+
+        // Prefer silent BoneGuard clone (SoundID 0). Requires CreatureDisplayInfo.dbc in client MPQ.
+        if (pet->GetDisplayId() != DISPLAY_MARROWTHRALL)
+            pet->SetDisplayId(DISPLAY_MARROWTHRALL, scale);
+
+        if (!pet->IsHovering())
+            pet->SetHover(true);
+        else
+            pet->AddUnitMovementFlag(MOVEMENTFLAG_HOVER);
+    }
+}
+
 Pet::Pet(Player* owner, PetType type) : Guardian(nullptr, owner ? owner->GetGUID() : ObjectGuid::Empty),
     m_usedTalentCount(0),
     m_removed(false),
@@ -117,6 +152,8 @@ void Pet::AddToWorld()
 
         sScriptMgr->OnPetAddToWorld(this);
     }
+
+    ApplyMarrowthrallPresentation(this);
 }
 
 void Pet::RemoveFromWorld()
@@ -1236,6 +1273,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             {
                                 marrowPet->learnSpell(SPELL_MARROWTHRALL_OSSIFIED_HIDE);
                                 marrowPet->learnSpell(SPELL_MARROWTHRALL_DEATHLESS_COMPACT);
+                                ApplyMarrowthrallPresentation(marrowPet);
                             }
                             else
                             {
@@ -1323,6 +1361,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             {
                                 marrowPet->learnSpell(SPELL_MARROWTHRALL_OSSIFIED_HIDE);
                                 marrowPet->learnSpell(SPELL_MARROWTHRALL_DEATHLESS_COMPACT);
+                                ApplyMarrowthrallPresentation(marrowPet);
                             }
                             else
                             {

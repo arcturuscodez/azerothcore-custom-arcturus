@@ -101,6 +101,8 @@ enum NPCEntries
     NPC_FELGUARD                = 17252,
     NPC_EYE_OF_KILROGG          = 4277,
     NPC_MARROWTHRALL            = 900110, // Arcturus necromantic bone tank pet
+    // Client CreatureDisplayInfo clone of 31119 with SoundID 0 (see SpellEditor.db / MPQ)
+    DISPLAY_MARROWTHRALL        = 900110,
 
     // Mage
     NPC_WATER_ELEMENTAL_TEMP    = 510,
