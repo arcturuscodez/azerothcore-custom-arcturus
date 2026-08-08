@@ -15,6 +15,7 @@ Pending SQL never inserts retired `900xxx` item legendaries. A clean install app
 | `rev_1786667…` | Infernal/Doomguard pet names + Master Demonologist auras |
 | `rev_1786668…` / `1786669…` | Feltouched Communion pet aura; Embrace Undeath transform |
 | `rev_1786670…` | **Marrowthrall** pet (900110) + summon/kit spells 90010–90016 |
+| `rev_1786672…` | Marrowthrall polish (scale 0.50, Felguard charge, Bone Storm AoE/VFX, taunt) |
 | `rev_1785196800…` (chars) | `character_warlock_demon_kills` (full schema) |
 
 ## Item entries (current)

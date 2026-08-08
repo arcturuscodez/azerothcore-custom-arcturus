@@ -24,7 +24,9 @@ pending `data/sql/updates/pending_db_world/rev_1786670000000000000.sql`.
 - Creature **`type` = 3 (DEMON)** so `Pet::IsPermanentPetFor` is true for warlocks
   (empowerment flats, `spell_pet_auras`, Feltouched Communion pet half).
 - Pet action bar from `creature_template_spell` feeds **only 4 slots**
-  (`MAX_CREATURE_SPELL_DATA_SLOT`). Extra passives → `AddAura` in `Pet.cpp`, not a 5th bar spell.
+  (`MAX_CREATURE_SPELL_DATA_SLOT`). Extra passives → `Pet::learnSpell` in `Pet.cpp`
+  (shows in pet spellbook + applies aura; do **not** use a 5th `creature_template_spell` row).
+  `AddAura` alone applies the buff but stays invisible in the spellbook.
 - Prefer **family 19 (`CREATURE_FAMILY_DOOMGUARD`)** when you do **not** want Voidwalker/Imp
   skill-line levelup spells. Split Demonic Empowerment / naming by **creature entry**.
 
@@ -63,7 +65,7 @@ Clone role from a stock pet:
 | Melee DPS | Felguard `17252` stats; MD greater-demon `35702`–`35706` | Felguard | Match Felguard |
 | Caster | Imp-like; MD imp auras | Imp | Match Imp |
 
-Model: `creature_template_model` with boss `CreatureDisplayID` + **`DisplayScale` ~0.3–0.4**.
+Model: `creature_template_model` with boss `CreatureDisplayID` + **`DisplayScale` ~0.45–0.55** (Marrowthrall uses `0.50`; too low reads as player-sized).
 
 Summon: clone Voidwalker `697` — `SPELL_EFFECT_SUMMON_PET` (56), `EffectMiscValue` = creature entry,
 `AttributesEx` includes dismiss-pet-first (`131073`), soul shard reagent `6265`×1.
@@ -98,7 +100,7 @@ Must include, each with matching `DELETE` before `INSERT`:
 
 - `CreateBaseAtCreatureInfo`: if family 19, `SetName(cinfo->Name)` for this entry (same as Infernal)
 - `InitStatsForLevel` `SUMMON_PET` (and guardian mirror if Infernal-style): weapon damage from
-  `pInfo`, `AddAura` passives + `SPELL_PET_AVOIDANCE` + `SPELL_WARLOCK_PET_SCALING_01`…`05`
+  `pInfo`, `learnSpell` passives (spellbook) + `AddAura` `SPELL_PET_AVOIDANCE` + `SPELL_WARLOCK_PET_SCALING_01`…`05`
 
 **`StatSystem.cpp`** — `Guardian::UpdateMaxHealth` / `UpdateMaxPower`
 
