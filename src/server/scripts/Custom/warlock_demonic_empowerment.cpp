@@ -48,11 +48,29 @@
 #include <algorithm>
 #include <cmath>
 #include <list>
+#include <mutex>
 #include <string_view>
+#include <unordered_set>
+#include <vector>
 
 using namespace WarlockEmpowerment;
 namespace WarlockEmpowerment
 {
+    namespace
+    {
+        constexpr uint32 CONFIG_CACHE_MS = 5000u;
+        BonusValues _bonusCache{};
+        uint32 _bonusCacheMs = 0;
+        TemperValues _temperCache{};
+        int32 _temperInterval = 100;
+        int32 _temperMaxTiers = 0;
+        uint32 _temperCacheMs = 0;
+        uint32 _maxSoulsApplied = 10000u;
+        uint32 _capCacheMs = 0;
+        bool _enabledCache = true;
+        uint32 _enabledCacheMs = 0;
+    }
+
     std::size_t RankIndexFor(uint32 kills)
     {
         std::size_t idx = 0;
@@ -64,34 +82,53 @@ namespace WarlockEmpowerment
 
     BonusValues LoadedBonus()
     {
-        return BonusValues{
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_STAMINA,     0.2f),
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_STRENGTH,    0.1f),
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_AGILITY,     0.1f),
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_INTELLECT,   0.1f),
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_SPIRIT,      0.1f),
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_ATTACKPOWER, 0.1f),
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_SPELLPOWER,  0.05f),
-            sConfigMgr->GetOption<float>(CONFIG_BONUS_ARMOR,       0.5f)
-        };
+        uint32 const now = getMSTime();
+        if (!_bonusCacheMs || getMSTimeDiff(_bonusCacheMs, now) >= CONFIG_CACHE_MS)
+        {
+            _bonusCache = BonusValues{
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_STAMINA,     0.2f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_STRENGTH,    0.1f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_AGILITY,     0.1f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_INTELLECT,   0.1f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_SPIRIT,      0.1f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_ATTACKPOWER, 0.1f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_SPELLPOWER,  0.05f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_ARMOR,       0.5f)
+            };
+            _bonusCacheMs = now ? now : 1u;
+        }
+        return _bonusCache;
     }
 
     uint32 AppliedSoulsFor(uint32 current)
     {
-        uint32 const cap = sConfigMgr->GetOption<uint32>(CONFIG_MAX_SOULS_APPLIED, 10000u);
-        if (!cap || current <= cap)
+        uint32 const now = getMSTime();
+        if (!_capCacheMs || getMSTimeDiff(_capCacheMs, now) >= CONFIG_CACHE_MS)
+        {
+            _maxSoulsApplied = sConfigMgr->GetOption<uint32>(CONFIG_MAX_SOULS_APPLIED, 10000u);
+            _capCacheMs = now ? now : 1u;
+        }
+        if (!_maxSoulsApplied || current <= _maxSoulsApplied)
             return current;
-        return cap;
+        return _maxSoulsApplied;
     }
 
     TemperValues LoadedTemper()
     {
-        return TemperValues{
-            sConfigMgr->GetOption<int32>(CONFIG_TEMPER_STAMINA,    2),
-            sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTELLECT,  2),
-            sConfigMgr->GetOption<int32>(CONFIG_TEMPER_SPELLPOWER, 3),
-            sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MANA_PER5,  1)
-        };
+        uint32 const now = getMSTime();
+        if (!_temperCacheMs || getMSTimeDiff(_temperCacheMs, now) >= CONFIG_CACHE_MS)
+        {
+            _temperCache = TemperValues{
+                sConfigMgr->GetOption<int32>(CONFIG_TEMPER_STAMINA,    2),
+                sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTELLECT,  2),
+                sConfigMgr->GetOption<int32>(CONFIG_TEMPER_SPELLPOWER, 3),
+                sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MANA_PER5,  1)
+            };
+            _temperInterval = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTERVAL, 100);
+            _temperMaxTiers = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MAX_TIERS, 0);
+            _temperCacheMs = now ? now : 1u;
+        }
+        return _temperCache;
     }
 
     bool BonusValuesEqual(BonusValues const& a, BonusValues const& b)
@@ -119,14 +156,13 @@ namespace WarlockEmpowerment
 
     uint32 TemperTiersFor(uint32 lifetime)
     {
-        int32 interval = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTERVAL, 100);
-        if (interval <= 0)
+        LoadedTemper(); // refreshes _temperInterval / _temperMaxTiers
+        if (_temperInterval <= 0)
             return 0;
 
-        uint32 tiers = lifetime / uint32(interval);
-        int32 maxTiers = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MAX_TIERS, 0);
-        if (maxTiers > 0 && tiers > uint32(maxTiers))
-            tiers = uint32(maxTiers);
+        uint32 tiers = lifetime / uint32(_temperInterval);
+        if (_temperMaxTiers > 0 && tiers > uint32(_temperMaxTiers))
+            tiers = uint32(_temperMaxTiers);
         return tiers;
     }
 
@@ -193,7 +229,7 @@ namespace WarlockEmpowerment
 
     int32 PetSoulSpellPowerBonus(Unit const* pet)
     {
-        if (!pet || !pet->IsPet() || !sConfigMgr->GetOption<bool>(CONFIG_ENABLED, true))
+        if (!pet || !pet->IsPet() || !IsSystemEnabled())
             return 0;
 
         Unit* owner = pet->GetOwner();
@@ -209,6 +245,17 @@ namespace WarlockEmpowerment
             return 0;
 
         return int32(LoadedBonus().spellPower * float(souls) + 0.5f);
+    }
+
+    bool IsSystemEnabled()
+    {
+        uint32 const now = getMSTime();
+        if (!_enabledCacheMs || getMSTimeDiff(_enabledCacheMs, now) >= CONFIG_CACHE_MS)
+        {
+            _enabledCache = sConfigMgr->GetOption<bool>(CONFIG_ENABLED, true);
+            _enabledCacheMs = now ? now : 1u;
+        }
+        return _enabledCache;
     }
 
     Mgr* Mgr::instance()
@@ -288,8 +335,11 @@ namespace WarlockEmpowerment
                 _dirty.erase(low);
             }
         }
+        // Logout must hit the DB before the session is gone.
         if (dirty)
-            PersistNow(low, souls);
+            CharacterDatabase.DirectExecute(
+                "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime, souls_lost) VALUES ({}, {}, {}, {})",
+                low, souls.current, souls.lifetime, 0u);
     }
 
     void Mgr::FlushIfDirty(ObjectGuid guid)
@@ -307,13 +357,16 @@ namespace WarlockEmpowerment
                 _dirty.erase(low);
             }
         }
+        // Periodic / save path: queue async — do not block the world thread on REPLACE.
         if (dirty)
-            PersistNow(low, souls);
+            CharacterDatabase.Execute(
+                "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime, souls_lost) VALUES ({}, {}, {}, {})",
+                low, souls.current, souls.lifetime, 0u);
     }
 
     void Mgr::PersistNow(uint32 low, Souls const& souls)
     {
-        CharacterDatabase.DirectExecute(
+        CharacterDatabase.Execute(
             "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime, souls_lost) VALUES ({}, {}, {}, {})",
             low, souls.current, souls.lifetime, 0u);
     }
@@ -355,9 +408,28 @@ namespace
     // World tick: rare config flip + Embrace Undeath morph maintain (not per-player OnUpdate).
     constexpr uint32 WORLD_MAINTAIN_MS = 5000u;
 
+    std::mutex g_onlineWarlockMutex;
+    std::unordered_set<ObjectGuid::LowType> g_onlineWarlocks;
+
+    void TrackOnlineWarlock(Player* player)
+    {
+        if (!player)
+            return;
+        std::lock_guard<std::mutex> lock(g_onlineWarlockMutex);
+        g_onlineWarlocks.insert(player->GetGUID().GetCounter());
+    }
+
+    void UntrackOnlineWarlock(Player* player)
+    {
+        if (!player)
+            return;
+        std::lock_guard<std::mutex> lock(g_onlineWarlockMutex);
+        g_onlineWarlocks.erase(player->GetGUID().GetCounter());
+    }
+
     bool IsEnabled()
     {
-        return sConfigMgr->GetOption<bool>(CONFIG_ENABLED, true);
+        return IsSystemEnabled();
     }
 
     bool IsWarlock(Player const* player)
@@ -482,6 +554,18 @@ namespace
         BonusValues fresh = LoadedBonus();
         if (state->applied == want && state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
             return;
+
+        // Same rates: apply only the soul delta (avoids full strip/reapply + double UpdateAllStats per kill).
+        if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
+        {
+            if (want > state->applied)
+                ApplyKillBonusWith(pet, want - state->applied, fresh, true);
+            else if (state->applied > want)
+                ApplyKillBonusWith(pet, state->applied - want, fresh, false);
+
+            state->applied = want;
+            return;
+        }
 
         if (state->applied)
         {
@@ -770,6 +854,8 @@ public:
         if (!IsWarlock(player))
             return;
 
+        TrackOnlineWarlock(player);
+
         player->RemoveAurasDueToSpell(SPELL_FEL_DOMINATION_LEGACY);
         player->RemoveAurasDueToSpell(SPELL_DEMONIC_EMPOWERMENT_LEGACY);
 
@@ -808,6 +894,7 @@ public:
         if (!IsWarlock(player))
             return;
 
+        UntrackOnlineWarlock(player);
         sWarlockEmpower->FlushAndForget(player->GetGUID());
     }
 
@@ -902,17 +989,27 @@ public:
             if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
                 return;
 
-        if (state->applied)
+        if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
         {
-            BonusValues const& strip = state->hasValues ? state->appliedValues : fresh;
-            ApplyKillBonusWith(guardian, state->applied, strip, false);
+            if (current > state->applied)
+                ApplyKillBonusWith(guardian, current - state->applied, fresh, true);
+            else if (state->applied > current)
+                ApplyKillBonusWith(guardian, state->applied - current, fresh, false);
+            state->applied = current;
         }
-
-        if (current)
-            ApplyKillBonusWith(guardian, current, fresh, true);
-        state->applied = current;
-        state->appliedValues = fresh;
-        state->hasValues = true;
+        else
+        {
+            if (state->applied)
+            {
+                BonusValues const& strip = state->hasValues ? state->appliedValues : fresh;
+                ApplyKillBonusWith(guardian, state->applied, strip, false);
+            }
+            if (current)
+                ApplyKillBonusWith(guardian, current, fresh, true);
+            state->applied = current;
+            state->appliedValues = fresh;
+            state->hasValues = true;
+        }
 
         RefreshFeltouchedPetAura(player);
     }
@@ -943,9 +1040,15 @@ public:
         if (enableFlipped)
             _knownEnabled = enabled;
 
-        for (auto const& pair : ObjectAccessor::GetPlayers())
+        std::vector<ObjectGuid::LowType> warlocks;
         {
-            Player* player = pair.second;
+            std::lock_guard<std::mutex> lock(g_onlineWarlockMutex);
+            warlocks.assign(g_onlineWarlocks.begin(), g_onlineWarlocks.end());
+        }
+
+        for (ObjectGuid::LowType low : warlocks)
+        {
+            Player* player = ObjectAccessor::FindPlayerByLowGUID(low);
             if (!player || !player->IsInWorld() || !IsWarlock(player))
                 continue;
 

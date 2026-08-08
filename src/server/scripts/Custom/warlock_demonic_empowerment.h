@@ -167,6 +167,7 @@ namespace WarlockEmpowerment
     int32 PetSoulSpellPowerBonus(Unit const* pet);
     // Souls counted toward PerKill pet flats (min(current, MaxSoulsApplied); 0 cap = no clamp).
     uint32 AppliedSoulsFor(uint32 current);
+    bool IsSystemEnabled();
 
     struct TemperValues
     {

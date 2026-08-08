@@ -105,10 +105,11 @@ namespace
         if (!session)
             return;
 
-        // Bots stay on the classic 2-primary cap even when MaxPrimaryTradeSkill is raised.
-        uint32 const maxProfs = session->IsBot()
-            ? 2u
-            : sWorld->getIntConfig(CONFIG_MAX_PRIMARY_TRADE_SKILL);
+        // Bots stay on the classic 2-primary cap; skip the skill-map walk entirely.
+        if (session->IsBot())
+            return;
+
+        uint32 const maxProfs = sWorld->getIntConfig(CONFIG_MAX_PRIMARY_TRADE_SKILL);
         uint32 known = 0;
         for (auto const& pair : player->GetSkillStatusMap())
         {
