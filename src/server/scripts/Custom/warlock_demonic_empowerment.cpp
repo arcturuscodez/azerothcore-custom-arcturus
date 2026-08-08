@@ -686,9 +686,10 @@ namespace
         // Feltouched pet half is spell_pet_auras → Pet::CastPetAuras (Soul Link style).
         SyncRankSpells(player, souls.lifetime, false);
 
-        // Same cast Player::_addSpell uses for passives. Covers the case where the spell
-        // is already known (SyncRankSpells no-ops) but the aura is missing — e.g. old
-        // 90003 TARGET_UNIT_PET failed CastSpell at learn/load before the DBC fix.
+        // Re-apply known passives if the aura is missing. CastSpell alone is not enough for
+        // Feltouched Communion (90003): older spell_dbc used TARGET_UNIT_PET on effect 2, so
+        // CheckCast failed with NO_PET and _addSpell never stuck the aura. AddAura bypasses
+        // that and still applies self effects (MP5 + dummy → spell_pet_auras).
         if (IsEnabled())
         {
             for (RankSpell const& entry : RANK_SPELLS)
@@ -696,8 +697,12 @@ namespace
                 SpellInfo const* info = sSpellMgr->GetSpellInfo(entry.id);
                 if (!info || !info->IsPassive())
                     continue;
-                if (player->HasSpell(entry.id) && !player->HasAura(entry.id))
-                    player->CastSpell(player, entry.id, true);
+                if (!player->HasSpell(entry.id) || player->HasAura(entry.id))
+                    continue;
+
+                player->CastSpell(player, entry.id, true);
+                if (!player->HasAura(entry.id))
+                    player->AddAura(entry.id, player);
             }
         }
 
