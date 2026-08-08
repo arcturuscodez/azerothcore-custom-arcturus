@@ -40,9 +40,8 @@
 
 namespace
 {
-    // Pets with m_movedByPlayer skip Creature::UpdateMovementFlags, so
-    // creature_template_movement Ground=Hover never runs. BoneGuard's floor-glow
-    // sits below the model origin and clips into terrain without a forced hover.
+    // Draxis (NPC_MARROWTHRALL): force display/scale/name. Client needs CreatureDisplayInfo.dbc
+    // for display 900110 (silent BoneGuard clone). Floor-glow is model FX — fix in M2, not hover.
     void ApplyMarrowthrallPresentation(Pet* pet)
     {
         if (!pet || pet->GetEntry() != NPC_MARROWTHRALL)
@@ -50,26 +49,15 @@ namespace
 
         float scale = 0.5f;
         if (CreatureTemplate const* cinfo = pet->GetCreatureTemplate())
-        {
             if (CreatureModel const* model = ObjectMgr::ChooseDisplayId(cinfo))
-                scale = model->DisplayScale > 0.0f ? model->DisplayScale : scale;
+                if (model->DisplayScale > 0.0f)
+                    scale = model->DisplayScale;
 
-            float hover = cinfo->HoverHeight;
-            if (hover < 0.1f)
-                hover = 2.0f;
-            pet->SetFloatValue(UNIT_FIELD_HOVERHEIGHT, hover);
-        }
-        else
-            pet->SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 2.0f);
+        if (pet->GetName() != "Draxis")
+            pet->SetName("Draxis");
 
-        // Prefer silent BoneGuard clone (SoundID 0). Requires CreatureDisplayInfo.dbc in client MPQ.
         if (pet->GetDisplayId() != DISPLAY_MARROWTHRALL)
             pet->SetDisplayId(DISPLAY_MARROWTHRALL, scale);
-
-        if (!pet->IsHovering())
-            pet->SetHover(true);
-        else
-            pet->AddUnitMovementFlag(MOVEMENTFLAG_HOVER);
     }
 }
 
