@@ -34,9 +34,11 @@ Merge the `OllamaChat.*` keys into live `env/dist/etc/` (or rely on `AC_OLLAMA_C
 
 ## Follow-ups (code in upstream submodule)
 
-Upstream `modules/mod-ollama-chat` still defaults EventChatter=1 / MaxConcurrent=0 in
-`mod_ollama_chat.conf.dist`. Arcturus overrides via conf/env. Desired upstream/fork patches:
+Upstream `modules/mod-ollama-chat` is patched locally in this working tree for Arcturus stability:
 
 1. Early-out random chatter when no real players are online (before scanning all bots).
-2. Safer module defaults matching the table above.
-3. Persist custom personalities via `pending_db_*` (not one-off INSERT).
+2. Safer defaults: `MaxConcurrentQueries=2`, `EnableEventChatter=0`, `NumPredict=40`.
+
+These live in the submodule checkout (not pushed to DustinHendrickson/mod-ollama-chat). Rebuild
+worldserver from this tree so the patches apply. Prefer keeping conf/env overrides as a second line
+of defense. Long-term: fork the module under arcturuscodez and point `.gitmodules` at it.
