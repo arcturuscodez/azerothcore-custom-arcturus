@@ -4,7 +4,8 @@
 -- tooltips/icons via patch-enUS-z.MPQ.
 --
 -- DurationIndex 21 = permanent (safer than VE's 30-minute index on a passive).
---
+-- 90003: self MP5 + DUMMY for spell_pet_auras (pet half is 90009 in a later rev).
+-- Do NOT put TARGET_UNIT_PET on the learned passive — CastSpell fails with NO_PET.
 DELETE FROM `spell_dbc` WHERE `ID` IN (90001, 90002, 90003);
 INSERT INTO `spell_dbc`
     (`ID`, `Attributes`, `AttributesEx3`, `CastingTimeIndex`, `ProcTypeMask`, `ProcChance`,
@@ -44,9 +45,9 @@ VALUES
      0, 0, 21, 1, -1,
      6, 6,
      1, 1,
-     99, 99,
-     1, 5,
-     85, 85,
+     99, 0,
+     1, 1,
+     85, 4,
      2299, 'Feltouched Communion',
      'You and your demon regenerate $s1 mana every 5 seconds.',
      5, 1, 1, 32,

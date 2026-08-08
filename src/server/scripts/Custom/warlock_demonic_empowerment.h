@@ -7,7 +7,9 @@
  *
  * Login strips borrowed class spells left on characters from older builds.
  * Lifetime ranks teach custom spells 90001–90005 / 90007 (see RANK_SPELLS;
- * 90006 hop + 90008 absorb are script-triggered only).
+ * 90006 hop, 90008 absorb, 90009 Feltouched pet aura are script/DB-triggered only).
+ * Passives use stock learnSpell application; Feltouched pet half uses spell_pet_auras.
+ * Embrace Undeath is a permanent TRANSFORM aura toggled on recast.
  *
  * See warlock_demonic_empowerment.cpp.
  */
@@ -66,6 +68,8 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_SCARLET_SCOURGE_JUMP = 90006; // hidden hop helper
     constexpr uint32 SPELL_UMBRAL_REMNANT       = 90007; // Dread Warlock (2500) passive
     constexpr uint32 SPELL_UMBRAL_REMNANT_ABSORB = 90008; // triggered absorb (not taught)
+    // Feltouched pet mana/5 — applied by spell_pet_auras from 90003 dummy (not taught).
+    constexpr uint32 SPELL_FELTOUCHED_COMMUNION_PET = 90009;
 
     // Rank ladder (lifetime souls).
     struct RankTier
