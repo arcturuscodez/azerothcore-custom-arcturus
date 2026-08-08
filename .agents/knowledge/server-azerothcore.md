@@ -53,10 +53,18 @@ Important Arcturus keys:
 DBC.EnforceItemAttributes = 0
 EndlessInstances.Enable = 1
 WarlockDemonicEmpowerment.Enable = 1
-WarlockDemonicEmpowerment.Enable = 1
+WarlockDemonicEmpowerment.PerKill.*   # floats + MaxSoulsApplied
 AccountInstancesPerHour = 100
+OllamaChat.*                          # prefer ac-ollama URL; MaxConcurrentQueries=2; EventChatter=0
 ```
 
+### Ollama (mod-ollama-chat)
+
+- Compose template ships `ac-ollama` and points worldserver at `http://ac-ollama:11434/api/generate`.
+- First run: `docker compose exec ac-ollama ollama pull llama3.2:1b`
+- CPU `llama3.2:1b` replies are often 20–40s; keep `NumPredict=40` and `MaxConcurrentQueries=2`.
+- Event chatter (kill/learn spam) is **off** by default — enable only after load is stable.
+- Do not use `MaxConcurrentQueries=0` (unlimited) with hundreds of bots.
 `AccountInstancesPerHour` is not optional if `EndlessInstances.Enable = 1`: the core default of
 5 stops instance farming with "You have entered too many instances recently."
 

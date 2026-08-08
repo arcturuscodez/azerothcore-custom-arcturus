@@ -113,18 +113,24 @@ Transmogrification.EnablePlus = 0
 # AuctionHouseBot.Alliance.MaxItems = 1200
 
 ####################################################################################################
-# mod_ollama_chat.conf  — LLM bot talk (requires Ollama running)
+# mod_ollama_chat.conf  — LLM bot talk (requires Ollama; prefer compose service ac-ollama)
 ####################################################################################################
 
 OllamaChat.Enable = 1
-# From Docker worldserver, host Ollama is not "localhost" — use host.docker.internal.
-# For a bare-metal worldserver on the same machine, use http://localhost:11434/api/generate
-OllamaChat.Url = http://host.docker.internal:11434/api/generate
+# In Docker: http://ac-ollama:11434/api/generate (see conf/dist/docker-compose.override.yml).
+# Bare-metal worldserver + host Ollama: http://localhost:11434/api/generate
+OllamaChat.Url = http://ac-ollama:11434/api/generate
 OllamaChat.Model = llama3.2:1b
+OllamaChat.NumPredict = 40
+OllamaChat.MaxConcurrentQueries = 2
+OllamaChat.DebugEnabled = 0
 OllamaChat.EnableRandomChatter = 1
-OllamaChat.EnableEventChatter = 1
-OllamaChat.EnableGuildRandomAmbientChatter = 1
+OllamaChat.EnableEventChatter = 0
+OllamaChat.EnableGuildRandomAmbientChatter = 0
 OllamaChat.EnableWhisperReplies = 1
+OllamaChat.MinRandomInterval = 90
+OllamaChat.MaxRandomInterval = 180
+OllamaChat.RandomChatterRealPlayerDistance = 40
 
 # Keep canned playerbot chatter off so LLM owns the talk (playerbots.conf.dist already
 # sets these to 0). Uncomment only if you want both systems at once:
