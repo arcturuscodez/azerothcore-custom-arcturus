@@ -1229,9 +1229,19 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                                 SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(pInfo->min_dmg));
                                 SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(pInfo->max_dmg));
                             }
-                            // Permanent pets skip creature_template_addon; apply tank passives here.
-                            AddAura(SPELL_MARROWTHRALL_OSSIFIED_HIDE, this);
-                            AddAura(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, this);
+                            // Permanent pets skip creature_template_addon. learnSpell so passives
+                            // appear in the pet spellbook (AddAura alone does not); passives are
+                            // not action-bar slots (MAX_CREATURE_SPELL_DATA_SLOT = 4).
+                            if (Pet* marrowPet = ToPet())
+                            {
+                                marrowPet->learnSpell(SPELL_MARROWTHRALL_OSSIFIED_HIDE);
+                                marrowPet->learnSpell(SPELL_MARROWTHRALL_DEATHLESS_COMPACT);
+                            }
+                            else
+                            {
+                                AddAura(SPELL_MARROWTHRALL_OSSIFIED_HIDE, this);
+                                AddAura(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, this);
+                            }
                             AddAura(SPELL_PET_AVOIDANCE, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_01, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_02, this);
@@ -1309,8 +1319,16 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                                 SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(pInfo->min_dmg));
                                 SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(pInfo->max_dmg));
                             }
-                            AddAura(SPELL_MARROWTHRALL_OSSIFIED_HIDE, this);
-                            AddAura(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, this);
+                            if (Pet* marrowPet = ToPet())
+                            {
+                                marrowPet->learnSpell(SPELL_MARROWTHRALL_OSSIFIED_HIDE);
+                                marrowPet->learnSpell(SPELL_MARROWTHRALL_DEATHLESS_COMPACT);
+                            }
+                            else
+                            {
+                                AddAura(SPELL_MARROWTHRALL_OSSIFIED_HIDE, this);
+                                AddAura(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, this);
+                            }
                             AddAura(SPELL_PET_AVOIDANCE, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_01, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_02, this);
