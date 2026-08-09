@@ -57,15 +57,42 @@ WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
 ####################################################################################################
 # AutoBalance.conf  (modules/mod-autobalance/conf/)
 ####################################################################################################
-
+#
+# Arcturus fairness model:
+#   Warlock + permanent pet + Demonic Empowerment (souls → pet flats, lifetime → tempering)
+#   are the "party". Do NOT scale enemies down for 1 human in the instance — that made
+#   dungeons/raids trivial once souls stacked. Hold full instance stats (CurveFloor=Ceiling=1),
+#   then apply a light StatModifier premium so stock dungeon tuning still challenges DE power.
+#   Tune Global/Boss.* up or down if early (0 souls) feels too hard or late feels too soft.
+#
 AutoBalance.Enable.Global = 1
-AutoBalance.playerCountDifficultyOffset = -4
+AutoBalance.playerCountDifficultyOffset = 0
 AutoBalance.MinPlayers = 1
 AutoBalance.MinPlayers.Raid = 1
 AutoBalance.RewardScaling.XP = 1
 AutoBalance.reward.enable = 0
 AutoBalance.PlayerChangeNotify = 0
 AutoBalanceAnnounce.enable = 0
+
+# Always use full instance baseline (no solo downscale).
+AutoBalance.InflectionPoint.CurveFloor = 1.0
+AutoBalance.InflectionPoint.CurveCeiling = 1.0
+AutoBalance.InflectionPointHeroic.CurveFloor = 1.0
+AutoBalance.InflectionPointHeroic.CurveCeiling = 1.0
+AutoBalance.InflectionPointRaid.CurveFloor = 1.0
+AutoBalance.InflectionPointRaid.CurveCeiling = 1.0
+AutoBalance.InflectionPointRaidHeroic.CurveFloor = 1.0
+AutoBalance.InflectionPointRaidHeroic.CurveCeiling = 1.0
+
+# Premium on top of full-strength tuning (trash slightly less than bosses).
+AutoBalance.StatModifier.Global = 1.5
+AutoBalance.StatModifier.Boss.Global = 1.75
+AutoBalance.StatModifierHeroic.Global = 1.5
+AutoBalance.StatModifierHeroic.Boss.Global = 1.75
+AutoBalance.StatModifierRaid.Global = 1.5
+AutoBalance.StatModifierRaid.Boss.Global = 1.75
+AutoBalance.StatModifierRaidHeroic.Global = 1.5
+AutoBalance.StatModifierRaidHeroic.Boss.Global = 1.75
 
 ####################################################################################################
 # individualProgression.conf  (modules/mod-individual-progression/conf/)
