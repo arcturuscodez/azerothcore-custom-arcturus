@@ -40,8 +40,8 @@
 
 namespace
 {
-    // Draxis (NPC_MARROWTHRALL): force display/scale/name. Client needs CreatureDisplayInfo.dbc
-    // for display 900110 (silent BoneGuard clone). Floor-glow is model FX — fix in M2, not hover.
+    // Draxis (NPC_MARROWTHRALL): force display/scale/name. Display 17444 = Rage Winterchill lich.
+    // Tank-era BoneGuard clone (900110) documented in draxis-marrowthrall-tank-backup.md.
     void ApplyMarrowthrallPresentation(Pet* pet)
     {
         if (!pet || pet->GetEntry() != NPC_MARROWTHRALL)
@@ -58,6 +58,31 @@ namespace
 
         if (pet->GetDisplayId() != DISPLAY_MARROWTHRALL)
             pet->SetDisplayId(DISPLAY_MARROWTHRALL, scale);
+    }
+
+    void ApplyDraxisLichPassives(Pet* pet)
+    {
+        if (!pet)
+            return;
+
+        // Drop legacy Marrowgar-tank passives if still on a saved pet spellbook.
+        pet->removeSpell(SPELL_MARROWTHRALL_OSSIFIED_HIDE, false, false);
+        pet->removeSpell(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, false, false);
+        pet->learnSpell(SPELL_DRAXIS_FROST_ARMOR);
+        pet->learnSpell(SPELL_DRAXIS_SOULFROST_MASTERY);
+        pet->learnSpell(SPELL_DRAXIS_PHYLACTERY_WARD);
+        pet->learnSpell(SPELL_DRAXIS_GRAVE_INTELLECT);
+        ApplyMarrowthrallPresentation(pet);
+    }
+
+    void ApplyDraxisLichPassivesAuraOnly(Unit* unit)
+    {
+        unit->RemoveAurasDueToSpell(SPELL_MARROWTHRALL_OSSIFIED_HIDE);
+        unit->RemoveAurasDueToSpell(SPELL_MARROWTHRALL_DEATHLESS_COMPACT);
+        unit->AddAura(SPELL_DRAXIS_FROST_ARMOR, unit);
+        unit->AddAura(SPELL_DRAXIS_SOULFROST_MASTERY, unit);
+        unit->AddAura(SPELL_DRAXIS_PHYLACTERY_WARD, unit);
+        unit->AddAura(SPELL_DRAXIS_GRAVE_INTELLECT, unit);
     }
 }
 
@@ -1258,16 +1283,9 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             // appear in the pet spellbook (AddAura alone does not); passives are
                             // not action-bar slots (MAX_CREATURE_SPELL_DATA_SLOT = 4).
                             if (Pet* marrowPet = ToPet())
-                            {
-                                marrowPet->learnSpell(SPELL_MARROWTHRALL_OSSIFIED_HIDE);
-                                marrowPet->learnSpell(SPELL_MARROWTHRALL_DEATHLESS_COMPACT);
-                                ApplyMarrowthrallPresentation(marrowPet);
-                            }
+                                ApplyDraxisLichPassives(marrowPet);
                             else
-                            {
-                                AddAura(SPELL_MARROWTHRALL_OSSIFIED_HIDE, this);
-                                AddAura(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, this);
-                            }
+                                ApplyDraxisLichPassivesAuraOnly(this);
                             AddAura(SPELL_PET_AVOIDANCE, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_01, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_02, this);
@@ -1346,16 +1364,9 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                                 SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(pInfo->max_dmg));
                             }
                             if (Pet* marrowPet = ToPet())
-                            {
-                                marrowPet->learnSpell(SPELL_MARROWTHRALL_OSSIFIED_HIDE);
-                                marrowPet->learnSpell(SPELL_MARROWTHRALL_DEATHLESS_COMPACT);
-                                ApplyMarrowthrallPresentation(marrowPet);
-                            }
+                                ApplyDraxisLichPassives(marrowPet);
                             else
-                            {
-                                AddAura(SPELL_MARROWTHRALL_OSSIFIED_HIDE, this);
-                                AddAura(SPELL_MARROWTHRALL_DEATHLESS_COMPACT, this);
-                            }
+                                ApplyDraxisLichPassivesAuraOnly(this);
                             AddAura(SPELL_PET_AVOIDANCE, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_01, this);
                             AddAura(SPELL_WARLOCK_PET_SCALING_02, this);

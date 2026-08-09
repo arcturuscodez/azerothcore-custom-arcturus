@@ -1255,8 +1255,10 @@ void Guardian::UpdateMaxHealth()
             multiplicator = 7.5f;
             break;
         case NPC_VOIDWALKER:
-        case NPC_MARROWTHRALL: // Arcturus tank pet — Voidwalker stamina→HP ratio
             multiplicator = 11.0f;
+            break;
+        case NPC_MARROWTHRALL: // Arcturus Draxis — Imp stamina→HP ratio (Lich caster)
+            multiplicator = 8.4f;
             break;
         case NPC_SUCCUBUS:
             multiplicator = 9.1f;
@@ -1298,11 +1300,13 @@ void Guardian::UpdateMaxPower(Powers power)
             multiplicator = 4.95f;
             break;
         case NPC_VOIDWALKER:
-        case NPC_MARROWTHRALL: // Arcturus tank pet — Voidwalker intellect→mana ratio
         case NPC_SUCCUBUS:
         case NPC_FELHUNTER:
         case NPC_FELGUARD:
             multiplicator = 11.5f;
+            break;
+        case NPC_MARROWTHRALL: // Arcturus Draxis — Imp intellect→mana ratio (Lich caster)
+            multiplicator = 4.95f;
             break;
         default:
             multiplicator = 15.0f;

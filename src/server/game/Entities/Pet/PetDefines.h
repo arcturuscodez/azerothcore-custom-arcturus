@@ -100,9 +100,10 @@ enum NPCEntries
     NPC_DOOMGUARD               = 11859,
     NPC_FELGUARD                = 17252,
     NPC_EYE_OF_KILROGG          = 4277,
-    NPC_MARROWTHRALL            = 900110, // Arcturus necromantic bone tank pet
-    // Client CreatureDisplayInfo clone of 31119 with SoundID 0 (see SpellEditor.db / MPQ)
-    DISPLAY_MARROWTHRALL        = 900110,
+    NPC_MARROWTHRALL            = 900110, // Arcturus Draxis — Lich caster pet (was Marrowgar tank)
+    // Rage Winterchill display (17444). Tank-era BoneGuard clone 900110 kept for restore — see
+    // .agents/knowledge/draxis-marrowthrall-tank-backup.md
+    DISPLAY_MARROWTHRALL        = 17444,
 
     // Mage
     NPC_WATER_ELEMENTAL_TEMP    = 510,
@@ -153,9 +154,14 @@ enum PetScalingSpells
     SPELL_WARLOCK_PET_SCALING_03        = 34957,
     SPELL_WARLOCK_PET_SCALING_04        = 34958,
     SPELL_WARLOCK_PET_SCALING_05        = 61013, // Hit / Expertise
-    // Marrowthrall tank passives (spell_dbc; permanent pets skip creature_template_addon)
+    // Legacy Marrowgar-tank passives (kept in spell_dbc; unlearned on Lich init)
     SPELL_MARROWTHRALL_OSSIFIED_HIDE    = 90015,
     SPELL_MARROWTHRALL_DEATHLESS_COMPACT = 90016,
+    // Draxis Lich caster passives (spell_dbc; permanent pets skip creature_template_addon)
+    SPELL_DRAXIS_FROST_ARMOR            = 90023,
+    SPELL_DRAXIS_SOULFROST_MASTERY      = 90024,
+    SPELL_DRAXIS_PHYLACTERY_WARD        = 90025,
+    SPELL_DRAXIS_GRAVE_INTELLECT        = 90026,
     SPELL_GLYPH_OF_FELGUARD             = 56246,
     SPELL_GLYPH_OF_VOIDWALKER           = 56247,
     SPELL_INFERNAL_SCALING_01           = 36186,
