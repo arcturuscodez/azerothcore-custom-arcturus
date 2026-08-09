@@ -30,7 +30,7 @@ No custom legendary items. Morph toggle is spell **90004 Embrace Undeath**.
 - Rank spells: **90001–90005**, **90007 Umbral Remnant** (2500), **90010 Summon Marrowthrall** (500); helpers **90006** / **90008** / **90009** / **90011–90016** are script- or pet-only
 - Login strips borrowed class spells from older builds (`LEGACY_GIFT_SPELLS`); no auto-learn
 - **Client Spell.dbc** for these IDs: live **`C:\Games\WoW Spell Editor\SpellEditor.db`** only (not this repo)
-- New permanent warlock pets: follow skill **`skills/arcturus-custom-warlock-pet`** (Marrowthrall = NPC `900110`)
+- New permanent warlock pets: follow skill **`skills/arcturus-custom-warlock-pet`** (Marrowthrall/Draxis = NPC `900110`)
 
 ## C++ modules (Custom)
 
