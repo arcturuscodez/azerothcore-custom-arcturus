@@ -65,7 +65,7 @@ namespace WarlockEmpowerment
         BonusValues _bonusCache{};
         uint32 _bonusCacheMs = 0;
         TemperValues _temperCache{};
-        int32 _temperInterval = 100;
+        int32 _temperInterval = 25;
         int32 _temperMaxTiers = 0;
         uint32 _temperCacheMs = 0;
         uint32 _maxSoulsApplied = 10000u;
@@ -127,7 +127,7 @@ namespace WarlockEmpowerment
                 sConfigMgr->GetOption<int32>(CONFIG_TEMPER_SPELLPOWER, 3),
                 sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MANA_PER5,  1)
             };
-            _temperInterval = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTERVAL, 100);
+            _temperInterval = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTERVAL, 25);
             _temperMaxTiers = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MAX_TIERS, 0);
             _temperCacheMs = now ? now : 1u;
         }
@@ -1151,7 +1151,9 @@ class spell_warlock_necrotic_embrace : public AuraScript
 };
 
 // -----------------------------------------------------------------------------
-// Scarlet Scourge (90005 / 90006) — player-scaled jumping DoT (Necrotic Plague-like).
+// Scarlet Scourge (90005 / 90006) — Shadowflame plague (Necrotic Plague-like).
+// 1s ticks: (400 + 8 * level) + EffectBonusMultiplier SP (Shadowflame school).
+// Hop spreads to every warlock-hostile unit within the jump radius (~10 yd).
 // -----------------------------------------------------------------------------
 
 namespace
@@ -1165,7 +1167,7 @@ namespace
 
         CustomSpellValues values;
         values.AddSpellMod(SPELLVALUE_AURA_STACK, std::max<uint8>(1, stacks));
-        // Centered on the infected; FilterTargets keeps only warlock hostiles.
+        // Centered on the infected; FilterTargets keeps only warlock hostiles (all in range).
         infected->CastCustomSpell(SPELL_SCARLET_SCOURGE_JUMP, values, nullptr, TRIGGERED_FULL_MASK, nullptr, nullptr, casterGuid);
     }
 
@@ -1219,6 +1221,16 @@ class spell_warlock_scarlet_scourge_aura : public AuraScript
         return ValidateSpellInfo({ SPELL_SCARLET_SCOURGE_JUMP });
     }
 
+    void CalculateAmount(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+
+        // ~400 Shadowflame DPS at low level, rising with level; DBC coeff adds SP.
+        amount = 400 + int32(caster->GetLevel()) * 8;
+    }
+
     void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         HopOnScarletRemove(GetTarget(), GetCasterGUID(), GetStackAmount(), GetTargetApplication()->GetRemoveMode());
@@ -1226,6 +1238,7 @@ class spell_warlock_scarlet_scourge_aura : public AuraScript
 
     void Register() override
     {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warlock_scarlet_scourge_aura::CalculateAmount, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
         AfterEffectRemove += AuraEffectRemoveFn(spell_warlock_scarlet_scourge_aura::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
     }
 };
@@ -1247,13 +1260,7 @@ class spell_warlock_scarlet_scourge_jump : public SpellScript
                 return true;
             return false;
         });
-
-        if (targets.empty())
-            return;
-
-        targets.sort(Acore::ObjectDistanceOrderPred(infected));
-        if (targets.size() > 1)
-            targets.resize(1);
+        // Keep every hostile in the jump radius (EffectRadiusIndex 13 = 10 yd).
     }
 
     void HandleHit()
@@ -1262,6 +1269,7 @@ class spell_warlock_scarlet_scourge_jump : public SpellScript
         if (!target)
             return;
 
+        // Replace the player-cast aura so hops continue on 90006 without double-DoTs.
         if (Aura* initial = target->GetAura(SPELL_SCARLET_SCOURGE))
             initial->Remove(AURA_REMOVE_BY_DEFAULT);
     }

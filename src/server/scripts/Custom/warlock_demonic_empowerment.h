@@ -47,7 +47,7 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_MAX_SOULS_APPLIED = "WarlockDemonicEmpowerment.PerKill.MaxSoulsApplied";
     constexpr char const* CONFIG_ANNOUNCE_KILLS    = "WarlockDemonicEmpowerment.AnnounceEveryNKills";
 
-    // Soul Tempering: permanent player stats per N lifetime souls (default every 100).
+    // Soul Tempering: permanent player stats per N lifetime souls (default every 25).
     constexpr char const* CONFIG_TEMPER_INTERVAL   = "WarlockDemonicEmpowerment.Tempering.SoulsPerTier";
     constexpr char const* CONFIG_TEMPER_STAMINA    = "WarlockDemonicEmpowerment.Tempering.Stamina";
     constexpr char const* CONFIG_TEMPER_INTELLECT  = "WarlockDemonicEmpowerment.Tempering.Intellect";
