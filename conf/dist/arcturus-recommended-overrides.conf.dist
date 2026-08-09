@@ -50,7 +50,7 @@ WarlockDemonicEmpowerment.Tempering.Stamina = 2
 WarlockDemonicEmpowerment.Tempering.Intellect = 2
 WarlockDemonicEmpowerment.Tempering.SpellPower = 3
 WarlockDemonicEmpowerment.Tempering.ManaPer5 = 1
-WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100
+WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 25
 WarlockDemonicEmpowerment.Tempering.MaxTiers = 0
 WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
 
