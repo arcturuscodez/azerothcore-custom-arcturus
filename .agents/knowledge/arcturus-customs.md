@@ -17,7 +17,7 @@ Pending SQL never inserts retired `900xxx` item legendaries. A clean install app
 | `rev_1786670…` | **Marrowthrall/Draxis** pet (900110) + tank kit spells 90010–90016 |
 | `rev_1786672…` | Draxis polish (scale 0.50, Felguard charge, Bone Storm AoE/VFX, taunt) |
 | `rev_1786673…` | Embrace Undeath morph aura 90018 |
-| `rev_1786674…` | **Draxis Lich redesign** — display 17444, caster kit 90019–90026, skeleton 900111 (tank kit 90011–90017 kept) |
+| `rev_1786674…` | Revert abandoned Lich redesign — restore tank Draxis kit/model/stats |
 | `rev_1785196800…` (chars) | `character_warlock_demon_kills` (full schema) |
 
 ## Item entries (current)
@@ -29,8 +29,8 @@ No custom legendary items. Morph toggle is spell **90004 Embrace Undeath**.
 - Qualifying kills: **+1 soul** (lifetime + current; never lost)
 - **Current** souls → flat pet stats (`PerKill.*`)
 - **Lifetime** → Soul Tempering every N (`Tempering.*`), rank ladder, bonus talents (+145 at Dark Titan)
-- Rank spells: **90001–90005**, **90007 Umbral Remnant** (2500), **90010 Summon Lich** (500, pet Draxis); helpers **90006** / **90008** / **90009** / **90011–90017** (legacy tank kit) / **90018** morph / **90019–90026** (Lich kit) are script- or pet-only
-- Tank-kit backup for later Marrowgar restore: `knowledge/draxis-marrowthrall-tank-backup.md`
+- Rank spells: **90001–90005**, **90007 Umbral Remnant** (2500), **90010 Summon Draxis** (500); helpers **90006** / **90008** / **90009** / **90011–90017** are script- or pet-only
+- Tank-kit snapshot / ground-glow notes: `knowledge/draxis-marrowthrall-tank-backup.md`
 - Login strips borrowed class spells from older builds (`LEGACY_GIFT_SPELLS`); no auto-learn
 - **Client Spell.dbc** for these IDs: live **`C:\Games\WoW Spell Editor\SpellEditor.db`** only (not this repo)
 - New permanent warlock pets: follow skill **`skills/arcturus-custom-warlock-pet`** (Marrowthrall/Draxis = NPC `900110`)

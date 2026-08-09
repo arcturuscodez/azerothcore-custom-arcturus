@@ -1,45 +1,38 @@
-# Draxis / Marrowthrall — tank-kit backup (pre-Lich redesign)
+# Draxis / Marrowthrall — tank kit snapshot
 
-**Do not delete** spell IDs `90011`–`90017`. They remain in `spell_dbc` / Spell Editor as the
-Marrowgar-style tank kit so we can restore or finish polishing that pet later.
-
-Live pet entry stays `900110`; summon spell stays `90010` (now **Summon Lich**; pet name remains Draxis). The Lich redesign
-only remaps the pet’s action bar + passives + model/stats onto **new** IDs `90019`+.
-
-## Snapshot (as of Lich redesign)
+Current live design (Lich redesign abandoned / reverted in `rev_1786674`).
 
 | Kind | Value |
 |------|--------|
 | Creature | `900110` (C++ `NPC_MARROWTHRALL`) |
-| Summon | `90010` |
-| Display (tank era) | client `900110` (silent BoneGuard clone of Marrowgar `31119`), scale `0.50` |
+| Summon | `90010` — **Summon Draxis** |
+| Display | client `900110` (silent BoneGuard clone of Marrowgar `31119`), scale `0.50` |
 | Role | Tank (Voidwalker `pet_levelstats`, VW MD auras, VW Demonic Empowerment HP) |
 | Family / type | `19` DOOMGUARD / `3` DEMON |
 
-### Action bar (`creature_template_spell`)
+### Action bar
 
 | Slot | Spell | Name |
 |------|-------|------|
 | 0 | `90011` | Bone Slice |
 | 1 | `90012` | Bone Storm (ticks via `90017`) |
-| 2 | `90013` | Marrow Lunge (Felguard Intercept-shaped) |
-| 3 | `90014` | Rattle the Bones (Suffering-shaped taunt) |
+| 2 | `90013` | Marrow Lunge |
+| 3 | `90014` | Rattle the Bones |
 
-### Passives (`Pet.cpp` learnSpell)
+### Passives
 
 | Spell | Name |
 |-------|------|
-| `90015` | Ossified Hide (+armor) |
-| `90016` | Deathless Compact (−damage taken %) |
+| `90015` | Ossified Hide |
+| `90016` | Deathless Compact |
 
-### Pending SQL that defined / polished this kit
+### Pending SQL
 
-- `rev_1786670000000000000.sql` — create Marrowthrall + original kit
-- `rev_1786672000000000000.sql` — Draxis rename, scale, Bone Storm VFX/ticks, charge/taunt fixes
+- `rev_1786670000000000000.sql` — create
+- `rev_1786672000000000000.sql` — Draxis polish
+- `rev_1786674000000000000.sql` — revert any Lich WIP back to this kit
 
-### Restore later
+### Ground glow (open problem)
 
-1. Point `creature_template_spell` back to `90011`–`90014`.
-2. Re-learn `90015`/`90016` in `Pet.cpp`; drop Lich passives.
-3. Restore model `900110` @ `0.50`, VW `pet_levelstats` / MD / StatSystem / DE Voidwalker branch.
-4. Do **not** DELETE `90019`+ unless retiring the Lich kit entirely.
+Display `900110` inherits Marrowgar/BoneGuard floor glow as **model FX**. Hover hacks did not help.
+Ideas for hiding it (spells/auras/client) — see chat notes after revert; prefer M2 edit or a quieter display clone when ready.
