@@ -21,7 +21,9 @@ Rate.XP.Kill = 3
 
 # Allow learning every primary profession from trainers (still learn/rank normally).
 # Range 0-11; secondaries (First Aid/Cooking/Fishing) are already unlimited.
-# Must be present in the live worldserver.conf (or AC_MAX_PRIMARY_TRADE_SKILL) — .dist alone is not auto-applied.
+# MUST be present in the live worldserver.conf (or AC_MAX_PRIMARY_TRADE_SKILL).
+# .dist alone is NOT auto-applied. If this stays at the stock value 2, the client
+# shows "you can only learn two professions" and greys out new primaries.
 # Playerbots are forced back to 2 free primary slots on login by arcturus_trade_skills.
 MaxPrimaryTradeSkill = 11
 

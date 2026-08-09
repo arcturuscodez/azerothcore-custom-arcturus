@@ -1,12 +1,19 @@
 /*
- * Arcturus: open all weapon trainers to warlocks + top up free primary profession slots.
+ * Arcturus: open all weapon trainers to warlocks + keep free primary profession slots in sync.
  *
  * Weapons: runtime-OR CLASSMASK_WARLOCK into SkillRaceClassInfo for weapon skill lines,
  * and into SkillLineAbility only for spells that teach those skills (SpellLearnSkill).
  * Combat abilities on the same skill line are left alone. Armor skills untouched.
  *
- * Professions: MaxPrimaryTradeSkill (config) gates free slots; OnLogin resyncs real
- * players so raising the cap frees trainer slots. Playerbots are skipped.
+ * Professions: MaxPrimaryTradeSkill (config) is the free-slot cap. Characters load with
+ * InitPrimaryProfessions() = full cap, then we resync to (cap - known primaries) on login /
+ * learn / unlearn / skill changes. Rank-ups (Journeyman etc.) do NOT spend free slots;
+ * only IsPrimaryProfessionFirstRank does. Playerbots stay on the classic 2-slot behaviour
+ * (skipped here so core/bot defaults apply).
+ *
+ * Live worldserver.conf MUST set MaxPrimaryTradeSkill (recommended 11). The .dist override
+ * alone is not applied automatically — a cap of 2 makes the client show
+ * "you can only learn two professions" for every new primary.
  */
 
 #include "Config.h"
@@ -99,6 +106,23 @@ namespace
             raceClassPatched, abilityPatched);
     }
 
+    uint32 CountKnownPrimaryProfessions(Player* player)
+    {
+        uint32 known = 0;
+        for (auto const& pair : player->GetSkillStatusMap())
+        {
+            if (pair.second.uState == SKILL_DELETED)
+                continue;
+            if (!IsPrimaryProfessionSkill(pair.first))
+                continue;
+            // Ignore empty placeholders — only real trained professions spend a slot.
+            if (player->GetPureSkillValue(pair.first) == 0)
+                continue;
+            ++known;
+        }
+        return known;
+    }
+
     void SyncFreePrimaryProfessionSlots(Player* player)
     {
         WorldSession const* session = player->GetSession();
@@ -110,21 +134,76 @@ namespace
             return;
 
         uint32 const maxProfs = sWorld->getIntConfig(CONFIG_MAX_PRIMARY_TRADE_SKILL);
-        uint32 known = 0;
-        for (auto const& pair : player->GetSkillStatusMap())
-        {
-            if (pair.second.uState == SKILL_DELETED)
-                continue;
-            if (IsPrimaryProfessionSkill(pair.first))
-                ++known;
-        }
-
+        uint32 known = CountKnownPrimaryProfessions(player);
         if (known > maxProfs)
             known = maxProfs;
 
         uint32 const free = maxProfs - known;
         if (player->GetFreePrimaryProfessionPoints() != free)
+        {
+            LOG_DEBUG("entities.player",
+                "Arcturus: {} profession slots {} -> {} (known {}, cap {})",
+                player->GetName(), player->GetFreePrimaryProfessionPoints(), free, known, maxProfs);
             player->SetFreePrimaryProfessions(uint16(free));
+        }
+    }
+
+    // If the player knows Journeyman+ but skill max is still stuck at 75 (or similar),
+    // raise the cap from the highest known profession-rank spell. Does not invent ranks.
+    void RepairPrimaryProfessionSkillCaps(Player* player)
+    {
+        for (auto const& pair : player->GetSkillStatusMap())
+        {
+            if (pair.second.uState == SKILL_DELETED)
+                continue;
+            if (!IsPrimaryProfessionSkill(pair.first))
+                continue;
+
+            uint32 const skill = pair.first;
+            uint16 const value = player->GetPureSkillValue(skill);
+            if (!value)
+                continue;
+
+            uint16 bestStep = 0;
+            uint16 bestMax = 0;
+            for (auto const& spellPair : player->GetSpellMap())
+            {
+                if (spellPair.second->State == PLAYERSPELL_REMOVED)
+                    continue;
+
+                SpellLearnSkillNode const* node = sSpellMgr->GetSpellLearnSkill(spellPair.first);
+                if (!node || node->skill != skill)
+                    continue;
+
+                if (node->maxvalue >= bestMax)
+                {
+                    bestMax = node->maxvalue;
+                    bestStep = node->step;
+                }
+            }
+
+            if (!bestMax)
+                continue;
+
+            uint16 const curMax = player->GetPureMaxSkillValue(skill);
+            if (bestMax <= curMax)
+                continue;
+
+            uint16 newValue = value;
+            if (newValue > bestMax)
+                newValue = bestMax;
+
+            player->SetSkill(uint16(skill), bestStep, newValue, bestMax);
+            LOG_INFO("entities.player",
+                "Arcturus: repaired {} skill {} max {} -> {} (step {})",
+                player->GetName(), skill, curMax, bestMax, bestStep);
+        }
+    }
+
+    void SyncAndRepairProfessions(Player* player)
+    {
+        RepairPrimaryProfessionSkillCaps(player);
+        SyncFreePrimaryProfessionSlots(player);
     }
 }
 
@@ -136,6 +215,15 @@ public:
 
     void OnStartup() override
     {
+        uint32 const maxProfs = sWorld->getIntConfig(CONFIG_MAX_PRIMARY_TRADE_SKILL);
+        LOG_INFO("server.loading", "Arcturus: MaxPrimaryTradeSkill = {}", maxProfs);
+        if (maxProfs <= 2)
+            LOG_WARN("server.loading",
+                "Arcturus: MaxPrimaryTradeSkill is {} — trainers will show the classic "
+                "'only two professions' limit. Set MaxPrimaryTradeSkill = 11 in live worldserver.conf "
+                "(see conf/dist/arcturus-recommended-overrides.conf.dist).",
+                maxProfs);
+
         if (!sConfigMgr->GetOption<bool>(CONFIG_ENABLE, true))
             return;
 
@@ -147,10 +235,41 @@ class arcturus_profession_slots_player : public PlayerScript
 {
 public:
     arcturus_profession_slots_player() : PlayerScript("arcturus_profession_slots_player",
-        { PLAYERHOOK_ON_LOGIN }) { }
+        {
+            PLAYERHOOK_ON_LOGIN,
+            PLAYERHOOK_ON_LEARN_SPELL,
+            PLAYERHOOK_ON_FORGOT_SPELL,
+            PLAYERHOOK_ON_SET_SKILL
+        }) { }
 
     void OnPlayerLogin(Player* player) override
     {
+        SyncAndRepairProfessions(player);
+    }
+
+    void OnPlayerLearnSpell(Player* player, uint32 spellId) override
+    {
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
+        if (!info)
+            return;
+        if (info->IsPrimaryProfession() || info->IsPrimaryProfessionFirstRank())
+            SyncFreePrimaryProfessionSlots(player);
+    }
+
+    void OnPlayerForgotSpell(Player* player, uint32 spellId) override
+    {
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
+        if (!info)
+            return;
+        if (info->IsPrimaryProfession() || info->IsPrimaryProfessionFirstRank())
+            SyncFreePrimaryProfessionSlots(player);
+    }
+
+    void OnPlayerSetSkill(Player* player, uint32 skillId, uint32 /*value*/, uint32 /*max*/, uint32 /*step*/,
+        uint32 /*newValue*/) override
+    {
+        if (!IsPrimaryProfessionSkill(skillId))
+            return;
         SyncFreePrimaryProfessionSlots(player);
     }
 };
