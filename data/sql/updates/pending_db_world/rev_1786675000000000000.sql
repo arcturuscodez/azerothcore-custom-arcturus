@@ -1,8 +1,7 @@
 --
--- Scarlet Scourge: match aura on cast (90005) and jump (90006).
--- Client SpellVisual 90050 = Agony cast kits + Scarlet StateKit (see Spell Editor).
--- Server spell_dbc SpellVisualID_1 mirrors that id for consistency.
--- Keep Agony-like interrupt/GCD on the player-cast spell only.
+-- Scarlet Scourge visuals: client SpellVisual 90050 =
+--   Agony Precast/Cast kits (gesture only) + Scarlet StateKit 9927 (red fire aura).
+--   No Agony ImpactKit (that was the purple curse look).
 --
 UPDATE `spell_dbc` SET
  `Attributes` = 65536,
