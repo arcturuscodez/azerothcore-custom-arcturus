@@ -72,6 +72,9 @@ namespace WarlockEmpowerment
     // Feltouched pet mana/5 — applied by spell_pet_auras from 90003 dummy (not taught).
     constexpr uint32 SPELL_FELTOUCHED_COMMUNION_PET = 90009;
     constexpr uint32 SPELL_SUMMON_MARROWTHRALL     = 90010; // Feltouched (500) — Summon Draxis
+    // Felguard Bone Storm (not a rank reward; taught on Felguard via Pet.cpp / creature_template_spell)
+    constexpr uint32 SPELL_FELGUARD_BONE_STORM      = 90019;
+    constexpr uint32 SPELL_FELGUARD_BONE_STORM_TICK  = 90020;
 
     // Rank ladder (lifetime souls).
     struct RankTier
