@@ -1276,6 +1276,14 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             AddAura(SPELL_WARLOCK_PET_SCALING_05, this);
                             break;
                         }
+                    case NPC_FELGUARD:
+                        {
+                            // Bone Storm (90019) — also on creature_template_spell; learnSpell keeps
+                            // it in the spellbook if the action bar was saved without it.
+                            if (Pet* felguard = ToPet())
+                                felguard->learnSpell(SPELL_FELGUARD_BONE_STORM);
+                            break;
+                        }
                 }
                 break;
             }

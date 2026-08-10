@@ -1088,6 +1088,34 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->DurationEntry        = nullptr;
     });
 
+    // Custom: Felguard Rank 1 abilities at level 1 (stock gates: Anguish/Cleave 50, Intercept 52).
+    // Pet levelup spells use SpellLevel; early Felguard from talent points otherwise has an empty bar.
+    ApplySpellFix({
+        30213, // Cleave (Rank 1)
+        33698, // Anguish (Rank 1)
+        30151  // Intercept (Rank 1)
+        }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->BaseLevel = 1;
+        spellInfo->SpellLevel = 1;
+    });
+
+    // Custom: Felguard Anguish — AoE taunt (Suffering-shaped) + shorter CD (5s -> 3s).
+    ApplySpellFix({
+        33698, // Anguish (Rank 1)
+        33699, // Anguish (Rank 2)
+        33700, // Anguish (Rank 3)
+        47993  // Anguish (Rank 4)
+        }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->AttributesEx = SPELL_ATTR1_NO_REDIRECTION | SPELL_ATTR1_NO_REFLECTION; // 136 — PetAI-friendly like Suffering
+        spellInfo->CategoryRecoveryTime = 3000;
+        spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(1); // self / 0 yd
+        spellInfo->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_SRC_CASTER);
+        spellInfo->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_SRC_AREA_ENEMY);
+        spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_10_YARDS);
+    });
+
     // Combustion, make this passive
     ApplySpellFix({ 11129 }, [](SpellInfo* spellInfo)
     {

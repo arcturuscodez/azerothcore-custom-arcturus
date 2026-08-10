@@ -1281,6 +1281,31 @@ class spell_warlock_scarlet_scourge_jump : public SpellScript
     }
 };
 
+// -----------------------------------------------------------------------------
+// Felguard Bone Storm tick (90020) — scales with pet melee AP + level.
+// ~4*level + 18% AP per 1s tick (6s aura from 90019).
+// -----------------------------------------------------------------------------
+class spell_felguard_bone_storm_tick : public SpellScript
+{
+    PrepareSpellScript(spell_felguard_bone_storm_tick);
+
+    void RecalculateDamage(SpellEffIndex /*effIndex*/)
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+
+        float const ap = caster->GetTotalAttackPowerValue(BASE_ATTACK);
+        int32 const damage = int32(caster->GetLevel() * 4) + int32(ap * 0.18f);
+        SetHitDamage(damage > 0 ? damage : 1);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_felguard_bone_storm_tick::RecalculateDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
 void AddSC_warlock_demonic_empowerment()
 {
     new warlock_demonic_empowerment_playerscript();
@@ -1289,4 +1314,5 @@ void AddSC_warlock_demonic_empowerment()
     RegisterSpellScript(spell_warlock_embrace_undeath);
     RegisterSpellScript(spell_warlock_scarlet_scourge_aura);
     RegisterSpellAndAuraScriptPair(spell_warlock_scarlet_scourge_jump, spell_warlock_scarlet_scourge_aura);
+    RegisterSpellScript(spell_felguard_bone_storm_tick);
 }
