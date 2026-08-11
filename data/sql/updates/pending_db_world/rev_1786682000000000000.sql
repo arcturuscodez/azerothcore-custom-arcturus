@@ -26,17 +26,17 @@ INSERT INTO `spell_dbc`
  `AuraInterruptFlags`,`AttributesEx6`)
 VALUES
 -- 90030 Crimson Shade: OVERRIDE_SPELLS (misc1=9001) + stealth +30% speed
-(90030,437518352,16,2097152,0,0,1,0,0,0,0,101,1,1,21,0,0,1,-1,6,6,6,1,1,1,0,99,29,0,0,0,0,1,1,1,0,0,293,16,31,0,0,9001,0,0,0,331,"Crimson Shade","","Slip into a crimson ethereal shade. Move 30% faster. Shadow Bolt, Immolate, Curse of Agony, and Corruption become melee openers.",5,0,0,32,1,1,1,0,0,15366,0),
+(90030,437518352,16,2097152,0,0,1,0,0,0,0,101,1,1,21,0,0,1,-1,6,6,6,1,1,1,0,99,29,0,0,0,0,1,1,1,0,0,293,16,31,0,0,9001,0,0,0,2118,"Crimson Shade","","Slip into a crimson ethereal shade. Move 30% faster. Shadow Bolt, Immolate, Curse of Agony, and Corruption become melee openers.",5,0,0,32,1,1,1,0,0,15366,0),
 -- 90031 Soul Reaving (Ambush) — Attributes: IS_ABILITY|DO_NOT_SHEATH (no NOT_SHAPESHIFTED)
 (90031,262160,0,0,0,0,1,0,0,0,0,101,1,1,0,0,0,2,-1,2,0,0,1,0,0,449,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,331,"Soul Reaving","","Ambush from the Shade with a devastating shadow strike.",5,1,0,32,0.8,1,1,0,0,0,0),
 -- 90032 Searing Brand (Cheap Shot) — 2s stun + short fire DoT (DurationIndex 39 = 2s)
-(90032,262160,0,0,0,0,1,0,0,0,0,101,1,1,39,0,0,2,-1,6,6,0,1,1,0,0,49,0,0,1000,0,0,6,6,0,0,0,12,3,0,0,0,0,0,0,0,11,"Searing Brand","","Stun the target for 2 sec and sear them with fel fire.",5,1,0,4,1,0.15,1,0,0,0,0),
+(90032,262160,0,0,0,0,1,0,0,0,0,101,1,1,39,0,0,2,-1,6,6,0,1,1,0,0,49,0,0,1000,0,0,6,6,0,0,0,12,3,0,0,0,0,0,0,0,33,"Searing Brand","","Stun the target for 2 sec and sear them with fel fire.",5,1,0,4,1,0.15,1,0,0,0,0),
 -- 90033 Tormenting Rend — long DoT; silence via 90036
 (90033,262160,0,0,0,0,1,0,0,0,0,101,1,1,85,0,0,2,-1,6,0,0,1,0,0,74,0,0,2000,0,0,0,6,0,0,0,0,3,0,0,0,0,0,0,0,0,498,"Tormenting Rend","","Torment the target with a long shadow rend and a brief silence.",5,1,0,32,1,1,1,0,0,0,0),
 -- 90034 Withering Touch — light DoT; amp via 90035
-(90034,262160,0,0,0,0,1,0,0,0,0,101,1,1,29,0,0,2,-1,6,0,0,1,0,0,24,0,0,2000,0,0,0,6,0,0,0,0,3,0,0,0,0,0,0,0,0,313,"Withering Touch","","Wither the target, increasing damage you deal to them and applying a shadow rot.",5,1,0,32,0.2,1,1,0,0,0,0),
+(90034,262160,0,0,0,0,1,0,0,0,0,101,1,1,29,0,0,2,-1,6,0,0,1,0,0,24,0,0,2000,0,0,0,6,0,0,0,0,3,0,0,0,0,0,0,0,0,55,"Withering Touch","","Wither the target, increasing damage you deal to them and applying a shadow rot.",5,1,0,32,0.2,1,1,0,0,0,0),
 -- 90035 Withering amp — +15% damage from caster (DurationIndex 29 = 12s)
-(90035,384,0,0,0,0,1,0,0,0,0,101,1,1,29,0,0,13,-1,6,0,0,1,0,0,14,0,0,0,0,0,0,6,0,0,0,0,271,0,0,0,0,0,0,0,0,313,"Withering Touch","","Taking 15% increased damage from the warlock.",5,0,0,32,1,1,1,0,0,0,0),
+(90035,384,0,0,0,0,1,0,0,0,0,101,1,1,29,0,0,13,-1,6,0,0,1,0,0,14,0,0,0,0,0,0,6,0,0,0,0,271,0,0,0,0,0,0,0,0,55,"Withering Touch","","Taking 15% increased damage from the warlock.",5,0,0,32,1,1,1,0,0,0,0),
 -- 90036 Brief silence (DurationIndex 27 = 3s) for Tormenting Rend
 (90036,384,0,0,0,0,1,0,0,0,0,101,1,1,27,0,0,13,-1,6,0,0,1,0,0,0,0,0,0,0,0,0,6,0,0,0,0,27,0,0,0,0,0,0,0,0,498,"Tormenting Silence","","",5,0,0,32,1,1,1,0,0,0,0);
 

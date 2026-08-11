@@ -26,9 +26,9 @@ INSERT INTO `spell_dbc`
  `Reagent_1`,`ReagentCount_1`)
 VALUES
 -- 90021 Legion Brand (passive on Felguard — marker for learnSpell / spellbook)
-(90021,64,0,0,0,0,1,0,0,0,0,101,1,1,21,0,0,1,-1,6,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,4,0,0,0,0,0,0,0,0,173,"Legion Brand","Passive","The Felguard brands foes with Legion fire when striking them.",5,0,0,4,1,1,1,0,0),
+(90021,64,0,0,0,0,1,0,0,0,0,101,1,1,21,0,0,1,-1,6,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,4,0,0,0,0,0,0,0,0,2366,"Legion Brand","Passive","The Felguard brands foes with Legion fire when striking them.",5,0,0,4,1,1,1,0,0),
 -- 90022 Legion Brand debuff: DoT only (pet-cast; threat on Felguard)
-(90022,0,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,13,-1,6,0,0,1,0,0,5,0,0,2000,0,0,0,0,0,6,0,0,0,0,3,0,0,0,0,0,0,0,0,173,"Legion Brand","","Branded by the Felguard. Suffering fel damage.",5,0,0,4,1,1,1,0,0),
+(90022,0,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,13,-1,6,0,0,1,0,0,5,0,0,2000,0,0,0,0,0,6,0,0,0,0,3,0,0,0,0,0,0,0,0,2366,"Legion Brand","","Branded by the Felguard. Suffering fel damage.",5,0,0,4,1,1,1,0,0),
 -- 90023 Felstorm threat pulse (hidden AoE threat; ~Anguish strength)
 (90023,384,136,67108864,0,0,1,0,0,0,0,101,1,1,0,0,0,1,-1,63,0,0,1,0,0,299,0,0,0,0,0,0,0,0,22,0,0,15,0,0,0,0,13,0,0,0,0,0,9,"Felstorm","","",5,1,1,32,1,1,1,0,0),
 -- 90024 Felguard Mandate (DE): +10% all-school damage + threat; DurationIndex 8 = 15s (match DE)
@@ -37,7 +37,7 @@ VALUES
 -- 90025 Pursuit mark (dummy, 6s)
 (90025,384,0,0,0,0,1,0,0,0,0,101,1,1,32,0,0,13,-1,6,0,0,1,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,4,0,0,0,0,0,0,0,0,516,"Pursuit Mark","","",5,0,0,1,1,1,1,0,0),
 -- 90026 Legion Brand amp — owner-cast +8% damage from warlock (same duration as Brand)
-(90026,384,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,13,-1,6,0,0,1,0,0,7,0,0,0,0,0,0,0,0,6,0,0,0,0,271,0,0,0,0,0,0,0,0,173,"Legion Brand","","Taking increased damage from the warlock.",5,0,0,4,1,1,1,0,0);
+(90026,384,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,13,-1,6,0,0,1,0,0,7,0,0,0,0,0,0,0,0,6,0,0,0,0,271,0,0,0,0,0,0,0,0,2366,"Legion Brand","","Taking increased damage from the warlock.",5,0,0,4,1,1,1,0,0);
 
 -- Felstorm: add 2s threat pulse trigger on effect 3 (keep damage tick + haste)
 UPDATE `spell_dbc` SET

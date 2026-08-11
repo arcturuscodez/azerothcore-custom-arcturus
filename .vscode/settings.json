@@ -1,4 +1,7 @@
 {
+    "git.ignoredRepositories": [
+        "C:\\Users\\Senti\\.dev\\WoW-Spell-Editor"
+    ],
     "github.copilot.chat.commitMessageGeneration.instructions": [
         {
             "file": ".git_commit_template.txt"
