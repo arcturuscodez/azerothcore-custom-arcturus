@@ -26,7 +26,7 @@ INSERT INTO `spell_dbc`
  `AuraInterruptFlags`,`AttributesEx6`)
 VALUES
 -- 90030 Crimson Shade: OVERRIDE_SPELLS (misc1=9001) + stealth +30% speed
-(90030,437518352,16,2097152,0,0,1,0,0,0,0,101,1,1,21,0,0,1,-1,6,6,6,1,1,1,0,99,29,0,0,0,0,1,1,1,0,0,293,16,33,0,0,9001,0,0,0,331,"Crimson Shade","","Slip into a crimson ethereal shade. Move 30% faster. Shadow Bolt, Immolate, Curse of Agony, and Corruption become melee openers.",5,0,0,32,1,1,1,0,0,15366,0),
+(90030,437518352,16,2097152,0,0,1,0,0,0,0,101,1,1,21,0,0,1,-1,6,6,6,1,1,1,0,99,29,0,0,0,0,1,1,1,0,0,293,16,31,0,0,9001,0,0,0,331,"Crimson Shade","","Slip into a crimson ethereal shade. Move 30% faster. Shadow Bolt, Immolate, Curse of Agony, and Corruption become melee openers.",5,0,0,32,1,1,1,0,0,15366,0),
 -- 90031 Soul Reaving (Ambush) — Attributes: IS_ABILITY|DO_NOT_SHEATH (no NOT_SHAPESHIFTED)
 (90031,262160,0,0,0,0,1,0,0,0,0,101,1,1,0,0,0,2,-1,2,0,0,1,0,0,449,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,331,"Soul Reaving","","Ambush from the Shade with a devastating shadow strike.",5,1,0,32,0.8,1,1,0,0,0,0),
 -- 90032 Searing Brand (Cheap Shot) — 2s stun + short fire DoT (DurationIndex 39 = 2s)

@@ -1,8 +1,27 @@
 --
--- Felguard Legion Mandate: Brand, Felstorm threat pulse, Pursuit mark, DE Mandate.
--- Felstorm CD remains RecoveryTime=40000 (Category=0).
+-- Catch-up: Felstorm CD/rename + Legion Mandate for DBs that already RELEASED
+-- rev_178667900 / rev_178668000 / rev_178668100 (manual_arcturus) before those
+-- pending files were rewritten on development. Idempotent with matching DELETEs.
 --
 
+-- Felstorm rename + pet CD path (RecoveryTime only when Category=0)
+UPDATE `spell_dbc` SET
+ `RecoveryTime` = 40000,
+ `CategoryRecoveryTime` = 0,
+ `Name_Lang_enUS` = 'Felstorm',
+ `Description_Lang_enUS` = 'The Felguard whirls in a storm of fel energy, damaging nearby enemies every second. Damage scales with the Felguard''s attack power and level.'
+WHERE `ID` = 90019;
+
+UPDATE `spell_dbc` SET
+ `Name_Lang_enUS` = 'Felstorm'
+WHERE `ID` = 90020;
+
+UPDATE `spell_dbc` SET
+ `RecoveryTime` = 45000,
+ `CategoryRecoveryTime` = 0
+WHERE `ID` = 90012;
+
+-- Legion Mandate kit (90021–90026) + Felstorm threat pulse on effect 3
 DELETE FROM `spell_dbc` WHERE `ID` IN (90021,90022,90023,90024,90025,90026);
 INSERT INTO `spell_dbc`
 (`ID`,`Attributes`,`AttributesEx`,`AttributesEx2`,`AttributesEx3`,`AttributesEx5`,
@@ -25,21 +44,13 @@ INSERT INTO `spell_dbc`
  `EffectBonusMultiplier_1`,`EffectBonusMultiplier_2`,`EffectBonusMultiplier_3`,
  `Reagent_1`,`ReagentCount_1`)
 VALUES
--- 90021 Legion Brand (passive on Felguard — marker for learnSpell / spellbook)
 (90021,64,0,0,0,0,1,0,0,0,0,101,1,1,21,0,0,1,-1,6,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,4,0,0,0,0,0,0,0,0,173,"Legion Brand","Passive","The Felguard brands foes with Legion fire when striking them.",5,0,0,4,1,1,1,0,0),
--- 90022 Legion Brand debuff: DoT only (pet-cast; threat on Felguard)
 (90022,0,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,13,-1,6,0,0,1,0,0,5,0,0,2000,0,0,0,0,0,6,0,0,0,0,3,0,0,0,0,0,0,0,0,173,"Legion Brand","","Branded by the Felguard. Suffering fel damage.",5,0,0,4,1,1,1,0,0),
--- 90023 Felstorm threat pulse (hidden AoE threat; ~Anguish strength)
 (90023,384,136,67108864,0,0,1,0,0,0,0,101,1,1,0,0,0,1,-1,63,0,0,1,0,0,299,0,0,0,0,0,0,0,0,22,0,0,15,0,0,0,0,13,0,0,0,0,0,9,"Felstorm","","",5,1,1,32,1,1,1,0,0),
--- 90024 Felguard Mandate (DE): +10% all-school damage + threat; DurationIndex 8 = 15s (match DE)
--- MiscValue 127 = SPELL_SCHOOL_MASK_ALL (required for MOD_DAMAGE_PERCENT_DONE / MOD_THREAT)
 (90024,0,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,1,-1,6,6,0,1,1,0,9,49,0,0,0,0,0,0,0,1,1,0,0,0,79,10,0,0,0,127,127,0,0,236,"Legion Mandate","","The Felguard answers the Mandate: damage and threat increased. Felstorm cooldown cleared.",5,0,0,4,1,1,1,0,0),
--- 90025 Pursuit mark (dummy, 6s)
 (90025,384,0,0,0,0,1,0,0,0,0,101,1,1,32,0,0,13,-1,6,0,0,1,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,4,0,0,0,0,0,0,0,0,516,"Pursuit Mark","","",5,0,0,1,1,1,1,0,0),
--- 90026 Legion Brand amp — owner-cast +8% damage from warlock (same duration as Brand)
 (90026,384,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,13,-1,6,0,0,1,0,0,7,0,0,0,0,0,0,0,0,6,0,0,0,0,271,0,0,0,0,0,0,0,0,173,"Legion Brand","","Taking increased damage from the warlock.",5,0,0,4,1,1,1,0,0);
 
--- Felstorm: add 2s threat pulse trigger on effect 3 (keep damage tick + haste)
 UPDATE `spell_dbc` SET
  `Effect_3` = 6,
  `EffectDieSides_3` = 1,
