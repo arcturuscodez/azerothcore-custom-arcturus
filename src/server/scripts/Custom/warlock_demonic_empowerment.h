@@ -72,9 +72,7 @@ namespace WarlockEmpowerment
     // Feltouched pet mana/5 — applied by spell_pet_auras from 90003 dummy (not taught).
     constexpr uint32 SPELL_FELTOUCHED_COMMUNION_PET = 90009;
     constexpr uint32 SPELL_SUMMON_MARROWTHRALL     = 90010; // Feltouched (500) — Summon Draxis
-    // Felguard Bone Storm (not a rank reward; taught on Felguard via Pet.cpp / creature_template_spell)
-    constexpr uint32 SPELL_FELGUARD_BONE_STORM      = 90019;
-    constexpr uint32 SPELL_FELGUARD_BONE_STORM_TICK  = 90020;
+    constexpr uint32 SPELL_CRIMSON_SHADE           = 90030; // Dread Warlock (2500) ethereal stance
 
     // Rank ladder (lifetime souls).
     struct RankTier
@@ -91,14 +89,15 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    inline constexpr std::array<RankSpell, 7> RANK_SPELLS = {{
+    inline constexpr std::array<RankSpell, 8> RANK_SPELLS = {{
         { 100u,  SPELL_NECROTIC_EMBRACE,      "Necrotic Embrace"      },
         { 250u,  SPELL_NETHER_PRESENCE,      "Nether Presence"      },
         { 500u,  SPELL_FELTOUCHED_COMMUNION, "Feltouched Communion" },
         { 500u,  SPELL_EMBRACE_UNDEATH,      "Embrace Undeath"      },
         { 500u,  SPELL_SUMMON_MARROWTHRALL,  "Summon Draxis"         },
         { 1000u, SPELL_SCARLET_SCOURGE,      "Scarlet Scourge"      },
-        { 2500u, SPELL_UMBRAL_REMNANT,       "Umbral Remnant"       }
+        { 2500u, SPELL_UMBRAL_REMNANT,       "Umbral Remnant"       },
+        { 2500u, SPELL_CRIMSON_SHADE,        "Crimson Shade"        }
     }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{
@@ -189,6 +188,9 @@ namespace WarlockEmpowerment
 
     TemperValues LoadedTemper();
     void ApplyKillBonus(Unit* pet, uint32 kills, bool apply);
+
+    // Clears Embrace Undeath morph + CustomData flag (used by Crimson Shade exclusion).
+    void ClearEmbraceUndeath(Player* player);
 
     struct Souls
     {

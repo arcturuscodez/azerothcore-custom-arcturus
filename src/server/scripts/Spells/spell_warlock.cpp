@@ -28,6 +28,7 @@
 #include "Unit.h"
 #include "Util.h"
 #include "Custom/warlock_demonic_empowerment.h"
+#include "Custom/warlock_arcturus_spells.h"
 /*
  * Scripts for spells with SPELLFAMILY_WARLOCK and SPELLFAMILY_GENERIC spells used by warlock players.
  * Ordered alphabetically using scriptname.
@@ -590,6 +591,9 @@ class spell_warl_demonic_empowerment : public SpellScript
                         }
                     case CREATURE_FAMILY_FELGUARD:
                         targetCreature->CastSpell(targetCreature, SPELL_WARLOCK_DEMONIC_EMPOWERMENT_FELGUARD, true);
+                        // Legion Mandate: Felguard entry only (Infernal also uses 54508 via DOOMGUARD branch).
+                        if (targetCreature->GetEntry() == NPC_FELGUARD)
+                            targetCreature->CastSpell(targetCreature, ArcturusSpells::SPELL_FELGUARD_MANDATE, true);
                         break;
                     case CREATURE_FAMILY_FELHUNTER:
                         targetCreature->CastSpell(targetCreature, SPELL_WARLOCK_DEMONIC_EMPOWERMENT_FELHUNTER, true);

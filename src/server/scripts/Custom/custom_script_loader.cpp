@@ -17,6 +17,8 @@
 
 // This is where scripts' loading functions should be declared:
 void AddSC_warlock_demonic_empowerment();
+void AddSC_warlock_felguard_mandate();
+void AddSC_warlock_crimson_shade();
 void AddSC_demons_commandscript();
 void AddSC_endless_instances();
 void AddSC_arcturus_trade_skills();
@@ -26,6 +28,8 @@ void AddSC_arcturus_trade_skills();
 void AddCustomScripts()
 {
     AddSC_warlock_demonic_empowerment();
+    AddSC_warlock_felguard_mandate();
+    AddSC_warlock_crimson_shade();
     AddSC_demons_commandscript();
     AddSC_endless_instances();
     AddSC_arcturus_trade_skills();

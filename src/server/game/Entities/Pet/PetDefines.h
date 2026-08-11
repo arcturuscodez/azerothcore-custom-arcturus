@@ -156,9 +156,10 @@ enum PetScalingSpells
     // Marrowthrall / Draxis tank passives (spell_dbc; permanent pets skip creature_template_addon)
     SPELL_MARROWTHRALL_OSSIFIED_HIDE    = 90015,
     SPELL_MARROWTHRALL_DEATHLESS_COMPACT = 90016,
-    // Felguard Bone Storm (Draxis kit clone; tick 90020 scales with pet AP + level)
-    SPELL_FELGUARD_BONE_STORM           = 90019,
+    // Felguard Felstorm + Legion Brand passive (spell_dbc; learned in Pet.cpp)
+    SPELL_FELGUARD_BONE_STORM           = 90019, // Felstorm
     SPELL_FELGUARD_BONE_STORM_TICK      = 90020,
+    SPELL_FELGUARD_LEGION_BRAND_PASSIVE = 90021,
     SPELL_GLYPH_OF_FELGUARD             = 56246,
     SPELL_GLYPH_OF_VOIDWALKER           = 56247,
     SPELL_INFERNAL_SCALING_01           = 36186,

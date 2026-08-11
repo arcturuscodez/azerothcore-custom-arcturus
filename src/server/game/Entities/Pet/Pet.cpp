@@ -1278,10 +1278,12 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                         }
                     case NPC_FELGUARD:
                         {
-                            // Bone Storm (90019) — also on creature_template_spell; learnSpell keeps
-                            // it in the spellbook if the action bar was saved without it.
+                            // Felstorm + Legion Brand passive (not action-bar slots).
                             if (Pet* felguard = ToPet())
+                            {
                                 felguard->learnSpell(SPELL_FELGUARD_BONE_STORM);
+                                felguard->learnSpell(SPELL_FELGUARD_LEGION_BRAND_PASSIVE);
+                            }
                             break;
                         }
                 }
