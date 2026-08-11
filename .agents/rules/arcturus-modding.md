@@ -9,10 +9,13 @@ Apply on every task that touches items, spells, icons, tooltips, or HD clients.
 - Keep custom world SQL in `data/sql/updates/pending_db_*/` only.
 - For **client spell identity** (name, icon, tooltip, Rank/Passive, visuals, new Spell.dbc
   rows): edit the **live Spell Editor SQLite DB** at
-  `C:\Games\WoW Spell Editor\SpellEditor.db` via `WoW-Spell-Editor/Arcturus/apply_to_spell_editor_db.py`
+  `C:\Games\WoW Spell Editor\SpellEditor.db` via `WoW-Spell-Editor/Arcturus/apply_*.py`
   (close the editor first if locked). Then user Exports Spell.dbc → MPQ.
   Mirror mechanics in this repo via `spell_dbc` + scripts. Never patch Spell.dbc from this repo
   or use a separate `spell-patch/` folder.
+- When new mechanics **attach to existing abilities** (procs, brands, redirects, DE hooks):
+  follow **spell-kit ship** — update tooltips on every related stock rank + parent spell,
+  not only the new IDs. See `.agents/rules/arcturus-spell-kit-ship.md`.
 - For **new custom items**, always add matching **`item_dbc`** rows and plan a **client**
   fix (CustomItemFix addon and/or Item.dbc MPQ). See
   `knowledge/custom-items-red-question-mark.md` — `item_template` alone causes red `?`.

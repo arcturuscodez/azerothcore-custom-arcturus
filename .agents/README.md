@@ -41,8 +41,9 @@ This folder adds **3.3.5a client + Arcturus** depth that AGENTS.md does not cove
 ## Rules
 
 - **[rules/arcturus-modding.md](rules/arcturus-modding.md)** — client vs server; **Spell.dbc edits only in WoW-Spell-Editor**
+- **[rules/arcturus-spell-kit-ship.md](rules/arcturus-spell-kit-ship.md)** — fan out tooltips to all related stock ranks + parents when shipping kits
 - **[rules/arcturus-gates-frozen.md](rules/arcturus-gates-frozen.md)** — never edit `tests/arcturus_gates/**`; run gates before commit
-- Cursor always-on: `.cursor/rules/prefer-spell-editor-mpq.mdc`
+- Cursor always-on: `.cursor/rules/prefer-spell-editor-mpq.mdc`, `.cursor/rules/arcturus-spell-kit-ship.mdc`
 
 ## Skills
 
