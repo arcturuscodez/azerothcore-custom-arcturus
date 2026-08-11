@@ -812,21 +812,22 @@ namespace
 
         player->Whisper(msg, LANG_ADDON, player);
     }
+}
 
-    class warlock_demonic_empowerment_playerscript : public PlayerScript
-    {
-    public:
-        warlock_demonic_empowerment_playerscript() : PlayerScript(
-            "warlock_demonic_empowerment_playerscript",
-            {
-                PLAYERHOOK_ON_LOGIN,
-                PLAYERHOOK_ON_LOGOUT,
-                PLAYERHOOK_ON_SAVE,
-                PLAYERHOOK_ON_PLAYER_JUST_DIED,
-                PLAYERHOOK_ON_REWARD_KILL_REWARDER,
-                PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
-                PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT
-            }) { }
+class warlock_demonic_empowerment_playerscript : public PlayerScript
+{
+public:
+    warlock_demonic_empowerment_playerscript() : PlayerScript(
+        "warlock_demonic_empowerment_playerscript",
+        {
+            PLAYERHOOK_ON_LOGIN,
+            PLAYERHOOK_ON_LOGOUT,
+            PLAYERHOOK_ON_SAVE,
+            PLAYERHOOK_ON_PLAYER_JUST_DIED,
+            PLAYERHOOK_ON_REWARD_KILL_REWARDER,
+            PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
+            PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT
+        }) { }
 
     bool OnPlayerCanUseChat(Player* player, uint32 type, uint32 language, std::string& msg, Player* /*receiver*/) override
     {
