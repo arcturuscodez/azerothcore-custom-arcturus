@@ -27,7 +27,8 @@ INSERT INTO `spell_dbc`
  `Reagent_1`,`ReagentCount_1`)
 VALUES
 -- 90019 Bone Storm (Felguard): self haste + periodic trigger 90020, ~6s, 40s CD
-(90019,327696,0,0,0,0,1,0,40000,0,0,101,1,1,32,0,0,1,-1,6,6,0,1,1,0,0,49,0,1000,0,90020,0,1,1,0,0,0,23,138,0,0,0,0,0,0,10704,2836,"Bone Storm","","The Felguard whirls in a storm of bone, damaging nearby enemies every second. Damage scales with the Felguard's attack power and level.",0,0,0,1,1,1,1,0,0),
+-- RecoveryTime (not only CategoryRecoveryTime) — pets ignore category CD when Category=0.
+(90019,327696,0,0,0,0,1,40000,40000,0,0,101,1,1,32,0,0,1,-1,6,6,0,1,1,0,0,49,0,1000,0,90020,0,1,1,0,0,0,23,138,0,0,0,0,0,0,10704,2836,"Bone Storm","","The Felguard whirls in a storm of bone, damaging nearby enemies every second. Damage scales with the Felguard's attack power and level.",0,0,0,1,1,1,1,0,0),
 -- 90020 Bone Storm tick (hidden periodic AoE, 8 yd; damage overwritten by script)
 (90020,327696,136,536870912,0,0,1,0,0,0,0,101,1,1,0,0,0,1,-1,2,0,0,1,0,0,1,0,0,0,0,0,0,22,0,0,15,0,0,0,0,14,0,0,0,0,0,2836,"Bone Storm","","",0,1,0,1,1,1,1,0,0);
 
