@@ -28,3 +28,7 @@ abilities (procs, brands, redirects, DE hooks, pet spells, stance swaps).
 Brand/Mandate/Felstorm changes required Description + ToolTip on: all Cleave ranks, all
 Intercept ranks, Felstorm, Brand passive, **Brand debuff**, Mandate buff, and Demonic
 Empowerment (player + Felguard aura).
+
+**Concise stock text:** Cleave / Intercept / Felstorm / DE should say they apply Brand or
+grant Mandate — put the full Brand rules on the Brand passive + debuff only. Do not pile
+every Brand number onto every stock rank.

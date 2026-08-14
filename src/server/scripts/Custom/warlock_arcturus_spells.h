@@ -19,7 +19,7 @@ namespace ArcturusSpells
     constexpr uint32 SPELL_LEGION_BRAND             = 90022;
     constexpr uint32 SPELL_FELSTORM_THREAT_PULSE    = 90023;
     constexpr uint32 SPELL_FELGUARD_MANDATE         = 90024;
-    constexpr uint32 SPELL_PURSUIT_MARK             = 90025;
+    // 90025 was Pursuit Mark (Intercept → half Felstorm CD on death); retired.
     constexpr uint32 SPELL_LEGION_BRAND_AMP         = 90026; // owner-cast +% taken from warlock
 
     // Crimson Shade

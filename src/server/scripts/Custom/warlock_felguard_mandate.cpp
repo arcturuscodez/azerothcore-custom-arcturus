@@ -1,5 +1,5 @@
 /*
- * Felguard Legion Mandate — Brand, Felstorm upgrades, Intercept pursuit, DE Mandate.
+ * Felguard Legion Mandate — Brand, Felstorm upgrades, Intercept brand, DE Mandate.
  */
 
 #include "warlock_arcturus_spells.h"
@@ -125,46 +125,11 @@ class spell_felguard_intercept_pursuit : public SpellScript
             return;
 
         ApplyLegionBrand(caster, target);
-        caster->CastSpell(target, SPELL_PURSUIT_MARK, true);
     }
 
     void Register() override
     {
         OnEffectHitTarget += SpellEffectFn(spell_felguard_intercept_pursuit::HandleChargeHit, EFFECT_0, SPELL_EFFECT_CHARGE);
-    }
-};
-
-class spell_felguard_pursuit_mark : public AuraScript
-{
-    PrepareAuraScript(spell_felguard_pursuit_mark);
-
-    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_DEATH)
-            return;
-
-        Unit* caster = GetCaster();
-        Pet* pet = caster ? caster->ToPet() : nullptr;
-        if (!pet || pet->GetEntry() != NPC_FELGUARD)
-            return;
-
-        // 50% of remaining Felstorm CD only — never punish an off-CD Felstorm.
-        if (!pet->HasSpellCooldown(SPELL_FELSTORM))
-            return;
-
-        uint32 const remaining = pet->GetSpellCooldown(SPELL_FELSTORM);
-        uint32 const half = remaining / 2;
-        pet->RemoveSpellCooldown(SPELL_FELSTORM, true);
-        if (half > 0)
-        {
-            pet->AddSpellCooldown(SPELL_FELSTORM, 0, half);
-            SyncPetSpellCooldown(pet, SPELL_FELSTORM, half);
-        }
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(spell_felguard_pursuit_mark::OnRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
     }
 };
 
@@ -230,7 +195,6 @@ void AddSC_warlock_felguard_mandate()
     RegisterSpellScript(spell_felguard_felstorm_tick);
     RegisterSpellScript(spell_felguard_cleave_brand);
     RegisterSpellScript(spell_felguard_intercept_pursuit);
-    RegisterSpellScript(spell_felguard_pursuit_mark);
     RegisterSpellScript(spell_legion_brand_aura);
     RegisterSpellScript(spell_legion_brand_amp_aura);
     RegisterSpellScript(spell_felguard_mandate_aura);

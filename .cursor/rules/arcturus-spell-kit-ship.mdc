@@ -35,6 +35,8 @@ Use this whenever you add or change **custom spell mechanics** that attach to ex
 | DE grants Mandate | DE player spell + Felguard DE buff + Mandate buff (ToolTip) |
 | Shade openers remap bar | Stance toggle + each opener + amp/silence helper debuffs (ToolTip) |
 
+**Concise stock text:** Cleave / Intercept / Felstorm / DE say “Applies Legion Brand” / “grants Mandate” — put full Brand numbers on the Brand passive + debuff only.
+
 ## Related
 
 - `.cursor/rules/prefer-spell-editor-mpq.mdc`

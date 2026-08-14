@@ -67,11 +67,26 @@ Clone role from a stock pet:
 
 Model: `creature_template_model` with boss `CreatureDisplayID` + **`DisplayScale` ~0.45–0.55** (Marrowthrall uses `0.50`; too low reads as player-sized).
 
+Stock pets (Felguard `17252`, etc.): scale via `creature_template_model.DisplayScale`
+(non-hunter pets use that value as `GetNativeObjectScale`). Felguard on Arcturus is **1.2**
+(stock was `1.0`).
+
 Summon: clone Voidwalker `697` — `SPELL_EFFECT_SUMMON_PET` (56), `EffectMiscValue` = creature entry,
 `AttributesEx` includes dismiss-pet-first (`131073`), soul shard reagent `6265`×1.
 
 Kit (4 bar spells): clone stock pets (Cleave/Suffering/Charge/War Stomp/…) then rename.
 Passives (2+): `spell_dbc` with `Attributes` passive (64), `DurationIndex` 21; apply in `Pet.cpp`.
+
+### Ability text style (Felguard Mandate lesson)
+
+- Put **full** Brand / kit rules on the dedicated passive + visible debuff tooltips.
+- Stock Cleave / Intercept / Felstorm / DE text stays **concise** (“Applies Legion Brand.” /
+  “Also grants Legion Mandate…”). Do not paste every Brand number onto every rank.
+- Avoid “if target dies within X sec, refund Y% pet CD” gimmicks — unreliable with pet CDs
+  and weak as gameplay. Prefer Brand / Mandate / clear-on-DE style hooks.
+- Fan out Description (+ ToolTip on auras) to **all ranks** of stock spells you touch.
+- Player-taught custom spells: also add `SkillLineAbility` → Destruction (593) so they leave
+  the General tab (`WoW-Spell-Editor/Arcturus/apply_destruction_skilllineability.py`).
 
 ## 2) Pending SQL (one new `rev_<timestamp>.sql`)
 
@@ -151,6 +166,8 @@ Do not commit unless asked.
   owner+dummy + `spell_pet_auras` for pet half
 - Spell Editor still open → DB locked
 - Server-only `spell_dbc` without Spell Editor/MPQ → missing client names/tooltips/icons
+- Stock ability tooltips left stock while scripts add Brand/Mandate → players cannot see the kit
+- Bloated stock-rank tooltips that restate every Brand number (put detail on Brand passive/debuff)
 
 ## Related
 
