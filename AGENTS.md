@@ -2,13 +2,13 @@
 
 AzerothCore is a C++ MMORPG server emulator for World of Warcraft 3.3.5a (WotLK), built with CMake, backed by MySQL.
 
-For **Arcturus-specific** client modding (MPQ/DBC/icons), Wowhead research, HD patches, and custom warlock content, see [`.agents/README.md`](.agents/README.md) and the `knowledge/` docs there.
+For **Arcturus-specific** customs (spells, pets, Spell Editor, client/server split), see [`.cursor/ARCTURUS.md`](.cursor/ARCTURUS.md). Always-on rules live in [`.cursor/rules/`](.cursor/rules/).
 
 ## Agent rules
 
 - **Do not configure or build unless explicitly asked.** Builds are slow and rarely needed for code changes.
 - **Never edit SQL files outside `data/sql/updates/pending_db_*/` unless explicitly requested. ** `data/sql/base/`, `data/sql/archive/`, and `data/sql/updates/db_*/` are immutable.
-- **Never edit `tests/arcturus_gates/**`.** Frozen pre-commit contracts (`GATE-*`). Run `python tests/arcturus_gates/run_all.py` before committing; fix product code if a gate fails. See [`.agents/rules/arcturus-gates-frozen.md`](.agents/rules/arcturus-gates-frozen.md). Install hooks once: `.githooks/install.ps1` / `install.sh`.
+- **Never edit `tests/arcturus_gates/**`.** Frozen pre-commit contracts (`GATE-*`). Run `python tests/arcturus_gates/run_all.py` before committing; fix product code if a gate fails. See [`.cursor/rules/arcturus-gates-frozen.mdc`](.cursor/rules/arcturus-gates-frozen.mdc). Install hooks once: `.githooks/install.ps1` / `install.sh`.
 
 ## Build
 

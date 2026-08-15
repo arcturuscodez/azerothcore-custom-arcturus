@@ -171,6 +171,6 @@ Do not commit unless asked.
 
 ## Related
 
-- `.agents/rules/arcturus-modding.md` — Spell Editor vs server split
-- `.agents/knowledge/arcturus-customs.md` — ID / rank map
+- `.cursor/rules/arcturus-core.mdc` — Spell Editor vs server + spell-kit ship
+- `.cursor/ARCTURUS.md` — ID / rank map and decision tree
 - Infernal kit SQL: `rev_1786492800000000000.sql`, MD/names `rev_1786667000000000000.sql`
