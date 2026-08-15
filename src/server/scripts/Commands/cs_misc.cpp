@@ -1948,11 +1948,25 @@ public:
 
         bool targetHasSkill = target->GetSkillValue(skillID);
 
+        // level 0 removes the skill (and proficiency spells tied to it).
+        if (level == 0)
+        {
+            if (!targetHasSkill)
+            {
+                handler->SendErrorMessage(LANG_INVALID_SKILL_ID, skillID);
+                return false;
+            }
+
+            target->SetSkill(skillID, 0, 0, 0);
+            handler->PSendSysMessage(LANG_SET_SKILL, skillID, skillLine->name[handler->GetSessionDbcLocale()], handler->GetNameLink(target), 0, 0);
+            return true;
+        }
+
         // If our target does not yet have the skill they are trying to add to them, the chosen level also becomes
         // the max level of the new profession.
         uint16 max = maxPureSkill ? *maxPureSkill : targetHasSkill ? target->GetPureMaxSkillValue(skillID) : uint16(level);
 
-        if (level <= 0 || level > max || max <= 0)
+        if (level < 0 || level > max || max <= 0)
         {
             return false;
         }

@@ -2,8 +2,9 @@
  * Arcturus: open all weapon trainers to warlocks + keep free primary profession slots in sync.
  *
  * Weapons: runtime-OR CLASSMASK_WARLOCK into SkillRaceClassInfo for weapon skill lines,
- * and into SkillLineAbility only for spells that teach those skills (SpellLearnSkill).
- * Combat abilities on the same skill line are left alone. Armor skills untouched.
+ * and into SkillLineAbility for proficiency teach spells (AcquireMethod LEARNED_ON_SKILL_LEARN,
+ * e.g. One-Handed Swords 201) plus any SpellLearnSkill teachers. Combat abilities on the
+ * same skill line are left alone. Armor skills untouched.
  *
  * Professions: MaxPrimaryTradeSkill (config) is the free-slot cap. Characters load with
  * InitPrimaryProfessions() = full cap, then we resync to (cap - known primaries) on login /
@@ -84,6 +85,8 @@ namespace
 
         // Only proficiency / skill-teach spells — not every ability hanging on the skill line
         // (avoids learnSkillRewardedSpells granting unrelated combat spells to warlocks).
+        // Weapon proficiencies use SPELL_EFFECT_PROFICIENCY + AcquireMethod LEARNED_ON_SKILL_LEARN;
+        // GetSpellLearnSkill only covers SPELL_EFFECT_SKILL and never matches 196/197/201/202/etc.
         uint32 abilityPatched = 0;
         for (SkillLineAbilityEntry const* entry : sSkillLineAbilityStore)
         {
@@ -93,8 +96,10 @@ namespace
             if (entry->ClassMask == 0 || (entry->ClassMask & CLASSMASK_WARLOCK))
                 continue;
 
+            bool const isProficiencyTeach = entry->AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN;
             SpellLearnSkillNode const* learn = sSpellMgr->GetSpellLearnSkill(entry->Spell);
-            if (!learn || learn->skill != entry->SkillLine)
+            bool const isSkillStepTeach = learn && learn->skill == entry->SkillLine;
+            if (!isProficiencyTeach && !isSkillStepTeach)
                 continue;
 
             const_cast<SkillLineAbilityEntry*>(entry)->ClassMask |= CLASSMASK_WARLOCK;
