@@ -9,12 +9,14 @@
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
- *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90010 (RANK_SPELLS) + chat announcement
+ *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90030 (RANK_SPELLS) + chat announcement
  *  - Passives (90001–90003 / 90007): learnSpell only — stock Player::_addSpell casts them
  *  - Feltouched pet half: spell_pet_auras → Pet::CastPetAuras (Soul Link style)
- *  - Embrace Undeath (90004): DUMMY toggle → morph aura 90018 (death clears)
- *  - Ward of the Soul-Eater (90007/90008) converts Sanguine Ruin overheal into a
- *    stackable absorb on the warlock and active demon; pet absorbs grant Damned Resonance
+ *  - Embrace Undeath (90004): DUMMY toggle → morph aura 90018 (death clears);
+ *    soft-stripped on far teleport and reapplied after map load (client crash guard)
+ *  - Ward of the Soul-Eater (90007/90008) converts Sanguine Ruin overheal into an
+ *    uncapped stackable absorb on the warlock and active demon; pet absorbs grant
+ *    Damned Resonance
  *  - WorldScript (5s): Enable flips + Embrace morph maintain for online warlocks only
  *
  * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost legacy).
@@ -50,13 +52,16 @@
 #include "WorldSession.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <limits>
 #include <list>
 #include <mutex>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
 
+using namespace std::chrono_literals;
 using namespace WarlockEmpowerment;
 namespace WarlockEmpowerment
 {
@@ -453,6 +458,9 @@ namespace
     {
     public:
         bool active = false;
+        // Far teleports (instance exit) + TRANSFORM often crash 3.3.5 clients;
+        // strip for the transfer and reapply after the new map settles.
+        bool pendingMapReapply = false;
     };
 
     EmbraceUndeathState* GetEmbraceUndeathState(Player* player)
@@ -462,14 +470,20 @@ namespace
 
     void ApplyEmbraceUndeathMorph(Player* player)
     {
+        if (!player)
+            return;
+
         EmbraceUndeathState* state = GetEmbraceUndeathState(player);
         state->active = true;
+        state->pendingMapReapply = false;
+
+        // Already morphed — never re-cast (duplicate TRANSFORM packets are crashy mid-load).
+        if (player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+            return;
+
+        // DurationIndex 21 = permanent; do not force duration -1 (breaks non-logout aura saves
+        // via `_SaveAuras`: duration -1 is < 60s and skipped on map-change saves).
         player->CastSpell(player, SPELL_EMBRACE_UNDEATH_DISPLAY, true);
-        if (Aura* aura = player->GetAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
-        {
-            aura->SetMaxDuration(-1);
-            aura->SetDuration(-1);
-        }
     }
 
     void ClearEmbraceUndeathMorph(Player* player)
@@ -483,7 +497,10 @@ namespace
             return;
 
         if (state)
+        {
             state->active = false;
+            state->pendingMapReapply = false;
+        }
 
         player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
         // Legacy builds applied stock skeleton morph 16591, or TRANSFORM directly on 90004.
@@ -492,22 +509,71 @@ namespace
         player->DeMorph();
     }
 
+    void SoftStripEmbraceUndeathForTeleport(Player* player)
+    {
+        if (!player)
+            return;
+
+        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+        if (!state || !state->active)
+            return;
+
+        // Keep active=true so we reapply after the map change; only drop the aura/display.
+        state->pendingMapReapply = true;
+        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        player->RemoveAurasDueToSpell(16591);
+    }
+
     void MaintainEmbraceUndeathMorph(Player* player)
     {
+        if (!player || !player->IsInWorld() || player->IsBeingTeleported())
+            return;
+        if (WorldSession const* session = player->GetSession())
+            if (session->PlayerLoading())
+                return;
+
         EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
         if (!state || !state->active || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
             return;
 
+        // Wait for delayed reapply after far teleport — do not CastSpell during load.
+        if (state->pendingMapReapply)
+            return;
+
         ApplyEmbraceUndeathMorph(player);
+    }
+
+    void ScheduleEmbraceUndeathReapply(Player* player)
+    {
+        if (!player)
+            return;
+
+        EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+        if (!state || !state->active || !state->pendingMapReapply)
+            return;
+
+        ObjectGuid const guid = player->GetGUID();
+        // Delay past TRANSFER_PENDING / create-object so the client finished map load.
+        player->m_Events.AddEventAtOffset([guid]()
+        {
+            Player* p = ObjectAccessor::FindPlayer(guid);
+            if (!p || !p->IsInWorld() || p->IsBeingTeleported())
+                return;
+
+            EmbraceUndeathState* st = p->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
+            if (!st || !st->active)
+                return;
+
+            st->pendingMapReapply = false;
+            if (!p->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+                ApplyEmbraceUndeathMorph(p);
+        }, 2500ms);
     }
 
     void ToggleEmbraceUndeathMorph(Player* player)
     {
         if (!player)
             return;
-
-        // Crimson Shade is mutually exclusive with Embrace Undeath.
-        player->RemoveAurasDueToSpell(SPELL_CRIMSON_SHADE);
 
         EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
         // Also treat a leftover TRANSFORM-on-90004 (pre-DUMMY builds) as "on".
@@ -666,13 +732,29 @@ namespace
         {
             if (player->HasTalent(spellId, 0) || player->HasTalent(spellId, 1))
                 continue;
-            player->removeSpell(spellId, SPEC_MASK_ALL, false);
+
+            if (player->HasSpell(spellId))
+                player->removeSpell(spellId, SPEC_MASK_ALL, false);
+            else
+            {
+                // Rejected during _LoadSpells (never in m_spells) — force DB delete.
+                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SPELL_BY_SPELL);
+                stmt->SetData(0, player->GetGUID().GetCounter());
+                stmt->SetData(1, spellId);
+                CharacterDatabase.Execute(stmt);
+            }
         }
+
+        for (uint32 spellId : RETIRED_RANK_SPELLS)
+            player->removeSpell(spellId, SPEC_MASK_ALL, false);
     }
 
     // Teach / revoke custom rank passives from lifetime souls (never touches LEGACY_GIFT_SPELLS).
     void SyncRankSpells(Player* player, uint32 lifetime, bool announce)
     {
+        for (uint32 spellId : RETIRED_RANK_SPELLS)
+            player->removeSpell(spellId, SPEC_MASK_ALL, false);
+
         bool const enabled = IsEnabled();
         for (RankSpell const& entry : RANK_SPELLS)
         {
@@ -834,8 +916,25 @@ public:
             PLAYERHOOK_ON_PLAYER_JUST_DIED,
             PLAYERHOOK_ON_REWARD_KILL_REWARDER,
             PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
-            PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT
+            PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT,
+            PLAYERHOOK_ON_BEFORE_TELEPORT,
+            PLAYERHOOK_ON_MAP_CHANGED
         }) { }
+
+    bool OnPlayerBeforeTeleport(Player* player, uint32 mapid, float /*x*/, float /*y*/, float /*z*/,
+        float /*orientation*/, uint32 /*options*/, Unit* /*target*/) override
+    {
+        // Only far teleports (instance ↔ world). Same-map blinks keep the morph.
+        if (IsWarlock(player) && player->GetMapId() != mapid)
+            SoftStripEmbraceUndeathForTeleport(player);
+        return true;
+    }
+
+    void OnPlayerMapChanged(Player* player) override
+    {
+        if (IsWarlock(player))
+            ScheduleEmbraceUndeathReapply(player);
+    }
 
     bool OnPlayerCanUseChat(Player* player, uint32 type, uint32 language, std::string& msg, Player* /*receiver*/) override
     {
@@ -1091,27 +1190,34 @@ namespace
 {
     constexpr uint32 SPELL_VAMPIRIC_EMBRACE_HEAL = 15290;
     constexpr int32 WARD_DEFAULT_OVERHEAL_PCT = 100;
-    constexpr int32 WARD_DEFAULT_MAX_HP_PCT = 12;
     constexpr int32 DAMNED_RESONANCE_DURATION_MS = 4000;
 
-    void ApplyWardAbsorb(Unit* target, int32 amount, int32 cap)
+    // Grow an existing ward in place (no re-cast). Re-casting every overheal tick
+    // replayed the absorb visual and looked like buff spam; ChangeAmount alone also
+    // skipped client aura updates, so the buff tip stayed at DBC $s1 (= 1).
+    void ApplyWardAbsorb(Unit* target, int32 amount)
     {
-        if (!target || amount <= 0 || cap <= 0)
+        if (!target || amount <= 0)
             return;
 
-        int32 apply = std::min(amount, cap);
-        if (Aura* existing = target->GetAura(SPELL_WARD_OF_THE_SOUL_EATER_ABSORB))
+        if (AuraEffect* existing = target->GetAuraEffect(SPELL_WARD_OF_THE_SOUL_EATER_ABSORB, EFFECT_0))
         {
-            if (AuraEffect* eff = existing->GetEffect(EFFECT_0))
-            {
-                int32 const stacked = std::min(eff->GetAmount() + apply, cap);
-                eff->ChangeAmount(stacked);
-                existing->RefreshDuration();
+            int32 const current = existing->GetAmount();
+            // Uncapped stack; saturate at int32 max instead of wrapping.
+            int32 const stacked = (current > std::numeric_limits<int32>::max() - amount)
+                ? std::numeric_limits<int32>::max()
+                : current + amount;
+            if (stacked == current)
                 return;
-            }
+
+            existing->ChangeAmount(stacked);
+            existing->GetBase()->SetNeedClientUpdateForTargets();
+            existing->GetBase()->RefreshDuration();
+            return;
         }
 
-        target->CastCustomSpell(SPELL_WARD_OF_THE_SOUL_EATER_ABSORB, SPELLVALUE_BASE_POINT0, apply, target, true);
+        target->CastCustomSpell(SPELL_WARD_OF_THE_SOUL_EATER_ABSORB, SPELLVALUE_BASE_POINT0,
+            amount, target, true);
     }
 
     void TryWardOfTheSoulEater(Unit* owner, int32 overheal)
@@ -1124,17 +1230,14 @@ namespace
             return;
 
         AuraEffect const* overhealEff = player->GetAuraEffect(SPELL_WARD_OF_THE_SOUL_EATER, EFFECT_0);
-        AuraEffect const* capEff = player->GetAuraEffect(SPELL_WARD_OF_THE_SOUL_EATER, EFFECT_1);
         int32 const pct = overhealEff ? overhealEff->GetAmount() : WARD_DEFAULT_OVERHEAL_PCT;
-        int32 const maxHpPct = capEff ? capEff->GetAmount() : WARD_DEFAULT_MAX_HP_PCT;
-        int32 absorb = CalculatePct(overheal, pct);
-        int32 const cap = int32(CalculatePct(player->GetMaxHealth(), maxHpPct));
-        if (absorb <= 0 || cap <= 0)
+        int32 const absorb = CalculatePct(overheal, pct);
+        if (absorb <= 0)
             return;
 
-        ApplyWardAbsorb(player, absorb, cap);
+        ApplyWardAbsorb(player, absorb);
         if (Pet* pet = player->GetPet())
-            ApplyWardAbsorb(pet, absorb, cap);
+            ApplyWardAbsorb(pet, absorb);
     }
 }
 
@@ -1358,14 +1461,4 @@ void AddSC_warlock_demonic_empowerment()
     RegisterSpellScript(spell_warlock_embrace_undeath);
     RegisterSpellScript(spell_warlock_scarlet_scourge_aura);
     RegisterSpellAndAuraScriptPair(spell_warlock_scarlet_scourge_jump, spell_warlock_scarlet_scourge_aura);
-}
-
-namespace WarlockEmpowerment
-{
-    void ClearEmbraceUndeath(Player* player)
-    {
-        if (!player)
-            return;
-        ClearEmbraceUndeathMorph(player);
-    }
 }

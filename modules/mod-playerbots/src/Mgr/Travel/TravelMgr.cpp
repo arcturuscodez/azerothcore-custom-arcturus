@@ -227,7 +227,8 @@ void WorldPosition::setO(float o) { m_orientation = o; }
 
 WorldPosition::operator bool() const
 {
-    return GetMapId() != 0 || GetPositionX() != 0 || GetPositionY() != 0 || GetPositionZ() != 0;
+    // MAPID_INVALID is 0xFFFFFFFF — must not count as a real location (default ctor).
+    return GetMapId() != MAPID_INVALID;
 }
 
 bool operator==(WorldPosition const& p1, const WorldPosition& p2)
@@ -276,7 +277,7 @@ bool WorldPosition::isUnderWater()
 
 bool WorldPosition::IsValid()
 {
-    return !(GetMapId() == MAPID_INVALID && GetPositionX() == 0 && GetPositionY() == 0 && GetPositionZ() == 0);
+    return GetMapId() != MAPID_INVALID;
 }
 
 WorldPosition WorldPosition::relPoint(WorldPosition* center)

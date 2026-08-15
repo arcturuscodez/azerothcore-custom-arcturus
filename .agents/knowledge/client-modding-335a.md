@@ -126,6 +126,23 @@ Server-irrelevant. Key CVars for max look: `farclip`, `groundEffectDensity`,
 `spellEffectLevel`, `projectedTextures`, `ssao`, `sunShafts`, …  
 See player's `WTF/Config.wtf`. Back up before mass edits; game must be closed.
 
+## Warlock weapon skill bars (SkillRaceClassInfo)
+
+Server `Arcturus.WarlockWeaponTrainers` ORs warlock into `SkillRaceClassInfo` **in memory**
+and grants `character_skills` rows, but the **client** Skills pane still reads stock
+`SkillRaceClassInfo.dbc` from MPQ. Without a client override, Two-Handed Swords (and other
+unlocked lines) stay invisible / non-tracking even when the server has the skill.
+
+| Piece | Location |
+|-------|----------|
+| Regenerable script | `WoW-Spell-Editor/Arcturus/patch_skillraceclassinfo_warlock_weapons.py` |
+| Stock backup + output | `C:\Games\WoW Spell Editor\DBC_335_wotlk\` (`stock/` + `SkillRaceClassInfo.dbc`) |
+| Ship path | `DBFilesClient\SkillRaceClassInfo.dbc` inside `Data/enUS/patch-enUS-z.MPQ` |
+| Skill ID list | Must match `arcturus_trade_skills.cpp` `WEAPON_SKILLS` |
+
+Not Spell Editor / `Spell.dbc`. After packing: clear `Cache/` + `WDB/`, verify warlock 2H
+bar + white-hit ups; spot-check warrior 2H and stock warlock 1H/wand.
+
 ## After any client asset change
 
 ```text

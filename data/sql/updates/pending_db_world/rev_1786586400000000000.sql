@@ -1,17 +1,8 @@
 --
--- Gift of the Void: make Vampiric Embrace (15286) proc for warlocks.
---
--- The stock proc entry is priest-scoped: `SpellFamilyName` = 6 (SPELLFAMILY_PRIEST)
--- plus the priest shadow spell mask. SpellMgr::CanSpellTriggerProcOnEvent requires the
--- triggering spell to match that family, and warlock spells are SPELLFAMILY_WARLOCK (5),
--- so the 100-soul gift taught by Demonic Empowerment could never fire.
---
--- Drop the family filter and keep the shadow-school + damage-on-hit requirements, which
--- is all spell_pri_vampiric_embrace actually needs (its CheckProc only rejects Mind Sear).
--- `ProcFlags` stays 0 so SpellMgr keeps taking the value from Spell.dbc.
---
--- Side effect: priests proc it from any shadow-school damage spell instead of the
--- hardcoded list. Accepted on this warlock-focused fork.
+-- OBSOLETE intent: earlier Gift of the Void taught stock Vampiric Embrace (15286) to
+-- warlocks and widened its spell_proc. Current design teaches Sanguine Ruin (90001) and
+-- strips 15286 as a legacy gift. Keep this rev idempotent with the priest-scoped stock
+-- proc (same values as rev_1786695000000000000) so fresh applies never widen 15286.
 --
 DELETE FROM `spell_proc` WHERE `SpellId` = 15286;
 INSERT INTO `spell_proc`
@@ -19,4 +10,4 @@ INSERT INTO `spell_proc`
      `ProcFlags`, `SpellTypeMask`, `SpellPhaseMask`, `HitMask`, `AttributesMask`, `DisableEffectsMask`,
      `ProcsPerMinute`, `Chance`, `Cooldown`, `Charges`)
 VALUES
-    (15286, 32, 0, 0, 0, 0, 0, 1, 2, 0, 2, 0, 0, 0, 0, 0);
+    (15286, 32, 6, 41984016, 9218, 8, 0, 1, 2, 0, 2, 0, 0, 0, 0, 0);

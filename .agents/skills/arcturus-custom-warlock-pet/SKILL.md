@@ -4,16 +4,16 @@ description: >-
   Add a permanent custom warlock summon pet on Arcturus (creature, spell_dbc,
   action bar, passives, MD/empowerment wiring, Spell Editor DB). Use when the
   user asks for a new warlock pet, custom summon, Feltouched/rank pet reward,
-  mini-boss pet, or another Marrowthrall-style demon.
+  mini-boss pet, or another custom warlock summon demon.
 ---
 
 # Arcturus custom warlock pet
 
-Playbook for a **permanent** warlock `SUMMON_PET` (Infernal / Marrowthrall pattern).
+Playbook for a **permanent** warlock `SUMMON_PET` (Infernal pattern).
 Do **not** build the server unless asked. Do **not** edit `tests/arcturus_gates/**`.
 
-Reference implementation: **Marrowthrall** — NPC `900110`, summon `90010`, kit `90011`–`90016`,
-pending `data/sql/updates/pending_db_world/rev_1786670000000000000.sql`.
+Historical reference (removed from live): Marrowthrall/Draxis was NPC `900110`, summon `90010`,
+kit `90011`–`90016` — see archived pending revs under `pending_db_world` for the SQL shape.
 
 ## Hard rules
 

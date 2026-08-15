@@ -38,6 +38,8 @@ namespace
     constexpr uint32 CLASSMASK_WARLOCK = 1u << (CLASS_WARLOCK - 1);
 
     // Weapon / dual-wield skill lines only (no cloth/leather/mail/plate/shield).
+    // Keep in sync with WoW-Spell-Editor/Arcturus/patch_skillraceclassinfo_warlock_weapons.py
+    // (client SkillRaceClassInfo.dbc MPQ — required for Skills pane / skill-ups).
     constexpr std::array<uint32, 16> WEAPON_SKILLS = {{
         SKILL_SWORDS,
         SKILL_AXES,

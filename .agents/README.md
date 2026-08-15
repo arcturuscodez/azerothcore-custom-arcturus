@@ -34,7 +34,6 @@ This folder adds **3.3.5a client + Arcturus** depth that AGENTS.md does not cove
 7. **[knowledge/server-azerothcore.md](knowledge/server-azerothcore.md)** — databases, scripts, conf, branches
 8. **[knowledge/server-sql-workflow.md](knowledge/server-sql-workflow.md)** — pending SQL, item_template fields
 9. **[knowledge/arcturus-customs.md](knowledge/arcturus-customs.md)** — warlock legendaries, config keys, entry ranges
-10. **[knowledge/draxis-marrowthrall-tank-backup.md](knowledge/draxis-marrowthrall-tank-backup.md)** — Draxis tank-kit snapshot (90011–90017) for later restore
 
 **CSV for client Item.dbc tooling:** `custom-items-Item.dbc.csv`
 
@@ -48,7 +47,7 @@ This folder adds **3.3.5a client + Arcturus** depth that AGENTS.md does not cove
 ## Skills
 
 - `skills/generate-pr-description` — PR title/body from branch changes
-- `skills/arcturus-custom-warlock-pet` — permanent custom warlock summon pet (Marrowthrall playbook)
+- `skills/arcturus-custom-warlock-pet` — permanent custom warlock summon pet playbook
 
 ## Pre-commit gates (required)
 

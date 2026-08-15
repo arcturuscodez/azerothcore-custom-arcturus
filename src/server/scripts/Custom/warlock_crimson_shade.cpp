@@ -3,13 +3,10 @@
  */
 
 #include "warlock_arcturus_spells.h"
-#include "warlock_demonic_empowerment.h"
 
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
-#include "SpellAuraEffects.h"
-#include "SpellAuras.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "Unit.h"
@@ -44,22 +41,6 @@ namespace
         return SPELL_FAILED_DONT_REPORT;
     }
 }
-
-class spell_crimson_shade_aura : public AuraScript
-{
-    PrepareAuraScript(spell_crimson_shade_aura);
-
-    void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Player* player = GetTarget()->ToPlayer())
-            WarlockEmpowerment::ClearEmbraceUndeath(player);
-    }
-
-    void Register() override
-    {
-        AfterEffectApply += AuraEffectApplyFn(spell_crimson_shade_aura::OnApply, EFFECT_0, SPELL_AURA_OVERRIDE_SPELLS, AURA_EFFECT_HANDLE_REAL);
-    }
-};
 
 class spell_crimson_redirect_shadow_bolt : public SpellScript
 {
@@ -165,7 +146,6 @@ class spell_tormenting_rend : public SpellScript
 
 void AddSC_warlock_crimson_shade()
 {
-    RegisterSpellScript(spell_crimson_shade_aura);
     RegisterSpellScript(spell_crimson_redirect_shadow_bolt);
     RegisterSpellScript(spell_crimson_redirect_immolate);
     RegisterSpellScript(spell_crimson_redirect_coa);

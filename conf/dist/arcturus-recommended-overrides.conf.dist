@@ -29,6 +29,9 @@ MaxPrimaryTradeSkill = 11
 
 # Warlocks can buy all weapon skills from weapon masters (cloth armor unchanged).
 # Requires rebuild; disable needs a worldserver restart (DBC patch is applied at startup).
+# Client Skills pane still needs SkillRaceClassInfo.dbc in a late MPQ (server SetSkill alone
+# is not enough). Regenerate: WoW-Spell-Editor/Arcturus/patch_skillraceclassinfo_warlock_weapons.py
+# → Data/enUS/patch-enUS-z.MPQ → clear Cache/WDB. Keep WEAPON_SKILLS in sync with that script.
 Arcturus.WarlockWeaponTrainers.Enable = 1
 
 EndlessInstances.Enable = 1

@@ -602,15 +602,9 @@ class spell_warl_demonic_empowerment : public SpellScript
                         targetCreature->CastSpell(targetCreature, SPELL_WARLOCK_DEMONIC_EMPOWERMENT_IMP, true);
                         break;
                     case CREATURE_FAMILY_DOOMGUARD:
-                        // Infernal + Doomguard + Marrowthrall share family 19 — split by creature entry.
+                        // Infernal + Doomguard share family 19 — split by creature entry.
                         if (targetCreature->GetEntry() == NPC_INFERNAL)
                             targetCreature->CastSpell(targetCreature, SPELL_WARLOCK_DEMONIC_EMPOWERMENT_FELGUARD, true);
-                        else if (targetCreature->GetEntry() == NPC_MARROWTHRALL)
-                        {
-                            SpellInfo const* spellInfo = sSpellMgr->AssertSpellInfo(SPELL_WARLOCK_DEMONIC_EMPOWERMENT_VOIDWALKER);
-                            int32 hp = int32(targetCreature->CountPctFromMaxHealth(GetCaster()->CalculateSpellDamage(targetCreature, spellInfo, 0)));
-                            targetCreature->CastCustomSpell(targetCreature, SPELL_WARLOCK_DEMONIC_EMPOWERMENT_VOIDWALKER, &hp, nullptr, nullptr, true);
-                        }
                         else
                             targetCreature->CastSpell(targetCreature, SPELL_WARLOCK_DEMONIC_EMPOWERMENT_IMP, true);
                         break;

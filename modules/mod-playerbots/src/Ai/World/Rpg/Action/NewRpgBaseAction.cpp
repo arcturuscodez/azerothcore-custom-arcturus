@@ -8,6 +8,8 @@
 #include "GossipDef.h"
 #include "GridTerrainData.h"
 #include "IVMapMgr.h"
+#include "Log.h"
+#include "MapMgr.h"
 #include "NewRpgInfo.h"
 #include "NewRpgStrategy.h"
 #include "Object.h"
@@ -34,7 +36,7 @@
 
 bool NewRpgBaseAction::MoveFarTo(WorldPosition dest)
 {
-    if (dest == WorldPosition())
+    if (!dest.IsValid())
         return false;
 
     if (dest != botAI->rpgInfo.moveFarPos)
@@ -98,6 +100,20 @@ bool NewRpgBaseAction::MoveFarTo(WorldPosition dest)
         botAI->rpgInfo.stuckAttempts = 0;
         const AreaTableEntry* entry = sAreaTableStore.LookupEntry(bot->GetZoneId());
         std::string zone_name = PlayerbotAI::GetLocalizedAreaName(entry);
+        float z = dest.GetPositionZ();
+        if (z <= INVALID_HEIGHT || z == VMAP_INVALID_HEIGHT_VALUE)
+        {
+            Map* map = sMapMgr->FindMap(dest.GetMapId(), 0);
+            if (!map)
+                return false;
+            float ground = map->GetHeight(bot->GetPhaseMask(), dest.GetPositionX(), dest.GetPositionY(), MAX_HEIGHT);
+            if (ground <= INVALID_HEIGHT || ground == VMAP_INVALID_HEIGHT_VALUE)
+                return false;
+            dest.setZ(ground + 0.05f);
+            z = dest.GetPositionZ();
+        }
+        if (!MapMgr::IsValidMapCoord(dest.GetMapId(), dest.GetPositionX(), dest.GetPositionY(), z, dest.GetOrientation()))
+            return false;
         LOG_DEBUG(
             "playerbots",
             "[New RPG] Teleport {} from ({},{},{},{}) to ({},{},{},{}) as it stuck when moving far - Zone: {} ({})",
@@ -1001,9 +1017,18 @@ WorldPosition NewRpgBaseAction::SelectRandomGrindPos(Player* bot)
         uint32 idx = urand(0, lo_prepared_locs.size() - 1);
         dest = lo_prepared_locs[idx];
     }
+    if (!dest.IsValid())
+    {
+        LOG_DEBUG("playerbots", "[New RPG] Bot {} select random grind pos: none available (0+0 of {})",
+                  bot->GetName(), locs.size());
+        return dest;
+    }
     LOG_DEBUG("playerbots", "[New RPG] Bot {} select random grind pos Map:{} X:{} Y:{} Z:{} ({}+{} available in {})",
               bot->GetName(), dest.GetMapId(), dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ(),
-              hi_prepared_locs.size(), lo_prepared_locs.size() - hi_prepared_locs.size(), locs.size());
+              hi_prepared_locs.size(), lo_prepared_locs.size() > hi_prepared_locs.size()
+                                           ? lo_prepared_locs.size() - hi_prepared_locs.size()
+                                           : 0,
+              locs.size());
     return dest;
 }
 
@@ -1043,6 +1068,12 @@ WorldPosition NewRpgBaseAction::SelectRandomCampPos(Player* bot)
     {
         uint32 idx = urand(0, prepared_locs.size() - 1);
         dest = prepared_locs[idx];
+    }
+    if (!dest.IsValid())
+    {
+        LOG_DEBUG("playerbots", "[New RPG] Bot {} select random inn keeper pos: none available (0 of {})",
+                  bot->GetName(), locs.size());
+        return dest;
     }
     LOG_DEBUG("playerbots", "[New RPG] Bot {} select random inn keeper pos Map:{} X:{} Y:{} Z:{} ({} available in {})",
               bot->GetName(), dest.GetMapId(), dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ(),
@@ -1118,7 +1149,7 @@ bool NewRpgBaseAction::RandomChangeStatus(std::vector<NewRpgStatus> candidateSta
         case RPG_GO_GRIND:
         {
             WorldPosition pos = SelectRandomGrindPos(bot);
-            if (pos != WorldPosition())
+            if (pos.IsValid())
             {
                 botAI->rpgInfo.ChangeToGoGrind(pos);
                 return true;
@@ -1128,7 +1159,7 @@ bool NewRpgBaseAction::RandomChangeStatus(std::vector<NewRpgStatus> candidateSta
         case RPG_GO_CAMP:
         {
             WorldPosition pos = SelectRandomCampPos(bot);
-            if (pos != WorldPosition())
+            if (pos.IsValid())
             {
                 botAI->rpgInfo.ChangeToGoCamp(pos);
                 return true;
@@ -1215,12 +1246,12 @@ bool NewRpgBaseAction::CheckRpgStatusAvailable(NewRpgStatus status)
         case RPG_GO_GRIND:
         {
             WorldPosition pos = SelectRandomGrindPos(bot);
-            return pos != WorldPosition();
+            return pos.IsValid();
         }
         case RPG_GO_CAMP:
         {
             WorldPosition pos = SelectRandomCampPos(bot);
-            return pos != WorldPosition();
+            return pos.IsValid();
         }
         case RPG_WANDER_NPC:
         {

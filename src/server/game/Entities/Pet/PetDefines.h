@@ -100,9 +100,6 @@ enum NPCEntries
     NPC_DOOMGUARD               = 11859,
     NPC_FELGUARD                = 17252,
     NPC_EYE_OF_KILROGG          = 4277,
-    NPC_MARROWTHRALL            = 900110, // Arcturus necromantic bone tank pet (Draxis)
-    // Client CreatureDisplayInfo clone of 31119 with SoundID 0 (see SpellEditor.db / MPQ)
-    DISPLAY_MARROWTHRALL        = 900110,
 
     // Mage
     NPC_WATER_ELEMENTAL_TEMP    = 510,
@@ -153,12 +150,9 @@ enum PetScalingSpells
     SPELL_WARLOCK_PET_SCALING_03        = 34957,
     SPELL_WARLOCK_PET_SCALING_04        = 34958,
     SPELL_WARLOCK_PET_SCALING_05        = 61013, // Hit / Expertise
-    // Marrowthrall / Draxis tank passives (spell_dbc; permanent pets skip creature_template_addon)
-    SPELL_MARROWTHRALL_OSSIFIED_HIDE    = 90015,
-    SPELL_MARROWTHRALL_DEATHLESS_COMPACT = 90016,
     // Felguard Felstorm + Legion Brand passive (spell_dbc; learned in Pet.cpp)
-    SPELL_FELGUARD_BONE_STORM           = 90019, // Felstorm
-    SPELL_FELGUARD_BONE_STORM_TICK      = 90020,
+    SPELL_FELGUARD_FELSTORM             = 90019,
+    SPELL_FELGUARD_FELSTORM_TICK        = 90020,
     SPELL_FELGUARD_LEGION_BRAND_PASSIVE = 90021,
     SPELL_GLYPH_OF_FELGUARD             = 56246,
     SPELL_GLYPH_OF_VOIDWALKER           = 56247,

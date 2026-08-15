@@ -40,6 +40,7 @@ No custom legendary items. Morph toggle is spell **90004 Embrace Undeath**.
 | Files | Responsibility |
 |-------|----------------|
 | `warlock_demonic_empowerment.*` | Souls / tempering / talents / rank spells / Embrace Undeath / Scarlet Scourge / Umbral Remnant |
+| `arcturus_trade_skills.*` | Warlock weapon trainers + primary profession free-slot sync. Client Skills pane needs `SkillRaceClassInfo.dbc` MPQ (`patch_skillraceclassinfo_warlock_weapons.py`). |
 | `cs_demons.cpp` | `.demons` |
 | `custom_script_loader.cpp` | `AddSC_*` registration |
 
@@ -49,6 +50,7 @@ No custom legendary items. Morph toggle is spell **90004 Embrace Undeath**.
 WarlockDemonicEmpowerment.Enable
 WarlockDemonicEmpowerment.PerKill.*
 WarlockDemonicEmpowerment.Tempering.*
+Arcturus.WarlockWeaponTrainers.Enable
 EndlessInstances.Enable
 ```
 

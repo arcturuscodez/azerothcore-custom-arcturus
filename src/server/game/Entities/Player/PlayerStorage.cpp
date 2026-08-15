@@ -6635,7 +6635,14 @@ void Player::_LoadSpells(PreparedQueryResult result)
             if (CheckSkillLearnedBySpell(spellId))
                 addSpell(spellId, specMask, true);
             else
-                removeSpell(spellId, SPEC_MASK_ALL, false);
+            {
+                // Spell never enters m_spells, so removeSpell() is a no-op and the
+                // character_spell row would survive every login ("Will be deleted" spam).
+                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SPELL_BY_SPELL);
+                stmt->SetData(0, GetGUID().GetCounter());
+                stmt->SetData(1, spellId);
+                CharacterDatabase.Execute(stmt);
+            }
         } while (result->NextRow());
     }
 }
