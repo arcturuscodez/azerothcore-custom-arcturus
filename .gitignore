@@ -145,3 +145,5 @@ debug-*.log
 /client-patches/out/
 MY_SERVER.txt
 dml-start.sh
+
+.agents/*
