@@ -8,7 +8,6 @@
 
 #include "warlock_arcturus_spells.h"
 
-#include "Guardian.h"
 #include "Pet.h"
 #include "Player.h"
 #include "PlayerScript.h"
