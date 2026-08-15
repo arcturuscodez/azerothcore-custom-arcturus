@@ -30,7 +30,7 @@ namespace ArcturusSpells
     constexpr uint32 SPELL_WITHERING_TOUCH          = 90034;
     constexpr uint32 SPELL_WITHERING_AMP            = 90035;
     constexpr uint32 SPELL_TORMENTING_SILENCE       = 90036;
-    constexpr uint32 SPELL_CRIMSON_SHADE_PET        = 90037; // MOD_STEALTH on demon while Shade is up
+    // 90037 pet stealth — retired (deleted from spell_dbc); Shade does not force pet stealth.
 
     // FORM_STEALTH stance mask (1 << (FORM_STEALTH - 1)) — Ambush / Meta-style gate
     constexpr uint32 STANCE_MASK_STEALTH            = 536870912u;

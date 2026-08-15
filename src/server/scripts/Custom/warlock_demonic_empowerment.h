@@ -7,11 +7,11 @@
  *
  * Login strips borrowed class spells left on characters from older builds.
  * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 (see RANK_SPELLS;
- * 90006 hop, 90008 Ward absorb, 90009 Feltouched pet aura, 90037 Shade pet stealth,
- * 90041 Damned Resonance are script/DB-triggered only). Passives use the stock talent path
- * (self-only + PASSIVE; pet auras via spell_pet_auras only — never TARGET_UNIT_PET on the
- * learned spell). Crimson Shade is Stealth-style FORM_STEALTH; openers are stance-gated
- * like Ambush. Embrace Undeath is a DUMMY toggle → morph aura 90018.
+ * 90006 hop, 90008 Ward absorb, 90009 Feltouched pet aura, 90041 Damned Resonance are
+ * script/DB-triggered only). Passives use the stock talent path (self-only + PASSIVE;
+ * pet auras via spell_pet_auras only — never TARGET_UNIT_PET on the learned spell).
+ * Crimson Shade is Stealth-style FORM_STEALTH; openers are stance-gated like Ambush
+ * (no forced pet stealth). Embrace Undeath is a DUMMY toggle → morph aura 90018.
  *
  * See warlock_demonic_empowerment.cpp.
  */

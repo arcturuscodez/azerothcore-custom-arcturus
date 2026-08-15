@@ -64,6 +64,7 @@ nbproject/
 *.kate-swp
 .browse.VC*
 .idea
+.cursor/
 cmake-build-*/*
 coverage-report/
 .vs
