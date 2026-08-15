@@ -7,9 +7,9 @@
  *
  * Login strips borrowed class spells left on characters from older builds.
  * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90010 (see RANK_SPELLS;
- * 90006 hop, 90008 absorb, 90009 Feltouched pet aura are script/DB-triggered only).
- * Passives use stock learnSpell application; Feltouched pet half uses spell_pet_auras.
- * Embrace Undeath is a DUMMY toggle that applies custom morph aura 90018 (display 531).
+ * 90006 hop, 90008 Ward absorb, 90009 Feltouched pet aura, 90041 Damned Resonance are
+ * script/DB-triggered only). Passives use stock learnSpell application; Feltouched pet
+ * half uses spell_pet_auras. Embrace Undeath is a DUMMY toggle → morph aura 90018.
  *
  * See warlock_demonic_empowerment.cpp.
  */
@@ -60,15 +60,16 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_DEMONIC_EMPOWERMENT_LEGACY = 900000;
 
     // Custom rank spells (client Spell.dbc + server spell_dbc).
-    constexpr uint32 SPELL_NECROTIC_EMBRACE      = 90001; // Warlock (100)
-    constexpr uint32 SPELL_NETHER_PRESENCE      = 90002; // Channeler (250)
-    constexpr uint32 SPELL_FELTOUCHED_COMMUNION = 90003; // Feltouched (500)
-    constexpr uint32 SPELL_EMBRACE_UNDEATH      = 90004; // Feltouched (500) active morph toggle
-    constexpr uint32 SPELL_EMBRACE_UNDEATH_MORPH = 90018; // TRANSFORM aura (display 531); not taught
-    constexpr uint32 SPELL_SCARLET_SCOURGE      = 90005; // Demonologist (1000) jumping DoT
-    constexpr uint32 SPELL_SCARLET_SCOURGE_JUMP = 90006; // hidden hop helper
-    constexpr uint32 SPELL_UMBRAL_REMNANT       = 90007; // Dread Warlock (2500) passive
-    constexpr uint32 SPELL_UMBRAL_REMNANT_ABSORB = 90008; // triggered absorb (not taught)
+    constexpr uint32 SPELL_SANGUINE_RUIN             = 90001; // Warlock (100)
+    constexpr uint32 SPELL_NETHER_PRESENCE           = 90002; // Channeler (250)
+    constexpr uint32 SPELL_FELTOUCHED_COMMUNION      = 90003; // Feltouched (500)
+    constexpr uint32 SPELL_EMBRACE_UNDEATH           = 90004; // Feltouched (500) active morph toggle
+    constexpr uint32 SPELL_EMBRACE_UNDEATH_MORPH     = 90018; // TRANSFORM aura (display 531); not taught
+    constexpr uint32 SPELL_SCARLET_SCOURGE           = 90005; // Demonologist (1000) jumping DoT
+    constexpr uint32 SPELL_SCARLET_SCOURGE_JUMP      = 90006; // hidden hop helper
+    constexpr uint32 SPELL_WARD_OF_THE_SOUL_EATER    = 90007; // Dread Warlock (2500) passive
+    constexpr uint32 SPELL_WARD_OF_THE_SOUL_EATER_ABSORB = 90008; // triggered absorb (not taught)
+    constexpr uint32 SPELL_DAMNED_RESONANCE          = 90041; // pet damage buff when ward absorbs
     // Feltouched pet mana/5 — applied by spell_pet_auras from 90003 dummy (not taught).
     constexpr uint32 SPELL_FELTOUCHED_COMMUNION_PET = 90009;
     constexpr uint32 SPELL_SUMMON_MARROWTHRALL     = 90010; // Feltouched (500) — Summon Draxis
@@ -90,14 +91,14 @@ namespace WarlockEmpowerment
     };
 
     inline constexpr std::array<RankSpell, 8> RANK_SPELLS = {{
-        { 100u,  SPELL_NECROTIC_EMBRACE,      "Necrotic Embrace"      },
-        { 250u,  SPELL_NETHER_PRESENCE,      "Nether Presence"      },
-        { 500u,  SPELL_FELTOUCHED_COMMUNION, "Feltouched Communion" },
-        { 500u,  SPELL_EMBRACE_UNDEATH,      "Embrace Undeath"      },
-        { 500u,  SPELL_SUMMON_MARROWTHRALL,  "Summon Draxis"         },
-        { 1000u, SPELL_SCARLET_SCOURGE,      "Scarlet Scourge"      },
-        { 2500u, SPELL_UMBRAL_REMNANT,       "Umbral Remnant"       },
-        { 2500u, SPELL_CRIMSON_SHADE,        "Crimson Shade"        }
+        { 100u,  SPELL_SANGUINE_RUIN,            "Sanguine Ruin"            },
+        { 250u,  SPELL_NETHER_PRESENCE,          "Nether Presence"          },
+        { 500u,  SPELL_FELTOUCHED_COMMUNION,     "Feltouched Communion"     },
+        { 500u,  SPELL_EMBRACE_UNDEATH,          "Embrace Undeath"          },
+        { 500u,  SPELL_SUMMON_MARROWTHRALL,      "Summon Draxis"            },
+        { 1000u, SPELL_SCARLET_SCOURGE,          "Scarlet Scourge"          },
+        { 2500u, SPELL_WARD_OF_THE_SOUL_EATER,   "Ward of the Soul-Eater"   },
+        { 2500u, SPELL_CRIMSON_SHADE,            "Crimson Shade"            }
     }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{

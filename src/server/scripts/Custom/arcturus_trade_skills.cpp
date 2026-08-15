@@ -1,10 +1,9 @@
 /*
  * Arcturus: open all weapon trainers to warlocks + keep free primary profession slots in sync.
  *
- * Weapons: runtime-OR CLASSMASK_WARLOCK into SkillRaceClassInfo for weapon skill lines,
- * and into SkillLineAbility for proficiency teach spells (AcquireMethod LEARNED_ON_SKILL_LEARN,
- * e.g. One-Handed Swords 201) plus any SpellLearnSkill teachers. Combat abilities on the
- * same skill line are left alone. Armor skills untouched.
+ * Weapons: runtime-OR CLASSMASK_WARLOCK into SkillRaceClassInfo for weapon skill lines
+ * (and clear RaceMask so any-race warlocks match), SkillLineAbility for proficiency teach
+ * spells, plus login/learn repair that SetSkills the bar entry when the proficiency is known.
  *
  * Professions: MaxPrimaryTradeSkill (config) is the free-slot cap. Characters load with
  * InitPrimaryProfessions() = full cap, then we resync to (cap - known primaries) on login /
@@ -75,12 +74,18 @@ namespace
             if (!entry || !IsTrainableWeaponSkill(entry->SkillID))
                 continue;
 
-            // 0 = all classes already.
-            if (entry->ClassMask == 0 || (entry->ClassMask & CLASSMASK_WARLOCK))
-                continue;
+            SkillRaceClassInfoEntry* mutableEntry = const_cast<SkillRaceClassInfoEntry*>(entry);
+            // Any-race: otherwise LearnDefaultSkill / _LoadSkills skip warlocks whose race
+            // is not on the stock row (skill never appears in the character pane).
+            if (mutableEntry->RaceMask != 0)
+                mutableEntry->RaceMask = 0;
 
-            const_cast<SkillRaceClassInfoEntry*>(entry)->ClassMask |= CLASSMASK_WARLOCK;
-            ++raceClassPatched;
+            // 0 = all classes already.
+            if (mutableEntry->ClassMask != 0 && !(mutableEntry->ClassMask & CLASSMASK_WARLOCK))
+            {
+                mutableEntry->ClassMask |= CLASSMASK_WARLOCK;
+                ++raceClassPatched;
+            }
         }
 
         // Only proficiency / skill-teach spells — not every ability hanging on the skill line
@@ -109,6 +114,59 @@ namespace
         LOG_INFO("server.loading",
             "Arcturus: warlock weapon trainers unlocked (SkillRaceClassInfo {}, SkillLineAbility {})",
             raceClassPatched, abilityPatched);
+    }
+
+    // Trainer/learn grants the proficiency spell; the skill bar entry needs SetSkill.
+    // Core LearnDefaultSkill can no-op if SkillRaceClassInfo still mismatches — repair here.
+    void EnsureWarlockWeaponSkillFromProficiency(Player* player, uint32 spellId)
+    {
+        if (!player || player->getClass() != CLASS_WARLOCK)
+            return;
+        if (!sConfigMgr->GetOption<bool>(CONFIG_ENABLE, true))
+            return;
+
+        SkillLineAbilityMapBounds bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
+        for (SkillLineAbilityMap::const_iterator itr = bounds.first; itr != bounds.second; ++itr)
+        {
+            SkillLineAbilityEntry const* ability = itr->second;
+            if (!ability || ability->AcquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
+                continue;
+            if (!IsTrainableWeaponSkill(ability->SkillLine))
+                continue;
+            if (player->HasSkill(ability->SkillLine))
+                continue;
+
+            uint16 const maxValue = player->GetMaxSkillValueForLevel();
+            player->SetSkill(uint16(ability->SkillLine), 0, 1, maxValue);
+            LOG_INFO("entities.player",
+                "Arcturus: {} weapon skill {} granted from proficiency spell {}",
+                player->GetName(), ability->SkillLine, spellId);
+        }
+    }
+
+    void RepairWarlockWeaponSkills(Player* player)
+    {
+        if (!player || player->getClass() != CLASS_WARLOCK)
+            return;
+        if (!sConfigMgr->GetOption<bool>(CONFIG_ENABLE, true))
+            return;
+
+        for (uint32 skillId : WEAPON_SKILLS)
+        {
+            if (player->HasSkill(skillId))
+                continue;
+
+            for (SkillLineAbilityEntry const* ability : GetSkillLineAbilitiesBySkillLine(skillId))
+            {
+                if (!ability || ability->AcquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
+                    continue;
+                if (!player->HasSpell(ability->Spell))
+                    continue;
+
+                EnsureWarlockWeaponSkillFromProficiency(player, ability->Spell);
+                break;
+            }
+        }
     }
 
     uint32 CountKnownPrimaryProfessions(Player* player)
@@ -250,10 +308,13 @@ public:
     void OnPlayerLogin(Player* player) override
     {
         SyncAndRepairProfessions(player);
+        RepairWarlockWeaponSkills(player);
     }
 
     void OnPlayerLearnSpell(Player* player, uint32 spellId) override
     {
+        EnsureWarlockWeaponSkillFromProficiency(player, spellId);
+
         SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
         if (!info)
             return;

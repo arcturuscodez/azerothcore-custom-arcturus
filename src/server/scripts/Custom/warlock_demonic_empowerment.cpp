@@ -13,7 +13,8 @@
  *  - Passives (90001–90003 / 90007): learnSpell only — stock Player::_addSpell casts them
  *  - Feltouched pet half: spell_pet_auras → Pet::CastPetAuras (Soul Link style)
  *  - Embrace Undeath (90004): DUMMY toggle → morph aura 90018 (death clears)
- *  - Umbral Remnant (90007/90008) converts Necrotic Embrace overheal into a short absorb
+ *  - Ward of the Soul-Eater (90007/90008) converts Sanguine Ruin overheal into a
+ *    stackable absorb on the warlock and active demon; pet absorbs grant Damned Resonance
  *  - WorldScript (5s): Enable flips + Embrace morph maintain for online warlocks only
  *
  * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost legacy).
@@ -1075,49 +1076,69 @@ private:
 };
 
 // -----------------------------------------------------------------------------
-// Necrotic Embrace (90001) + Umbral Remnant (90007 / 90008)
-// VE-style shadow heal; Dread Warlock passive weaves self-overheal into a short absorb.
+// Sanguine Ruin (90001) + Ward of the Soul-Eater (90007 / 90008)
+// VE-style shadow heal; Dread Warlock passive weaves overheal into a shared absorb.
 // -----------------------------------------------------------------------------
 
 namespace
 {
     constexpr uint32 SPELL_VAMPIRIC_EMBRACE_HEAL = 15290;
-    constexpr uint32 UMBRAL_REMNANT_ICD_MS = 6000;
-    constexpr int32 UMBRAL_REMNANT_MAX_HP_PCT = 8;
+    constexpr int32 WARD_DEFAULT_OVERHEAL_PCT = 100;
+    constexpr int32 WARD_DEFAULT_MAX_HP_PCT = 12;
+    constexpr int32 DAMNED_RESONANCE_DURATION_MS = 4000;
 
-    void TryUmbralRemnant(Unit* owner, int32 overheal)
+    void ApplyWardAbsorb(Unit* target, int32 amount, int32 cap)
+    {
+        if (!target || amount <= 0 || cap <= 0)
+            return;
+
+        int32 apply = std::min(amount, cap);
+        if (Aura* existing = target->GetAura(SPELL_WARD_OF_THE_SOUL_EATER_ABSORB))
+        {
+            if (AuraEffect* eff = existing->GetEffect(EFFECT_0))
+            {
+                int32 const stacked = std::min(eff->GetAmount() + apply, cap);
+                eff->ChangeAmount(stacked);
+                existing->RefreshDuration();
+                return;
+            }
+        }
+
+        target->CastCustomSpell(SPELL_WARD_OF_THE_SOUL_EATER_ABSORB, SPELLVALUE_BASE_POINT0, apply, target, true);
+    }
+
+    void TryWardOfTheSoulEater(Unit* owner, int32 overheal)
     {
         if (overheal <= 0 || !owner)
             return;
 
         Player* player = owner->ToPlayer();
-        if (!player || !player->HasAura(SPELL_UMBRAL_REMNANT))
+        if (!player || !player->HasAura(SPELL_WARD_OF_THE_SOUL_EATER))
             return;
 
-        if (player->HasSpellCooldown(SPELL_UMBRAL_REMNANT_ABSORB))
-            return;
-
-        AuraEffect const* remnant = player->GetAuraEffect(SPELL_UMBRAL_REMNANT, EFFECT_0);
-        int32 const pct = remnant ? remnant->GetAmount() : 50;
+        AuraEffect const* overhealEff = player->GetAuraEffect(SPELL_WARD_OF_THE_SOUL_EATER, EFFECT_0);
+        AuraEffect const* capEff = player->GetAuraEffect(SPELL_WARD_OF_THE_SOUL_EATER, EFFECT_1);
+        int32 const pct = overhealEff ? overhealEff->GetAmount() : WARD_DEFAULT_OVERHEAL_PCT;
+        int32 const maxHpPct = capEff ? capEff->GetAmount() : WARD_DEFAULT_MAX_HP_PCT;
         int32 absorb = CalculatePct(overheal, pct);
-        int32 const cap = int32(CalculatePct(player->GetMaxHealth(), UMBRAL_REMNANT_MAX_HP_PCT));
-        absorb = std::min(absorb, cap);
-        if (absorb <= 0)
+        int32 const cap = int32(CalculatePct(player->GetMaxHealth(), maxHpPct));
+        if (absorb <= 0 || cap <= 0)
             return;
 
-        player->CastCustomSpell(SPELL_UMBRAL_REMNANT_ABSORB, SPELLVALUE_BASE_POINT0, absorb, player, true);
-        player->AddSpellCooldown(SPELL_UMBRAL_REMNANT_ABSORB, 0, UMBRAL_REMNANT_ICD_MS);
+        ApplyWardAbsorb(player, absorb, cap);
+        if (Pet* pet = player->GetPet())
+            ApplyWardAbsorb(pet, absorb, cap);
     }
 }
 
-// 90001 — Necrotic Embrace (Vampiric Embrace heal + Umbral Remnant hook)
-class spell_warlock_necrotic_embrace : public AuraScript
+// 90001 — Sanguine Ruin (Vampiric Embrace heal + Ward of the Soul-Eater hook)
+class spell_warlock_sanguine_ruin : public AuraScript
 {
-    PrepareAuraScript(spell_warlock_necrotic_embrace);
+    PrepareAuraScript(spell_warlock_sanguine_ruin);
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
-        return ValidateSpellInfo({ SPELL_VAMPIRIC_EMBRACE_HEAL, SPELL_UMBRAL_REMNANT_ABSORB });
+        return ValidateSpellInfo({ SPELL_VAMPIRIC_EMBRACE_HEAL, SPELL_WARD_OF_THE_SOUL_EATER_ABSORB });
     }
 
     bool CheckProc(ProcEventInfo& eventInfo)
@@ -1147,13 +1168,46 @@ class spell_warlock_necrotic_embrace : public AuraScript
         int32 const overheal = selfHeal > int32(missing) ? selfHeal - int32(missing) : 0;
 
         owner->CastCustomSpell(owner, SPELL_VAMPIRIC_EMBRACE_HEAL, &partyHeal, &selfHeal, nullptr, true, nullptr, aurEff);
-        TryUmbralRemnant(owner, overheal);
+        TryWardOfTheSoulEater(owner, overheal);
     }
 
     void Register() override
     {
-        DoCheckProc += AuraCheckProcFn(spell_warlock_necrotic_embrace::CheckProc);
-        OnEffectProc += AuraEffectProcFn(spell_warlock_necrotic_embrace::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
+        DoCheckProc += AuraCheckProcFn(spell_warlock_sanguine_ruin::CheckProc);
+        OnEffectProc += AuraEffectProcFn(spell_warlock_sanguine_ruin::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
+    }
+};
+
+// 90008 — Ward absorb on the pet grants Damned Resonance when it soaks damage.
+class spell_warlock_ward_of_the_soul_eater_absorb : public AuraScript
+{
+    PrepareAuraScript(spell_warlock_ward_of_the_soul_eater_absorb);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_DAMNED_RESONANCE });
+    }
+
+    void AfterAbsorb(AuraEffect* /*aurEff*/, DamageInfo& /*dmgInfo*/, uint32& absorbAmount)
+    {
+        if (!absorbAmount)
+            return;
+
+        Unit* target = GetTarget();
+        if (!target || !target->IsPet())
+            return;
+
+        target->CastSpell(target, SPELL_DAMNED_RESONANCE, true);
+        if (Aura* resonance = target->GetAura(SPELL_DAMNED_RESONANCE))
+        {
+            resonance->SetMaxDuration(DAMNED_RESONANCE_DURATION_MS);
+            resonance->SetDuration(DAMNED_RESONANCE_DURATION_MS);
+        }
+    }
+
+    void Register() override
+    {
+        AfterEffectAbsorb += AuraEffectAbsorbFn(spell_warlock_ward_of_the_soul_eater_absorb::AfterAbsorb, EFFECT_0);
     }
 };
 
@@ -1292,7 +1346,8 @@ void AddSC_warlock_demonic_empowerment()
 {
     new warlock_demonic_empowerment_playerscript();
     new warlock_demonic_empowerment_worldscript();
-    RegisterSpellScript(spell_warlock_necrotic_embrace);
+    RegisterSpellScript(spell_warlock_sanguine_ruin);
+    RegisterSpellScript(spell_warlock_ward_of_the_soul_eater_absorb);
     RegisterSpellScript(spell_warlock_embrace_undeath);
     RegisterSpellScript(spell_warlock_scarlet_scourge_aura);
     RegisterSpellAndAuraScriptPair(spell_warlock_scarlet_scourge_jump, spell_warlock_scarlet_scourge_aura);
