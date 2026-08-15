@@ -66,7 +66,7 @@ INSERT INTO `spell_script_names` (`spell_id`, `ScriptName`) VALUES
 
 DELETE FROM `skilllineability_dbc` WHERE `ID` IN (90031,90032,90033,90034);
 INSERT INTO `skilllineability_dbc`
-(`ID`,`SkillLine`,`Spell`,`RaceMask`,`ClassMask`,`ExcludeRace`,`ExcludeClass`,`MinSkillLineRank`,`SupercededBySpell`,`AcquireMethod`,`SkillLineRank`,`TrivialSkillLineRankHigh`,`TrivialSkillLineRankLow`,`CharacterPoints_1`)
+(`ID`,`SkillLine`,`Spell`,`RaceMask`,`ClassMask`,`ExcludeRace`,`ExcludeClass`,`MinSkillLineRank`,`SupercededBySpell`,`AcquireMethod`,`TrivialSkillLineRankHigh`,`TrivialSkillLineRankLow`,`CharacterPoints_1`,`CharacterPoints_2`)
 VALUES
 (90031,593,90031,0,256,0,0,1,0,0,0,0,0,0),
 (90032,593,90032,0,256,0,0,1,0,0,0,0,0,0),
