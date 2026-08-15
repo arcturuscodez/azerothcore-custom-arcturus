@@ -475,7 +475,10 @@ namespace
     void ClearEmbraceUndeathMorph(Player* player)
     {
         EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
-        bool ourMorph = (state && state->active) || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        bool ourMorph = (state && state->active)
+            || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY)
+            || player->HasAura(SPELL_EMBRACE_UNDEATH)
+            || player->HasAura(16591);
         if (!ourMorph)
             return;
 
@@ -483,8 +486,9 @@ namespace
             state->active = false;
 
         player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
-        // Legacy builds applied stock skeleton morph 16591 as the buff.
+        // Legacy builds applied stock skeleton morph 16591, or TRANSFORM directly on 90004.
         player->RemoveAurasDueToSpell(16591);
+        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH);
         player->DeMorph();
     }
 
@@ -506,7 +510,10 @@ namespace
         player->RemoveAurasDueToSpell(SPELL_CRIMSON_SHADE);
 
         EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
-        if ((state && state->active) || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+        // Also treat a leftover TRANSFORM-on-90004 (pre-DUMMY builds) as "on".
+        if ((state && state->active)
+            || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY)
+            || player->HasAura(SPELL_EMBRACE_UNDEATH))
         {
             ClearEmbraceUndeathMorph(player);
             SendMessageIfOnline(player, "|cff9370dbFlesh returns. Undeath loosens its grip.|r");
