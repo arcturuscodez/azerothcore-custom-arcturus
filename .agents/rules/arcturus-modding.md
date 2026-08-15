@@ -28,6 +28,13 @@ Apply on every task that touches items, spells, icons, tooltips, or HD clients.
 - Add new `Warlock*.Enable` (and similar) keys to
   `conf/dist/arcturus-recommended-overrides.conf.dist`, and remind about gitignored
   live `env/dist/etc/` copies.
+- **Custom learned passives** (Gift ranks, etc.) must match stock talent passives:
+  `Attributes` includes `PASSIVE`, every effect targets **self only**, permanent duration.
+  Pet-side effects go in `spell_pet_auras` (Soul Link / MD pattern) — **never**
+  `TARGET_UNIT_PET` on the player-learned spell (that makes `learnSpell` → `CastSpell`
+  fail with NO_PET and look like a "flaky" aura). Changing unrelated spells must not
+  require touching these rows; if a passive breaks, fix its `spell_dbc`, do not add
+  per-spell bandaids.
 
 ## Do not
 

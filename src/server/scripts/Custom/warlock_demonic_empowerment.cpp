@@ -9,9 +9,10 @@
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
- *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90030 (RANK_SPELLS) + chat announcement
- *  - Passives (90001–90003 / 90007): learnSpell only — stock Player::_addSpell casts them
- *  - Feltouched pet half: spell_pet_auras → Pet::CastPetAuras (Soul Link style)
+ *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90030–90034 (RANK_SPELLS) + chat announcement
+ *  - Passives (90001–90003 / 90007): same path as talent passives —
+ *    learnSpell → _addSpell → CastSpell. Self-only targets; pet half via spell_pet_auras.
+ *  - Feltouched pet MP5 (90009): spell_pet_auras from 90003 dummy (not taught)
  *  - Embrace Undeath (90004): DUMMY toggle → morph aura 90018 (death clears);
  *    soft-stripped on far teleport and reapplied after map load (client crash guard)
  *  - Ward of the Soul-Eater (90007/90008) converts Sanguine Ruin overheal into an
@@ -775,34 +776,40 @@ namespace
         }
     }
 
+    // Mirror stock talent passives: learnSpell casts them; on login/resync only
+    // re-CastSpell if the aura is missing. AddAura is a last resort + error log —
+    // that means spell_dbc targets are wrong (never TARGET_UNIT_PET on a learned passive).
+    void EnsureKnownPassiveAuras(Player* player)
+    {
+        for (RankSpell const& entry : RANK_SPELLS)
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(entry.id);
+            if (!info || !info->IsPassive() || !player->HasSpell(entry.id) || player->HasAura(entry.id))
+                continue;
+
+            player->CastSpell(player, entry.id, true);
+            if (player->HasAura(entry.id))
+                continue;
+
+            LOG_ERROR("scripts.arcturus",
+                "Rank passive {} ({}) failed CastSpell for {} — fix spell_dbc targets (must be self-only). Forcing AddAura.",
+                entry.id, entry.name, player->GetName());
+            player->AddAura(entry.id, player);
+        }
+
+        // Soul Link / Master Demonologist pattern: owner m_petAuras → live demon.
+        if (Pet* pet = player->GetPet())
+            pet->CastPetAuras(true);
+    }
+
     void ResyncSoulEffects(Player* player, Souls const& souls)
     {
         SyncTempering(player, souls.lifetime);
         SyncTalentPoints(player, souls.lifetime);
-        // learnSpell on PASSIVE ranks (90001–90003 / 90007) casts them via
-        // Player::_addSpell → IsNeedCastPassiveSpellAtLearn (stock path).
-        // Feltouched pet half is spell_pet_auras → Pet::CastPetAuras (Soul Link style).
         SyncRankSpells(player, souls.lifetime, false);
 
-        // Re-apply known passives if the aura is missing. CastSpell alone is not enough for
-        // Feltouched Communion (90003): older spell_dbc used TARGET_UNIT_PET on effect 2, so
-        // CheckCast failed with NO_PET and _addSpell never stuck the aura. AddAura bypasses
-        // that and still applies self effects (MP5 + dummy → spell_pet_auras).
         if (IsEnabled())
-        {
-            for (RankSpell const& entry : RANK_SPELLS)
-            {
-                SpellInfo const* info = sSpellMgr->GetSpellInfo(entry.id);
-                if (!info || !info->IsPassive())
-                    continue;
-                if (!player->HasSpell(entry.id) || player->HasAura(entry.id))
-                    continue;
-
-                player->CastSpell(player, entry.id, true);
-                if (!player->HasAura(entry.id))
-                    player->AddAura(entry.id, player);
-            }
-        }
+            EnsureKnownPassiveAuras(player);
 
         // LoadPet() runs before OnPlayerLogin, so OnPlayerAfterGuardianInitStatsForLevel
         // saw unloaded counters and skipped the flat soul mods (Spell Bonus still works

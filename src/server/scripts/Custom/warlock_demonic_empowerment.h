@@ -6,10 +6,12 @@
  *   current  — same as lifetime (souls are never lost); flat stats on the summoned demon
  *
  * Login strips borrowed class spells left on characters from older builds.
- * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030 (see RANK_SPELLS;
- * 90006 hop, 90008 Ward absorb, 90009 Feltouched pet aura, 90041 Damned Resonance are
- * script/DB-triggered only). Passives use stock learnSpell application; Feltouched pet
- * half uses spell_pet_auras. Embrace Undeath is a DUMMY toggle → morph aura 90018.
+ * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 (see RANK_SPELLS;
+ * 90006 hop, 90008 Ward absorb, 90009 Feltouched pet aura, 90037 Shade pet stealth,
+ * 90041 Damned Resonance are script/DB-triggered only). Passives use the stock talent path
+ * (self-only + PASSIVE; pet auras via spell_pet_auras only — never TARGET_UNIT_PET on the
+ * learned spell). Crimson Shade is Stealth-style FORM_STEALTH; openers are stance-gated
+ * like Ambush. Embrace Undeath is a DUMMY toggle → morph aura 90018.
  *
  * See warlock_demonic_empowerment.cpp.
  */
@@ -72,7 +74,11 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_DAMNED_RESONANCE          = 90041; // pet damage buff when ward absorbs
     // Feltouched pet mana/5 — applied by spell_pet_auras from 90003 dummy (not taught).
     constexpr uint32 SPELL_FELTOUCHED_COMMUNION_PET = 90009;
-    constexpr uint32 SPELL_CRIMSON_SHADE           = 90030; // Dread Warlock (2500) ethereal stance
+    constexpr uint32 SPELL_CRIMSON_SHADE           = 90030; // Dread Warlock (2500) Stealth-style stance
+    constexpr uint32 SPELL_SOUL_REAVING            = 90031; // Shade opener (stance-gated)
+    constexpr uint32 SPELL_SEARING_BRAND           = 90032;
+    constexpr uint32 SPELL_TORMENTING_REND         = 90033;
+    constexpr uint32 SPELL_WITHERING_TOUCH         = 90034;
 
     // Retired spells stripped on login (no longer taught).
     inline constexpr std::array<uint32, 1> RETIRED_RANK_SPELLS = {{
@@ -94,14 +100,18 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    inline constexpr std::array<RankSpell, 7> RANK_SPELLS = {{
+    inline constexpr std::array<RankSpell, 11> RANK_SPELLS = {{
         { 100u,  SPELL_SANGUINE_RUIN,            "Sanguine Ruin"            },
         { 250u,  SPELL_NETHER_PRESENCE,          "Nether Presence"          },
         { 500u,  SPELL_FELTOUCHED_COMMUNION,     "Feltouched Communion"     },
         { 500u,  SPELL_EMBRACE_UNDEATH,          "Embrace Undeath"          },
         { 1000u, SPELL_SCARLET_SCOURGE,          "Scarlet Scourge"          },
         { 2500u, SPELL_WARD_OF_THE_SOUL_EATER,   "Ward of the Soul-Eater"   },
-        { 2500u, SPELL_CRIMSON_SHADE,            "Crimson Shade"            }
+        { 2500u, SPELL_CRIMSON_SHADE,            "Crimson Shade"            },
+        { 2500u, SPELL_SOUL_REAVING,             "Soul Reaving"             },
+        { 2500u, SPELL_SEARING_BRAND,            "Searing Brand"            },
+        { 2500u, SPELL_TORMENTING_REND,          "Tormenting Rend"          },
+        { 2500u, SPELL_WITHERING_TOUCH,          "Withering Touch"          }
     }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{

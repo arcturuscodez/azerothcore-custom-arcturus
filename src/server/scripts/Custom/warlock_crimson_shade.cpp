@@ -1,12 +1,21 @@
 /*
- * Crimson Shade — ethereal stealth stance + stock-spell opener redirects.
+ * Crimson Shade — rogue Stealth / Meta-style stance.
+ *
+ * 90030: FORM_STEALTH shapeshift + MOD_STEALTH + speed (no OVERRIDE_SPELLS).
+ * Openers: permanently taught at Dread Warlock; Stances = FORM_STEALTH (like Ambush).
+ * Pet: 90037 MOD_STEALTH while owner is in Shade.
  */
 
 #include "warlock_arcturus_spells.h"
 
+#include "Guardian.h"
+#include "Pet.h"
 #include "Player.h"
+#include "PlayerScript.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
+#include "SpellAuras.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "Unit.h"
@@ -15,81 +24,49 @@ using namespace ArcturusSpells;
 
 namespace
 {
-    // Do not strip Shade here — opener BeforeCast does that after the opener
-    // passes range/shape checks. Failed opener casts leave Shade intact.
-    SpellCastResult TryShadeRedirect(SpellScript* self, uint32 openerId)
+    void SyncShadePetStealth(Unit* owner, bool apply)
     {
-        Unit* caster = self->GetCaster();
-        if (!caster || !caster->IsPlayer() || !caster->HasAura(SPELL_CRIMSON_SHADE))
-            return SPELL_CAST_OK;
+        Player* player = owner ? owner->ToPlayer() : nullptr;
+        if (!player)
+            return;
 
-        Unit* target = self->GetExplTargetUnit();
-        if (!target)
-            return SPELL_FAILED_BAD_TARGETS;
+        Pet* pet = player->GetPet();
+        if (!pet || !pet->IsAlive())
+            return;
 
-        // Melee openers: keep Shade if out of range (do not strip-then-fail).
-        // Opener keeps GCD (no IGNORE_GCD). Power ignored so SB+opener don't double-tax.
-        TriggerCastFlags const flags = TriggerCastFlags(
-            TRIGGERED_IGNORE_POWER_AND_REAGENT_COST |
-            TRIGGERED_IGNORE_CAST_IN_PROGRESS |
-            TRIGGERED_IGNORE_SHAPESHIFT);
-
-        SpellCastResult const res = caster->CastSpell(target, openerId, flags);
-        if (res != SPELL_CAST_OK)
-            return res;
-
-        return SPELL_FAILED_DONT_REPORT;
+        if (apply)
+        {
+            if (!pet->HasAura(SPELL_CRIMSON_SHADE_PET))
+                pet->CastSpell(pet, SPELL_CRIMSON_SHADE_PET, true);
+        }
+        else
+            pet->RemoveAurasDueToSpell(SPELL_CRIMSON_SHADE_PET);
     }
 }
 
-class spell_crimson_redirect_shadow_bolt : public SpellScript
+class spell_crimson_shade_aura : public AuraScript
 {
-    PrepareSpellScript(spell_crimson_redirect_shadow_bolt);
+    PrepareAuraScript(spell_crimson_shade_aura);
 
-    SpellCastResult CheckCast() { return TryShadeRedirect(this, SPELL_SOUL_REAVING); }
+    void HandleApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        SyncShadePetStealth(GetTarget(), true);
+    }
+
+    void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        SyncShadePetStealth(GetTarget(), false);
+    }
 
     void Register() override
     {
-        OnCheckCast += SpellCheckCastFn(spell_crimson_redirect_shadow_bolt::CheckCast);
+        // Effect 0 = MOD_SHAPESHIFT (FORM_STEALTH) after Stealth-style rewrite.
+        AfterEffectApply += AuraEffectApplyFn(spell_crimson_shade_aura::HandleApply, EFFECT_0, SPELL_AURA_MOD_SHAPESHIFT, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(spell_crimson_shade_aura::HandleRemove, EFFECT_0, SPELL_AURA_MOD_SHAPESHIFT, AURA_EFFECT_HANDLE_REAL);
     }
 };
 
-class spell_crimson_redirect_immolate : public SpellScript
-{
-    PrepareSpellScript(spell_crimson_redirect_immolate);
-
-    SpellCastResult CheckCast() { return TryShadeRedirect(this, SPELL_SEARING_BRAND); }
-
-    void Register() override
-    {
-        OnCheckCast += SpellCheckCastFn(spell_crimson_redirect_immolate::CheckCast);
-    }
-};
-
-class spell_crimson_redirect_coa : public SpellScript
-{
-    PrepareSpellScript(spell_crimson_redirect_coa);
-
-    SpellCastResult CheckCast() { return TryShadeRedirect(this, SPELL_TORMENTING_REND); }
-
-    void Register() override
-    {
-        OnCheckCast += SpellCheckCastFn(spell_crimson_redirect_coa::CheckCast);
-    }
-};
-
-class spell_crimson_redirect_corruption : public SpellScript
-{
-    PrepareSpellScript(spell_crimson_redirect_corruption);
-
-    SpellCastResult CheckCast() { return TryShadeRedirect(this, SPELL_WITHERING_TOUCH); }
-
-    void Register() override
-    {
-        OnCheckCast += SpellCheckCastFn(spell_crimson_redirect_corruption::CheckCast);
-    }
-};
-
+// Ambush-style: using an opener ends Shade (breaks stealth).
 class spell_crimson_opener_strip_shade : public SpellScript
 {
     PrepareSpellScript(spell_crimson_opener_strip_shade);
@@ -144,13 +121,29 @@ class spell_tormenting_rend : public SpellScript
     }
 };
 
+class crimson_shade_player_script : public PlayerScript
+{
+public:
+    crimson_shade_player_script() : PlayerScript("crimson_shade_player_script", {
+        PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL
+    }) { }
+
+    void OnPlayerAfterGuardianInitStatsForLevel(Player* player, Guardian* guardian) override
+    {
+        if (!player || !guardian || !player->HasAura(SPELL_CRIMSON_SHADE))
+            return;
+        if (!guardian->ToPet())
+            return;
+        if (!guardian->HasAura(SPELL_CRIMSON_SHADE_PET))
+            guardian->CastSpell(guardian, SPELL_CRIMSON_SHADE_PET, true);
+    }
+};
+
 void AddSC_warlock_crimson_shade()
 {
-    RegisterSpellScript(spell_crimson_redirect_shadow_bolt);
-    RegisterSpellScript(spell_crimson_redirect_immolate);
-    RegisterSpellScript(spell_crimson_redirect_coa);
-    RegisterSpellScript(spell_crimson_redirect_corruption);
+    RegisterSpellScript(spell_crimson_shade_aura);
     RegisterSpellScript(spell_crimson_opener_strip_shade);
     RegisterSpellScript(spell_withering_touch);
     RegisterSpellScript(spell_tormenting_rend);
+    new crimson_shade_player_script();
 }

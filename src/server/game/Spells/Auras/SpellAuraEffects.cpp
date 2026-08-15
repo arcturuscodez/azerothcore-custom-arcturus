@@ -5882,7 +5882,8 @@ void AuraEffect::HandleAuraOverrideSpells(AuraApplication const* aurApp, uint8 m
         if (OverrideSpellDataEntry const* overrideSpells = sOverrideSpellDataStore.LookupEntry(overrideId))
             for (uint8 i = 0; i < MAX_OVERRIDE_SPELL; ++i)
                 if (uint32 spellId = overrideSpells->spellId[i])
-                    target->_addSpell(spellId, SPEC_MASK_ALL, true);
+                    // learnFromSkill=true: temporary bar-remap spells without "You have learned" chat
+                    target->_addSpell(spellId, SPEC_MASK_ALL, true, true);
     }
     else
     {
@@ -5890,7 +5891,7 @@ void AuraEffect::HandleAuraOverrideSpells(AuraApplication const* aurApp, uint8 m
         if (OverrideSpellDataEntry const* overrideSpells = sOverrideSpellDataStore.LookupEntry(overrideId))
             for (uint8 i = 0; i < MAX_OVERRIDE_SPELL; ++i)
                 if (uint32 spellId = overrideSpells->spellId[i])
-                    target->removeSpell(spellId, SPEC_MASK_ALL, true);
+                    target->removeSpell(spellId, SPEC_MASK_ALL, true, false);
     }
 }
 

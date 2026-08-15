@@ -30,9 +30,10 @@ namespace ArcturusSpells
     constexpr uint32 SPELL_WITHERING_TOUCH          = 90034;
     constexpr uint32 SPELL_WITHERING_AMP            = 90035;
     constexpr uint32 SPELL_TORMENTING_SILENCE       = 90036;
+    constexpr uint32 SPELL_CRIMSON_SHADE_PET        = 90037; // MOD_STEALTH on demon while Shade is up
 
-    // OverrideSpellData.dbc / overridespelldata_dbc row for bar remap
-    constexpr uint32 OVERRIDE_CRIMSON_SHADE         = 9001;
+    // FORM_STEALTH stance mask (1 << (FORM_STEALTH - 1)) — Ambush / Meta-style gate
+    constexpr uint32 STANCE_MASK_STEALTH            = 536870912u;
 
     constexpr uint32 BRAND_OWNER_DAMAGE_PCT         = 8;
     constexpr uint32 FELSTORM_BRAND_BONUS_PCT       = 25;
