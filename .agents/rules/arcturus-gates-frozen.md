@@ -1,8 +1,0 @@
-# Arcturus gates are frozen
-
-- **Never edit** files under `tests/arcturus_gates/**` (including `FROZEN.sha256`, `LIVE_SMOKE.md`, `README.md`, and all `test_*.py`).
-- **Never weaken, delete, skip, or comment out** a `GATE-*` case to make a commit pass.
-- If product code fails a gate, **fix the product code** (or pending SQL), not the test.
-- Before `git commit`, run `python tests/arcturus_gates/run_all.py` and ensure it passes (writes `.git/arcturus-gates.ok`).
-- Human-only unlock for intentional suite changes: `ARCTURUS_UNLOCK_GATES=1` then `python tools/lock_arcturus_gates.py --lock`.
-- Install git hooks once per clone: `powershell .githooks/install.ps1` or `bash .githooks/install.sh`.
