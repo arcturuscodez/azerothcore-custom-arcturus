@@ -57,11 +57,13 @@ class EmpowermentInvariants(unittest.TestCase):
                 msg=f"rank missing: {souls} {name}",
             )
 
-    def test_GATE_EMP_003_gifts_dormant_strip_only(self):
-        """GATE-EMP-003: Legacy gift spells are strip-only — never auto-learned."""
-        self.assertIn("StripLegacyGiftSpells", self.cpp)
-        self.assertIn("LEGACY_GIFT_SPELLS", self.h)
-        self.assertIn("15286u", self.h)
+    def test_GATE_EMP_003_no_legacy_gift_scaffold(self):
+        """GATE-EMP-003: Borrowed-class gift strip list is gone; only retired ranks strip."""
+        self.assertNotIn("StripLegacyGiftSpells", self.cpp)
+        self.assertNotIn("LEGACY_GIFT_SPELLS", self.h)
+        self.assertNotIn("15286u", self.h)
+        self.assertIn("StripRetiredRankSpells", self.cpp)
+        self.assertIn("RETIRED_RANK_SPELLS", self.h)
         self.assertNotIn("SyncGifts", self.cpp)
         self.assertNotRegex(
             self.cpp,
@@ -86,12 +88,13 @@ class EmpowermentInvariants(unittest.TestCase):
         self.assertIn("SyncTalentPoints", self.cpp)
         self.assertIn("SyncTalentPoints(player, souls.lifetime)", self.cpp)
 
-    def test_GATE_EMP_005_legacy_strip_spell_ids(self):
-        """GATE-EMP-005: Login strips Fel Domination 18708 and legacy 900000."""
-        self.assertIn("SPELL_FEL_DOMINATION_LEGACY     = 18708", self.h)
-        self.assertIn("SPELL_DEMONIC_EMPOWERMENT_LEGACY = 900000", self.h)
-        self.assertIn("RemoveAurasDueToSpell(SPELL_FEL_DOMINATION_LEGACY)", self.cpp)
-        self.assertIn("SPELL_DEMONIC_EMPOWERMENT_LEGACY", self.cpp)
+    def test_GATE_EMP_005_no_legacy_aura_strip_ids(self):
+        """GATE-EMP-005: Fel Domination / legacy 900000 login strip scaffolding is gone."""
+        self.assertNotIn("SPELL_FEL_DOMINATION_LEGACY", self.h)
+        self.assertNotIn("SPELL_DEMONIC_EMPOWERMENT_LEGACY", self.h)
+        self.assertNotIn("SPELL_FEL_DOMINATION_LEGACY", self.cpp)
+        self.assertNotIn("SPELL_DEMONIC_EMPOWERMENT_LEGACY", self.cpp)
+        self.assertIn("StripRetiredRankSpells(player)", self.cpp)
 
     def test_GATE_EMP_006_pet_soul_sp_is_pet_only(self):
         """GATE-EMP-006: PetSoulSpellPowerBonus requires IsPet()."""

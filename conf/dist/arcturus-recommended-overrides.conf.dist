@@ -57,6 +57,16 @@ WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 25
 WarlockDemonicEmpowerment.Tempering.MaxTiers = 0
 WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
 
+# Corrupted Blood (90042) — Soul Reaver (5000 souls) passive.
+# Stat values live in spell_dbc (90042 / 90043), not here: tune them with an UPDATE.
+# VisualSpellId is the animation seam — set it to a spell_dbc row with the visual you
+# want and the passive casts it on apply. 0 = no extra visual (the default today).
+Arcturus.CorruptedBlood.VisualSpellId = 0
+# Creepy self-whispers from your own blood. Pure flavor; rolled on the passive's 30s tick.
+Arcturus.CorruptedBlood.Whispers.Enable = 1
+Arcturus.CorruptedBlood.Whispers.MinSeconds = 240
+Arcturus.CorruptedBlood.Whispers.MaxSeconds = 900
+
 ####################################################################################################
 # AutoBalance.conf  (modules/mod-autobalance/conf/)
 ####################################################################################################

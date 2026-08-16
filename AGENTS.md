@@ -45,6 +45,8 @@ Tests (Google Test, in `src/test/`): configure `-DBUILD_TESTING=ON`, then `ctest
 1. `cd data/sql/updates/pending_db_world/` (or `pending_db_auth` / `pending_db_characters`).
 2. `./create_sql.sh` generates an empty `rev_<timestamp>.sql` to write into.
 3. Conventions enforced by `apps/codestyle/codestyle-sql.py`: every `INSERT` preceded by a matching `DELETE` (idempotency); no double semicolons; no multiple blank lines; InnoDB engine.
+4. **Never edit a rev that may already be applied** — the updater re-runs any file whose hash changed, and it re-runs it *alone*, without the later revs that corrected it. A rev is a point-in-time delta, not a description of the end state. Correct forward with a new rev.
+5. The `DELETE`-before-`INSERT` check is line-based: keep the `DELETE` on **one line**, or a multi-line `WHERE ... IN (...)` reads as a missing `DELETE`.
 
 The three databases:
 
@@ -62,6 +64,9 @@ Run the linters before claiming a change is done:
 python apps/codestyle/codestyle-cpp.py     # C++
 python apps/codestyle/codestyle-sql.py     # SQL (compares to origin/master)
 ```
+
+On Windows PowerShell set `$env:PYTHONIOENCODING="utf-8"` first — these scripts print `❌` and
+otherwise die with `UnicodeEncodeError` on the default console before showing any results.
 
 Hard rules (also enforced by CI with `-Werror`, plus `cppcheck`):
 

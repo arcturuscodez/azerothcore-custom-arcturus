@@ -6,10 +6,11 @@
  *   current  — same as lifetime (souls are never lost); flat stats on the summoned demon
  *
  * Login strips retired rank spells left on characters from older builds.
- * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 (see RANK_SPELLS;
- * 90006 hop, 90008 Ward absorb, 90009 Feltouched pet aura, 90041 Damned Resonance are
- * script/DB-triggered only). Passives use the stock talent path (self-only + PASSIVE;
- * pet auras via spell_pet_auras only — never TARGET_UNIT_PET on the learned spell).
+ * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 / 90042 (see
+ * RANK_SPELLS; 90006 hop, 90008 Ward absorb, 90041 Damned Resonance, 90043–90045
+ * Corrupted Blood halves are script/DB-triggered only). Passives use the stock talent
+ * path (self-only + PASSIVE; pet auras via spell_pet_auras only — never
+ * TARGET_UNIT_PET on the learned spell).
  * Crimson Shade is Stealth-style FORM_STEALTH; openers are stance-gated like Ambush
  * (no forced pet stealth). Embrace Undeath is a DUMMY toggle → morph aura 90018.
  *
@@ -60,7 +61,6 @@ namespace WarlockEmpowerment
     // Custom rank spells (client Spell.dbc + server spell_dbc).
     constexpr uint32 SPELL_SANGUINE_RUIN             = 90001; // Warlock (100)
     constexpr uint32 SPELL_NETHER_PRESENCE           = 90002; // Channeler (250)
-    constexpr uint32 SPELL_FELTOUCHED_COMMUNION      = 90003; // Feltouched (500)
     constexpr uint32 SPELL_EMBRACE_UNDEATH           = 90004; // Feltouched (500) active morph toggle
     constexpr uint32 SPELL_EMBRACE_UNDEATH_MORPH     = 90018; // TRANSFORM aura (display 531); not taught
     constexpr uint32 SPELL_SCARLET_SCOURGE           = 90005; // Demonologist (1000) jumping DoT
@@ -68,8 +68,7 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_WARD_OF_THE_SOUL_EATER    = 90007; // Dread Warlock (2500) passive
     constexpr uint32 SPELL_WARD_OF_THE_SOUL_EATER_ABSORB = 90008; // triggered absorb (not taught)
     constexpr uint32 SPELL_DAMNED_RESONANCE          = 90041; // pet damage buff when ward absorbs
-    // Feltouched pet mana/5 — applied by spell_pet_auras from 90003 dummy (not taught).
-    constexpr uint32 SPELL_FELTOUCHED_COMMUNION_PET = 90009;
+    constexpr uint32 SPELL_CORRUPTED_BLOOD           = 90042; // Soul Reaver (5000) passive
     constexpr uint32 SPELL_CRIMSON_SHADE           = 90030; // Dread Warlock (2500) Stealth-style stance
     constexpr uint32 SPELL_SOUL_REAVING            = 90031; // Shade opener (stance-gated)
     constexpr uint32 SPELL_SEARING_BRAND           = 90032;
@@ -77,8 +76,9 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_WITHERING_TOUCH         = 90034;
 
     // Retired spells stripped on login (no longer taught).
-    inline constexpr std::array<uint32, 1> RETIRED_RANK_SPELLS = {{
-        90010u // Summon Draxis / Marrowthrall
+    inline constexpr std::array<uint32, 2> RETIRED_RANK_SPELLS = {{
+        90010u, // Summon Draxis / Marrowthrall
+        90003u  // Feltouched Communion — superseded by Corrupted Blood (90042)
     }};
 
     // Rank ladder (lifetime souls).
@@ -99,7 +99,6 @@ namespace WarlockEmpowerment
     inline constexpr std::array<RankSpell, 11> RANK_SPELLS = {{
         { 100u,  SPELL_SANGUINE_RUIN,            "Sanguine Ruin"            },
         { 250u,  SPELL_NETHER_PRESENCE,          "Nether Presence"          },
-        { 500u,  SPELL_FELTOUCHED_COMMUNION,     "Feltouched Communion"     },
         { 500u,  SPELL_EMBRACE_UNDEATH,          "Embrace Undeath"          },
         { 1000u, SPELL_SCARLET_SCOURGE,          "Scarlet Scourge"          },
         { 2500u, SPELL_WARD_OF_THE_SOUL_EATER,   "Ward of the Soul-Eater"   },
@@ -107,7 +106,8 @@ namespace WarlockEmpowerment
         { 2500u, SPELL_SOUL_REAVING,             "Soul Reaving"             },
         { 2500u, SPELL_SEARING_BRAND,            "Searing Brand"            },
         { 2500u, SPELL_TORMENTING_REND,          "Tormenting Rend"          },
-        { 2500u, SPELL_WITHERING_TOUCH,          "Withering Touch"          }
+        { 2500u, SPELL_WITHERING_TOUCH,          "Withering Touch"          },
+        { 5000u, SPELL_CORRUPTED_BLOOD,          "Corrupted Blood"          }
     }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{

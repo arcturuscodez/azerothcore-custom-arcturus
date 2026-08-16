@@ -9,10 +9,11 @@
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
- *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90030–90034 (RANK_SPELLS) + chat announcement
- *  - Passives (90001–90003 / 90007): same path as talent passives —
+ *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90030–90034 / 90042 (RANK_SPELLS) + chat announcement
+ *  - Passives (90001 / 90002 / 90007 / 90042): same path as talent passives —
  *    learnSpell → _addSpell → CastSpell. Self-only targets; pet half via spell_pet_auras.
- *  - Feltouched pet MP5 (90009): spell_pet_auras from 90003 dummy (not taught)
+ *  - Corrupted Blood (90042): Soul Reaver passive, see warlock_corrupted_blood.cpp.
+ *    Retired Feltouched Communion 90003/90009 (stripped on login via RETIRED_RANK_SPELLS)
  *  - Embrace Undeath (90004): DUMMY toggle → morph aura 90018 (death clears);
  *    soft-stripped on far teleport and reapplied after map load (client crash guard)
  *  - Ward of the Soul-Eater (90007/90008) converts Sanguine Ruin overheal into an

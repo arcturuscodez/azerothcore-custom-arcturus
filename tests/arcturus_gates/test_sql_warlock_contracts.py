@@ -65,10 +65,11 @@ class SqlWarlockContracts(unittest.TestCase):
         self.assertTrue(banned.isdisjoint(self.pending_names), banned & self.pending_names)
 
     def test_GATE_SQL_004_characters_souls_table_wipe_ready(self):
-        """GATE-SQL-004: character_warlock_demon_kills created with lifetime/souls_lost."""
+        """GATE-SQL-004: character_warlock_demon_kills created with kills/lifetime only."""
         self.assertIn("character_warlock_demon_kills", self.chars)
+        self.assertIn("`kills`", self.chars)
         self.assertIn("`lifetime`", self.chars)
-        self.assertIn("`souls_lost`", self.chars)
+        self.assertNotIn("`souls_lost`", self.chars)
         self.assertNotIn("ADD COLUMN", self.chars)
 
     def test_GATE_SQL_005_infernal_pet_spells_pending(self):

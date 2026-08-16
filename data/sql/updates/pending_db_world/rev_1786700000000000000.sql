@@ -44,7 +44,8 @@ INSERT INTO `spell_dbc`
  `Reagent_1`,`ReagentCount_1`,
  `AuraInterruptFlags`,`AttributesEx6`,`ShapeshiftMask`,`ShapeshiftExclude`)
 VALUES
--- 90030 Crimson Shade: Stealth form (30) + stealth + speed. Attrs/interrupts from Stealth.
+-- 90030 Crimson Shade: Stealth form (30) + stealth (+5/level) + speed. Attrs/interrupts from Stealth.
+-- EffectRealPointsPerLevel set in rev_1786702 (column not in this INSERT list).
 (90030,437583888,16,2097152,0,0,1,0,0,0,0,101,1,1,21,0,0,1,-1,6,6,6,1,1,1,-1,99,99,0,0,0,0,1,1,1,0,0,36,16,31,0,0,30,0,0,0,184,2118,30,"Crimson Shade","","Slip into a crimson ethereal shade, becoming stealthed like a rogue. Move at nearly epic mount speed (+100%). Your demon shares the Shade. Soul Reaving, Searing Brand, Tormenting Rend, and Withering Touch can only be used while in the Shade. Taking damage or using an opener ends it.","Stealthed. Movement speed increased by 100%. Shade openers available.",5,0,0,32,1,1,1,0,0,146436,0,0,0),
 -- Openers: Stances = FORM_STEALTH (536870912). Taught at Dread Warlock.
 (90031,262160,0,0,0,0,1,0,0,0,0,101,1,1,0,0,0,2,-1,2,0,0,1,0,0,449,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,331,0,"Soul Reaving","","Ambush from the Shade, striking for heavy Shadow damage. Requires Crimson Shade. Ends Crimson Shade.","",5,1,0,32,0.8,1,1,0,0,0,0,536870912,0),
