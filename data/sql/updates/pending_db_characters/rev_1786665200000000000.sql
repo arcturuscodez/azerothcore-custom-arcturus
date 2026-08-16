@@ -1,7 +1,8 @@
 --
--- Soul-loss retirement: restore current souls to lifetime, clear legacy lost counter.
--- Safe to re-run.
+-- Final soul sync + drop retired souls_lost column.
 --
 UPDATE `character_warlock_demon_kills`
-SET `kills` = `lifetime`, `souls_lost` = 0
-WHERE `kills` < `lifetime` OR `souls_lost` > 0;
+SET `kills` = `lifetime`
+WHERE `kills` < `lifetime`;
+
+ALTER TABLE `character_warlock_demon_kills` DROP COLUMN IF EXISTS `souls_lost`;

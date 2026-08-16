@@ -19,7 +19,6 @@ namespace ArcturusSpells
     constexpr uint32 SPELL_LEGION_BRAND             = 90022;
     constexpr uint32 SPELL_FELSTORM_THREAT_PULSE    = 90023;
     constexpr uint32 SPELL_FELGUARD_MANDATE         = 90024;
-    // 90025 Pursuit Mark — retired (deleted from spell_dbc).
     constexpr uint32 SPELL_LEGION_BRAND_AMP         = 90026; // owner-cast +% taken from warlock
 
     // Crimson Shade

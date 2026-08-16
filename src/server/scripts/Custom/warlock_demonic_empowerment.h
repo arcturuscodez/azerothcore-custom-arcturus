@@ -5,7 +5,7 @@
  *   lifetime — never decreases; ranks, Soul Tempering, and bonus talent points
  *   current  — same as lifetime (souls are never lost); flat stats on the summoned demon
  *
- * Login strips borrowed class spells left on characters from older builds.
+ * Login strips retired rank spells left on characters from older builds.
  * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 (see RANK_SPELLS;
  * 90006 hop, 90008 Ward absorb, 90009 Feltouched pet aura, 90041 Damned Resonance are
  * script/DB-triggered only). Passives use the stock talent path (self-only + PASSIVE;
@@ -57,10 +57,6 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_TEMPER_MANA_PER5  = "WarlockDemonicEmpowerment.Tempering.ManaPer5";
     constexpr char const* CONFIG_TEMPER_MAX_TIERS  = "WarlockDemonicEmpowerment.Tempering.MaxTiers"; // 0 = unlimited
 
-    // Legacy buff aura IDs stripped on login (old builds saved these on the character).
-    constexpr uint32 SPELL_FEL_DOMINATION_LEGACY     = 18708;
-    constexpr uint32 SPELL_DEMONIC_EMPOWERMENT_LEGACY = 900000;
-
     // Custom rank spells (client Spell.dbc + server spell_dbc).
     constexpr uint32 SPELL_SANGUINE_RUIN             = 90001; // Warlock (100)
     constexpr uint32 SPELL_NETHER_PRESENCE           = 90002; // Channeler (250)
@@ -92,7 +88,7 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    // Lifetime milestones that teach custom spells (not the stripped LEGACY_GIFT_SPELLS).
+    // Lifetime milestones that teach custom spells.
     struct RankSpell
     {
         uint32      minSouls;
@@ -134,20 +130,6 @@ namespace WarlockEmpowerment
     }};
 
     std::size_t RankIndexFor(uint32 kills);
-
-    // Older builds auto-taught these borrowed class spells; strip on login.
-    inline constexpr std::array<uint32, 10> LEGACY_GIFT_SPELLS = {{
-        15286u, // Vampiric Embrace
-        31640u, // Playing with Fire
-        12472u, // Icy Veins
-        44403u, // Netherwind Presence
-        49039u, // Lichborne
-        48792u, // Icebound Fortitude
-        48707u, // Anti-Magic Shell
-        49938u, // Death and Decay
-        47585u, // Dispersion
-        15473u  // Shadowform
-    }};
 
     // Bonus talent points at lifetime milestones. Cumulative +145 — enough that a
     // level-80 warlock (71 from levels) can fill all three trees (216 points).
@@ -207,7 +189,6 @@ namespace WarlockEmpowerment
     {
         uint32 current  = 0;
         uint32 lifetime = 0;
-        uint32 lost     = 0; // legacy DB column only; never incremented
     };
 
     class Mgr

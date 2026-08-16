@@ -20,7 +20,7 @@
  *    Damned Resonance
  *  - WorldScript (5s): Enable flips + Embrace morph maintain for online warlocks only
  *
- * Persistence: character_warlock_demon_kills (guid, kills, lifetime, souls_lost legacy).
+ * Persistence: character_warlock_demon_kills (guid, kills, lifetime).
  */
 
 #include "warlock_demonic_empowerment.h"
@@ -303,7 +303,7 @@ namespace WarlockEmpowerment
     {
         uint32 low = guid.GetCounter();
         QueryResult result = CharacterDatabase.Query(
-            "SELECT kills, lifetime, souls_lost FROM character_warlock_demon_kills WHERE guid = {}", low);
+            "SELECT kills, lifetime FROM character_warlock_demon_kills WHERE guid = {}", low);
         std::unique_lock<std::shared_mutex> lock(_mutex);
         Souls souls;
         bool repaired = false;
@@ -311,14 +311,12 @@ namespace WarlockEmpowerment
         {
             souls.current  = (*result)[0].Get<uint32>();
             souls.lifetime = (*result)[1].Get<uint32>();
-            souls.lost     = (*result)[2].Get<uint32>();
             if (souls.lifetime < souls.current)
                 souls.lifetime = souls.current;
-            // Soul-loss mechanic retired: restore current and clear leftover lost counters.
-            if (souls.current < souls.lifetime || souls.lost != 0)
+            // Souls are never lost — keep current aligned with lifetime.
+            if (souls.current < souls.lifetime)
             {
                 souls.current = souls.lifetime;
-                souls.lost = 0;
                 repaired = true;
             }
         }
@@ -348,8 +346,8 @@ namespace WarlockEmpowerment
         // Logout must hit the DB before the session is gone.
         if (dirty)
             CharacterDatabase.DirectExecute(
-                "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime, souls_lost) VALUES ({}, {}, {}, {})",
-                low, souls.current, souls.lifetime, 0u);
+                "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime) VALUES ({}, {}, {})",
+                low, souls.current, souls.lifetime);
     }
 
     void Mgr::FlushIfDirty(ObjectGuid guid)
@@ -370,15 +368,15 @@ namespace WarlockEmpowerment
         // Periodic / save path: queue async — do not block the world thread on REPLACE.
         if (dirty)
             CharacterDatabase.Execute(
-                "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime, souls_lost) VALUES ({}, {}, {}, {})",
-                low, souls.current, souls.lifetime, 0u);
+                "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime) VALUES ({}, {}, {})",
+                low, souls.current, souls.lifetime);
     }
 
     void Mgr::PersistNow(uint32 low, Souls const& souls)
     {
         CharacterDatabase.Execute(
-            "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime, souls_lost) VALUES ({}, {}, {}, {})",
-            low, souls.current, souls.lifetime, 0u);
+            "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime) VALUES ({}, {}, {})",
+            low, souls.current, souls.lifetime);
     }
 }
 
@@ -449,8 +447,7 @@ namespace
     }
 
     // ---- Embrace Undeath (90004) morph toggle ---------------------------------
-    // 90004 is SPELL_EFFECT_DUMMY; script applies custom TRANSFORM 90018 (display 531)
-    // so the buff bar shows Embrace Undeath — not stock skeleton morph 16591.
+    // 90004 is SPELL_EFFECT_DUMMY; script applies custom TRANSFORM 90018 (display 531).
 
     constexpr uint32 SPELL_EMBRACE_UNDEATH_DISPLAY = SPELL_EMBRACE_UNDEATH_MORPH;
     constexpr char const* EMBRACE_UNDEATH_KEY = "WarlockEmpowerment.EmbraceUndeath";
@@ -492,8 +489,7 @@ namespace
         EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
         bool ourMorph = (state && state->active)
             || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY)
-            || player->HasAura(SPELL_EMBRACE_UNDEATH)
-            || player->HasAura(16591);
+            || player->HasAura(SPELL_EMBRACE_UNDEATH);
         if (!ourMorph)
             return;
 
@@ -504,8 +500,6 @@ namespace
         }
 
         player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
-        // Legacy builds applied stock skeleton morph 16591, or TRANSFORM directly on 90004.
-        player->RemoveAurasDueToSpell(16591);
         player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH);
         player->DeMorph();
     }
@@ -522,7 +516,6 @@ namespace
         // Keep active=true so we reapply after the map change; only drop the aura/display.
         state->pendingMapReapply = true;
         player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
-        player->RemoveAurasDueToSpell(16591);
     }
 
     void MaintainEmbraceUndeathMorph(Player* player)
@@ -726,35 +719,17 @@ namespace
         state->hasValues = true;
     }
 
-    // Login hygiene: strip borrowed class spells if still on the character.
-    void StripLegacyGiftSpells(Player* player)
+    // Login hygiene: strip retired custom spells if still on the character.
+    void StripRetiredRankSpells(Player* player)
     {
-        for (uint32 spellId : LEGACY_GIFT_SPELLS)
-        {
-            if (player->HasTalent(spellId, 0) || player->HasTalent(spellId, 1))
-                continue;
-
-            if (player->HasSpell(spellId))
-                player->removeSpell(spellId, SPEC_MASK_ALL, false);
-            else
-            {
-                // Rejected during _LoadSpells (never in m_spells) — force DB delete.
-                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SPELL_BY_SPELL);
-                stmt->SetData(0, player->GetGUID().GetCounter());
-                stmt->SetData(1, spellId);
-                CharacterDatabase.Execute(stmt);
-            }
-        }
-
         for (uint32 spellId : RETIRED_RANK_SPELLS)
             player->removeSpell(spellId, SPEC_MASK_ALL, false);
     }
 
-    // Teach / revoke custom rank passives from lifetime souls (never touches LEGACY_GIFT_SPELLS).
+    // Teach / revoke custom rank passives from lifetime souls.
     void SyncRankSpells(Player* player, uint32 lifetime, bool announce)
     {
-        for (uint32 spellId : RETIRED_RANK_SPELLS)
-            player->removeSpell(spellId, SPEC_MASK_ALL, false);
+        StripRetiredRankSpells(player);
 
         bool const enabled = IsEnabled();
         for (RankSpell const& entry : RANK_SPELLS)
@@ -858,7 +833,7 @@ namespace
         TemperValues t = LoadedTemper();
         BonusValues b = LoadedBonus();
 
-        // ARCTURUS_VL wire format is fixed-width; retired fields stay 0.
+        // ARCTURUS_VL: S:current:lifetime:rank:temperTiers:tSta:tInt:tSp:tMp5:talents:dSta:dStr:dAgi:dInt:dSpi:dAp:dSpx10:dArmor:gifts:tmask:enabled
         uint32 talentMask = 0;
         for (std::size_t i = 0; i < TALENT_GRANTS.size(); ++i)
             if (souls.lifetime >= TALENT_GRANTS[i].souls)
@@ -872,21 +847,15 @@ namespace
         uint32 const petSouls = AppliedSoulsFor(souls.current);
         int32 demonSpX10 = int32(b.spellPower * float(petSouls) * 10.0f + 0.5f);
         std::string body = Acore::StringFormat(
-            "S:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            "S:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
             souls.current,
             souls.lifetime,
-            0u, // lost — mechanic retired; slot kept for Void Ledger wire format
             uint32(rankIdx),
             temperTiers,
             t.stamina * int32(temperTiers),
             t.intellect * int32(temperTiers),
             t.spellPower * int32(temperTiers),
             t.manaPer5 * int32(temperTiers),
-            0u,
-            0u, // death-penalty — retired; slot kept for Void Ledger wire format
-            0u,
-            0u,
-            0u,
             BonusTalentPointsFor(souls.lifetime),
             uint32(b.stamina * float(petSouls)),
             uint32(b.strength * float(petSouls)),
@@ -971,13 +940,10 @@ public:
 
         TrackOnlineWarlock(player);
 
-        player->RemoveAurasDueToSpell(SPELL_FEL_DOMINATION_LEGACY);
-        player->RemoveAurasDueToSpell(SPELL_DEMONIC_EMPOWERMENT_LEGACY);
-
         sWarlockEmpower->LoadFromDB(player->GetGUID());
         Souls souls = sWarlockEmpower->Get(player->GetGUID());
 
-        StripLegacyGiftSpells(player);
+        StripRetiredRankSpells(player);
 
         bool enabled = IsEnabled();
         ResyncSoulEffects(player, souls);
