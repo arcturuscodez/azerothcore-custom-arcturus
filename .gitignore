@@ -133,6 +133,7 @@ debug-*.log
 !/src/server/scripts/Custom/warlock_arcturus_spells.h
 !/src/server/scripts/Custom/warlock_felguard_mandate.cpp
 !/src/server/scripts/Custom/warlock_crimson_shade.cpp
+!/src/server/scripts/Custom/warlock_corrupted_blood.cpp
 !/src/server/scripts/Custom/CMakeLists.txt
 
 # Generated client patch artifacts (built by client-patches/build_spell_patch.py)
