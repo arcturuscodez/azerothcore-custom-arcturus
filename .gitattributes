@@ -1,19 +1,15 @@
 # Auto detect text files and perform LF normalization
 * text eol=lf
-
 # Whitespace rules
 # strict (no trailing, no tabs)
 *.cpp    whitespace=trailing-space,space-before-tab,tab-in-indent,cr-at-eol
 *.h      whitespace=trailing-space,space-before-tab,tab-in-indent,cr-at-eol
-
 # normal (no trailing)
 *.sql    whitespace=trailing-space,space-before-tab,cr-at-eol
 *.txt    whitespace=trailing-space,space-before-tab,cr-at-eol
-
 # special files which must ignore whitespace
 *.patch  whitespace=-trailing-space eol=lf
 *.diff   whitespace=-trailing-space eol=lf
-
 # Standard to msysgit
 *.doc    diff=astextplain
 *.DOC    diff=astextplain
@@ -25,6 +21,11 @@
 *.PDF    diff=astextplain
 *.rtf    diff=astextplain
 *.RTF    diff=astextplain
-
 # Ignore sql/* files
 data/sql/*    linguist-documentation
+# Arcturus late client patch DBCs (see client-patches/README.md).
+# Never apply the repo-wide `* text eol=lf` rule to these — they are binary.
+# Spell.dbc is ~49 MB (under GitHub's 100 MB hard limit). Do NOT put it in Git LFS:
+# public forks cannot upload LFS objects.
+client-patches/dbc/*.dbc binary
+client-patches/dbc/*.dbc linguist-generated=true

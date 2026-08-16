@@ -136,8 +136,10 @@ debug-*.log
 !/src/server/scripts/Custom/warlock_corrupted_blood.cpp
 !/src/server/scripts/Custom/CMakeLists.txt
 
-# Generated client patch artifacts (built by client-patches/build_spell_patch.py)
+# Generated / local-only client patch artifacts (tracked DBCs live in client-patches/dbc/)
 /client-patches/out/
+*.MPQ.rebuild
+*.MPQ.bak
 MY_SERVER.txt
 dml-start.sh
 
