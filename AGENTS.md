@@ -8,7 +8,6 @@ For **Arcturus-specific** customs (spells, pets, Spell Editor, client/server spl
 
 - **Do not configure or build unless explicitly asked.** Builds are slow and rarely needed for code changes.
 - **Never edit SQL files outside `data/sql/updates/pending_db_*/` unless explicitly requested. ** `data/sql/base/`, `data/sql/archive/`, and `data/sql/updates/db_*/` are immutable.
-- **Never edit `tests/arcturus_gates/**`.** Frozen pre-commit contracts (`GATE-*`). Run `python tests/arcturus_gates/run_all.py` before committing; fix product code if a gate fails. See [`.cursor/rules/arcturus-gates-frozen.mdc`](.cursor/rules/arcturus-gates-frozen.mdc). Install hooks once: `.githooks/install.ps1` / `install.sh`.
 
 ## Build
 

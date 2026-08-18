@@ -217,6 +217,24 @@ namespace
     // raise the cap from the highest known profession-rank spell. Does not invent ranks.
     void RepairPrimaryProfessionSkillCaps(Player* player)
     {
+        bool needsRepair = false;
+        for (auto const& pair : player->GetSkillStatusMap())
+        {
+            if (pair.second.uState == SKILL_DELETED)
+                continue;
+            if (!IsPrimaryProfessionSkill(pair.first))
+                continue;
+            if (!player->GetPureSkillValue(pair.first))
+                continue;
+            if (player->GetPureMaxSkillValue(pair.first) < 450)
+            {
+                needsRepair = true;
+                break;
+            }
+        }
+        if (!needsRepair)
+            return;
+
         for (auto const& pair : player->GetSkillStatusMap())
         {
             if (pair.second.uState == SKILL_DELETED)
@@ -227,6 +245,8 @@ namespace
             uint32 const skill = pair.first;
             uint16 const value = player->GetPureSkillValue(skill);
             if (!value)
+                continue;
+            if (player->GetPureMaxSkillValue(skill) >= 450)
                 continue;
 
             uint16 bestStep = 0;

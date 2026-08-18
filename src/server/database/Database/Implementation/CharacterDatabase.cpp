@@ -635,6 +635,11 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     // world_state
     PrepareStatement(CHAR_SEL_WORLD_STATE, "SELECT Id, Data FROM world_state", CONNECTION_SYNCH);
     PrepareStatement(CHAR_REP_WORLD_STATE, "REPLACE INTO world_state (Id, Data) VALUES(?, ?)", CONNECTION_ASYNC);
+
+    PrepareStatement(CHAR_SEL_WARLOCK_SOULS,
+        "SELECT kills, lifetime FROM character_warlock_demon_kills WHERE guid = ?", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_REP_WARLOCK_SOULS,
+        "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime) VALUES (?, ?, ?)", CONNECTION_BOTH);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

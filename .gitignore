@@ -123,10 +123,6 @@ debug-*.log
 !/src/server/scripts/Custom/warlock_demonic_empowerment.cpp
 !/src/server/scripts/Custom/warlock_demonic_empowerment.h
 !/src/server/scripts/Custom/cs_demons.cpp
-!/src/server/scripts/Custom/warlock_legendaries.cpp
-!/src/server/scripts/Custom/warlock_legendaries.h
-!/src/server/scripts/Custom/warlock_special_items.cpp
-!/src/server/scripts/Custom/warlock_special_items.h
 !/src/server/scripts/Custom/custom_script_loader.cpp
 !/src/server/scripts/Custom/endless_instances.cpp
 !/src/server/scripts/Custom/arcturus_trade_skills.cpp

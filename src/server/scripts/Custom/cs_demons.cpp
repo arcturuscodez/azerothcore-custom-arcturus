@@ -9,7 +9,6 @@
 
 #include "Chat.h"
 #include "CommandScript.h"
-#include "Config.h"
 #include "Player.h"
 #include "RBAC.h"
 #include "StringFormat.h"
@@ -104,7 +103,7 @@ public:
         handler->PSendSysMessage(
             "Demon ({} applied of {} current; cap {}): |cff00ffff+{} Sta / +{} Str / +{} Agi / +{} Int / +{} Spi / +{} AP / +{:.1f} SP / +{} Armor|r",
             petSouls, souls.current,
-            sConfigMgr->GetOption<uint32>(CONFIG_MAX_SOULS_APPLIED, 10000u),
+            MaxSoulsApplied(),
             uint32(b.stamina * float(petSouls)),
             uint32(b.strength * float(petSouls)),
             uint32(b.agility * float(petSouls)),
@@ -116,7 +115,7 @@ public:
 
         uint32 tiers = TemperTiersFor(souls.lifetime);
         TemperValues t = LoadedTemper();
-        int32 interval = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTERVAL, 100);
+        int32 interval = TemperInterval();
         handler->PSendSysMessage(
             "Tempering (every {} lifetime → {} tiers): |cff00ffff+{} Sta / +{} Int / +{} SP / +{} Mana/5|r",
             interval, tiers,

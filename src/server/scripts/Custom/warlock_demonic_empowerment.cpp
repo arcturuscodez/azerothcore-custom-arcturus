@@ -13,7 +13,8 @@
  *  - Passives (90001 / 90002 / 90007 / 90042): same path as talent passives —
  *    learnSpell → _addSpell → CastSpell. Self-only targets; pet half via spell_pet_auras.
  *  - Corrupted Blood (90042): Soul Reaver passive, see warlock_corrupted_blood.cpp.
- *    Retired Feltouched Communion 90003/90009 (stripped on login via RETIRED_RANK_SPELLS)
+ *    Retired Feltouched Communion 90003 stripped on login via RETIRED_RANK_SPELLS;
+ *    90009 was never taught (pet half via spell_pet_auras only).
  *  - Wrath of Chaos (90046): Soul Reaver DoT applicator, see warlock_wrath_of_chaos.cpp
  *  - Embrace Undeath (90004): DUMMY toggle → morph aura 90018 (death clears);
  *    soft-stripped on far teleport and reapplied after map load (client crash guard)
@@ -56,11 +57,9 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <limits>
 #include <list>
 #include <mutex>
-#include <string_view>
 #include <unordered_set>
 #include <vector>
 
@@ -79,17 +78,10 @@ namespace WarlockEmpowerment
         uint32 _temperCacheMs = 0;
         uint32 _maxSoulsApplied = 10000u;
         uint32 _capCacheMs = 0;
+        int32 _announceEvery = 100;
+        uint32 _announceCacheMs = 0;
         bool _enabledCache = true;
         uint32 _enabledCacheMs = 0;
-    }
-
-    std::size_t RankIndexFor(uint32 kills)
-    {
-        std::size_t idx = 0;
-        for (std::size_t i = 0; i < RANKS.size(); ++i)
-            if (kills >= RANKS[i].minKills)
-                idx = i;
-        return idx;
     }
 
     BonusValues LoadedBonus()
@@ -112,7 +104,7 @@ namespace WarlockEmpowerment
         return _bonusCache;
     }
 
-    uint32 AppliedSoulsFor(uint32 current)
+    uint32 MaxSoulsApplied()
     {
         uint32 const now = getMSTime();
         if (!_capCacheMs || getMSTimeDiff(_capCacheMs, now) >= CONFIG_CACHE_MS)
@@ -120,9 +112,23 @@ namespace WarlockEmpowerment
             _maxSoulsApplied = sConfigMgr->GetOption<uint32>(CONFIG_MAX_SOULS_APPLIED, 10000u);
             _capCacheMs = now ? now : 1u;
         }
-        if (!_maxSoulsApplied || current <= _maxSoulsApplied)
-            return current;
         return _maxSoulsApplied;
+    }
+
+    uint32 AppliedSoulsFor(uint32 current)
+    {
+        return ClampAppliedSouls(current, MaxSoulsApplied());
+    }
+
+    int32 AnnounceEveryNKills()
+    {
+        uint32 const now = getMSTime();
+        if (!_announceCacheMs || getMSTimeDiff(_announceCacheMs, now) >= CONFIG_CACHE_MS)
+        {
+            _announceEvery = sConfigMgr->GetOption<int32>(CONFIG_ANNOUNCE_KILLS, 100);
+            _announceCacheMs = now ? now : 1u;
+        }
+        return _announceEvery;
     }
 
     TemperValues LoadedTemper()
@@ -143,6 +149,12 @@ namespace WarlockEmpowerment
         return _temperCache;
     }
 
+    int32 TemperInterval()
+    {
+        LoadedTemper();
+        return _temperInterval > 0 ? _temperInterval : 25;
+    }
+
     bool BonusValuesEqual(BonusValues const& a, BonusValues const& b)
     {
         return a.stamina == b.stamina && a.strength == b.strength && a.agility == b.agility
@@ -155,15 +167,6 @@ namespace WarlockEmpowerment
     {
         return a.stamina == b.stamina && a.intellect == b.intellect
             && a.spellPower == b.spellPower && a.manaPer5 == b.manaPer5;
-    }
-
-    uint32 BonusTalentPointsFor(uint32 lifetime)
-    {
-        uint32 points = 0;
-        for (TalentGrant const& grant : TALENT_GRANTS)
-            if (lifetime >= grant.souls)
-                points += grant.points;
-        return points;
     }
 
     uint32 TemperTiersFor(uint32 lifetime)
@@ -204,39 +207,26 @@ namespace WarlockEmpowerment
 
         pet->UpdateAllStats();
 
+        // Soul SP lives on the stock pet-scaling MOD_DAMAGE_DONE effect, not a
+        // HandleStatFlatModifier. Refresh that list now so Imp/Felhunter damage
+        // (and PLAYER_PET_SPELL_POWER) match the new soul count this tick —
+        // GetAuraEffectsByType is the type bucket, not a walk of every aura.
+        for (AuraEffect* effect : pet->GetAuraEffectsByType(SPELL_AURA_MOD_DAMAGE_DONE))
+            if (effect)
+                effect->RecalculateAmount();
+
         if (pet->IsAlive())
         {
             if (uint32 maxHealth = pet->GetMaxHealth())
             {
-                uint32 want = uint32(float(maxHealth) * healthPct + 0.5f);
-                if (want < 1)
-                    want = 1;
-                if (want > maxHealth)
-                    want = maxHealth;
-                pet->SetHealth(want);
+                pet->SetHealth(RestoreFromPct(maxHealth, healthPct, 1));
             }
 
             if (uint32 maxMana = pet->GetMaxPower(POWER_MANA))
             {
-                uint32 want = uint32(float(maxMana) * manaPct + 0.5f);
-                if (want > maxMana)
-                    want = maxMana;
-                pet->SetPower(POWER_MANA, want);
+                pet->SetPower(POWER_MANA, RestoreFromPct(maxMana, manaPct));
             }
         }
-
-        if (b.spellPower != 0.0f)
-        {
-            Unit::AuraEffectList const& spEffects = pet->GetAuraEffectsByType(SPELL_AURA_MOD_DAMAGE_DONE);
-            for (AuraEffect* aurEff : spEffects)
-                if (aurEff)
-                    aurEff->RecalculateAmount();
-        }
-    }
-
-    void ApplyKillBonus(Unit* pet, uint32 kills, bool apply)
-    {
-        ApplyKillBonusWith(pet, kills, LoadedBonus(), apply);
     }
 
     int32 PetSoulSpellPowerBonus(Unit const* pet)
@@ -301,11 +291,24 @@ namespace WarlockEmpowerment
         return it->second;
     }
 
+    void Mgr::Persist(uint32 low, Souls const& souls, bool direct)
+    {
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_WARLOCK_SOULS);
+        stmt->SetData(0, low);
+        stmt->SetData(1, souls.current);
+        stmt->SetData(2, souls.lifetime);
+        if (direct)
+            CharacterDatabase.DirectExecute(stmt);
+        else
+            CharacterDatabase.Execute(stmt);
+    }
+
     void Mgr::LoadFromDB(ObjectGuid guid)
     {
         uint32 low = guid.GetCounter();
-        QueryResult result = CharacterDatabase.Query(
-            "SELECT kills, lifetime FROM character_warlock_demon_kills WHERE guid = {}", low);
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_WARLOCK_SOULS);
+        stmt->SetData(0, low);
+        PreparedQueryResult result = CharacterDatabase.Query(stmt);
         std::unique_lock<std::shared_mutex> lock(_mutex);
         Souls souls;
         bool repaired = false;
@@ -347,9 +350,7 @@ namespace WarlockEmpowerment
         }
         // Logout must hit the DB before the session is gone.
         if (dirty)
-            CharacterDatabase.DirectExecute(
-                "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime) VALUES ({}, {}, {})",
-                low, souls.current, souls.lifetime);
+            Persist(low, souls, true);
     }
 
     void Mgr::FlushIfDirty(ObjectGuid guid)
@@ -369,16 +370,7 @@ namespace WarlockEmpowerment
         }
         // Periodic / save path: queue async — do not block the world thread on REPLACE.
         if (dirty)
-            CharacterDatabase.Execute(
-                "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime) VALUES ({}, {}, {})",
-                low, souls.current, souls.lifetime);
-    }
-
-    void Mgr::PersistNow(uint32 low, Souls const& souls)
-    {
-        CharacterDatabase.Execute(
-            "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime) VALUES ({}, {}, {})",
-            low, souls.current, souls.lifetime);
+            Persist(low, souls, false);
     }
 }
 
@@ -407,7 +399,6 @@ namespace
 
     constexpr char const* PET_STATE_KEY    = "WarlockDemonicEmpowerment";
     constexpr char const* PLAYER_STATE_KEY = "WarlockSoulTempering";
-    constexpr char const* ADDON_PREFIX = "ARCTURUS_VL";
     // World tick: rare Enable config flip only.
     constexpr uint32 WORLD_MAINTAIN_MS = 5000u;
 
@@ -430,11 +421,6 @@ namespace
         g_onlineWarlocks.erase(player->GetGUID().GetCounter());
     }
 
-    bool IsEnabled()
-    {
-        return IsSystemEnabled();
-    }
-
     bool IsWarlock(Player const* player)
     {
         return player && player->IsClass(CLASS_WARLOCK, CLASS_CONTEXT_PET);
@@ -451,7 +437,6 @@ namespace
     // ---- Embrace Undeath (90004) morph toggle ---------------------------------
     // 90004 is SPELL_EFFECT_DUMMY; script applies custom TRANSFORM 90018 (display 531).
 
-    constexpr uint32 SPELL_EMBRACE_UNDEATH_DISPLAY = SPELL_EMBRACE_UNDEATH_MORPH;
     constexpr char const* EMBRACE_UNDEATH_KEY = "WarlockEmpowerment.EmbraceUndeath";
 
     class EmbraceUndeathState : public DataMap::Base
@@ -478,19 +463,19 @@ namespace
         state->pendingMapReapply = false;
 
         // Already morphed — never re-cast (duplicate TRANSFORM packets are crashy mid-load).
-        if (player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+        if (player->HasAura(SPELL_EMBRACE_UNDEATH_MORPH))
             return;
 
         // DurationIndex 21 = permanent; do not force duration -1 (breaks non-logout aura saves
         // via `_SaveAuras`: duration -1 is < 60s and skipped on map-change saves).
-        player->CastSpell(player, SPELL_EMBRACE_UNDEATH_DISPLAY, true);
+        player->CastSpell(player, SPELL_EMBRACE_UNDEATH_MORPH, true);
     }
 
     void ClearEmbraceUndeathMorph(Player* player)
     {
         EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
         bool ourMorph = (state && state->active)
-            || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY)
+            || player->HasAura(SPELL_EMBRACE_UNDEATH_MORPH)
             || player->HasAura(SPELL_EMBRACE_UNDEATH);
         if (!ourMorph)
             return;
@@ -501,7 +486,7 @@ namespace
             state->pendingMapReapply = false;
         }
 
-        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_MORPH);
         player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH);
         player->DeMorph();
     }
@@ -517,7 +502,7 @@ namespace
 
         // Keep active=true so we reapply after the map change; only drop the aura/display.
         state->pendingMapReapply = true;
-        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_DISPLAY);
+        player->RemoveAurasDueToSpell(SPELL_EMBRACE_UNDEATH_MORPH);
     }
 
     void MaintainEmbraceUndeathMorph(Player* player)
@@ -529,7 +514,7 @@ namespace
                 return;
 
         EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
-        if (!state || !state->active || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+        if (!state || !state->active || player->HasAura(SPELL_EMBRACE_UNDEATH_MORPH))
             return;
 
         // Wait for delayed reapply after far teleport — do not CastSpell during load.
@@ -561,7 +546,7 @@ namespace
                 return;
 
             st->pendingMapReapply = false;
-            if (!p->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY))
+            if (!p->HasAura(SPELL_EMBRACE_UNDEATH_MORPH))
                 ApplyEmbraceUndeathMorph(p);
         }, 2500ms);
     }
@@ -574,7 +559,7 @@ namespace
         EmbraceUndeathState* state = player->CustomData.Get<EmbraceUndeathState>(EMBRACE_UNDEATH_KEY);
         // Also treat a leftover TRANSFORM-on-90004 (pre-DUMMY builds) as "on".
         if ((state && state->active)
-            || player->HasAura(SPELL_EMBRACE_UNDEATH_DISPLAY)
+            || player->HasAura(SPELL_EMBRACE_UNDEATH_MORPH)
             || player->HasAura(SPELL_EMBRACE_UNDEATH))
         {
             ClearEmbraceUndeathMorph(player);
@@ -612,20 +597,12 @@ namespace
         {
             if (uint32 maxHealth = player->GetMaxHealth())
             {
-                uint32 want = uint32(float(maxHealth) * healthPct + 0.5f);
-                if (want < 1)
-                    want = 1;
-                if (want > maxHealth)
-                    want = maxHealth;
-                player->SetHealth(want);
+                player->SetHealth(RestoreFromPct(maxHealth, healthPct, 1));
             }
 
             if (uint32 maxMana = player->GetMaxPower(POWER_MANA))
             {
-                uint32 want = uint32(float(maxMana) * manaPct + 0.5f);
-                if (want > maxMana)
-                    want = maxMana;
-                player->SetPower(POWER_MANA, want);
+                player->SetPower(POWER_MANA, RestoreFromPct(maxMana, manaPct));
             }
         }
     }
@@ -633,7 +610,7 @@ namespace
     void SyncTempering(Player* player, uint32 lifetime)
     {
         auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
-        uint32 target = IsEnabled() ? TemperTiersFor(lifetime) : 0u;
+        uint32 target = IsSystemEnabled() ? TemperTiersFor(lifetime) : 0u;
         TemperValues values = LoadedTemper();
         if (state->appliedTiers == target && TemperValuesEqual(state->appliedValues, values))
             return;
@@ -650,7 +627,7 @@ namespace
     void SyncTalentPoints(Player* player, uint32 lifetime)
     {
         auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
-        uint32 want = IsEnabled() ? BonusTalentPointsFor(lifetime) : 0u;
+        uint32 want = IsSystemEnabled() ? BonusTalentPointsFor(lifetime) : 0u;
 
         if (!state->soulTalentsAdopted)
         {
@@ -731,9 +708,7 @@ namespace
     // Teach / revoke custom rank passives from lifetime souls.
     void SyncRankSpells(Player* player, uint32 lifetime, bool announce)
     {
-        StripRetiredRankSpells(player);
-
-        bool const enabled = IsEnabled();
+        bool const enabled = IsSystemEnabled();
         for (RankSpell const& entry : RANK_SPELLS)
         {
             bool const want = enabled && lifetime >= entry.minSouls;
@@ -746,7 +721,7 @@ namespace
                 player->learnSpell(entry.id);
                 if (announce && !player->GetSession()->PlayerLoading())
                     SendMessageIfOnline(player, Acore::StringFormat(
-                        "|cff9370dbGift of the Void:|r you learn |cffffff00{}|r.", entry.name));
+                        "|cff9370dbDemonic Empowerment:|r you learn |cffffff00{}|r.", entry.name));
             }
             else
                 player->removeSpell(entry.id, SPEC_MASK_ALL, false);
@@ -785,14 +760,14 @@ namespace
         SyncTalentPoints(player, souls.lifetime);
         SyncRankSpells(player, souls.lifetime, false);
 
-        if (IsEnabled())
+        if (IsSystemEnabled())
             EnsureKnownPassiveAuras(player);
 
         // LoadPet() runs before OnPlayerLogin, so OnPlayerAfterGuardianInitStatsForLevel
         // saw unloaded counters and skipped the flat soul mods (Spell Bonus still works
         // because PetSoulSpellPowerBonus reads the Mgr live). Re-sync the live demon here.
         if (Pet* pet = player->GetPet())
-            SyncPetSoulBonus(pet, IsEnabled() ? souls.current : 0u);
+            SyncPetSoulBonus(pet, IsSystemEnabled() ? souls.current : 0u);
     }
 
     bool MaybeAnnounceRankUp(Player* player, uint32 before, uint32 after)
@@ -821,65 +796,6 @@ namespace
         return victim->GetLevel() > Acore::XP::GetGrayLevel(player->GetLevel());
     }
 
-    void SendVoidLedgerSync(Player* player)
-    {
-        if (!player || !player->GetSession() || player->GetSession()->IsBot() || !IsWarlock(player))
-            return;
-
-        if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
-            sWarlockEmpower->LoadFromDB(player->GetGUID());
-
-        Souls souls = sWarlockEmpower->Get(player->GetGUID());
-        std::size_t rankIdx = RankIndexFor(souls.lifetime);
-        uint32 temperTiers = TemperTiersFor(souls.lifetime);
-        TemperValues t = LoadedTemper();
-        BonusValues b = LoadedBonus();
-
-        // ARCTURUS_VL: S:current:lifetime:rank:temperTiers:tSta:tInt:tSp:tMp5:talents:dSta:dStr:dAgi:dInt:dSpi:dAp:dSpx10:dArmor:gifts:tmask:enabled
-        uint32 talentMask = 0;
-        for (std::size_t i = 0; i < TALENT_GRANTS.size(); ++i)
-            if (souls.lifetime >= TALENT_GRANTS[i].souls)
-                talentMask |= (1u << i);
-
-        uint32 giftMask = 0;
-        for (std::size_t i = 0; i < RANK_SPELLS.size(); ++i)
-            if (souls.lifetime >= RANK_SPELLS[i].minSouls)
-                giftMask |= (1u << i);
-
-        uint32 const petSouls = AppliedSoulsFor(souls.current);
-        int32 demonSpX10 = int32(b.spellPower * float(petSouls) * 10.0f + 0.5f);
-        std::string body = Acore::StringFormat(
-            "S:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
-            souls.current,
-            souls.lifetime,
-            uint32(rankIdx),
-            temperTiers,
-            t.stamina * int32(temperTiers),
-            t.intellect * int32(temperTiers),
-            t.spellPower * int32(temperTiers),
-            t.manaPer5 * int32(temperTiers),
-            BonusTalentPointsFor(souls.lifetime),
-            uint32(b.stamina * float(petSouls)),
-            uint32(b.strength * float(petSouls)),
-            uint32(b.agility * float(petSouls)),
-            uint32(b.intellect * float(petSouls)),
-            uint32(b.spirit * float(petSouls)),
-            uint32(b.attackPower * float(petSouls)),
-            demonSpX10,
-            uint32(b.armor * float(petSouls)),
-            giftMask,
-            talentMask,
-            IsEnabled() ? 1u : 0u);
-
-        std::string msg = Acore::StringFormat("{}\t{}", ADDON_PREFIX, body);
-        if (msg.size() > 255)
-        {
-            LOG_ERROR("scripts", "Void Ledger sync exceeds addon message limit ({} bytes)", msg.size());
-            return;
-        }
-
-        player->Whisper(msg, LANG_ADDON, player);
-    }
 }
 
 class warlock_demonic_empowerment_playerscript : public PlayerScript
@@ -894,7 +810,6 @@ public:
             PLAYERHOOK_ON_PLAYER_JUST_DIED,
             PLAYERHOOK_ON_REWARD_KILL_REWARDER,
             PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
-            PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT,
             PLAYERHOOK_ON_BEFORE_TELEPORT,
             PLAYERHOOK_ON_MAP_CHANGED
         }) { }
@@ -914,27 +829,6 @@ public:
             ScheduleEmbraceUndeathReapply(player);
     }
 
-    bool OnPlayerCanUseChat(Player* player, uint32 type, uint32 language, std::string& msg, Player* /*receiver*/) override
-    {
-        if (!player || language != LANG_ADDON || type != CHAT_MSG_WHISPER)
-            return true;
-
-        constexpr char const* prefix = "ARCTURUS_VL\t";
-        constexpr std::size_t prefixLen = 12;
-        if (msg.size() < prefixLen || msg.compare(0, prefixLen, prefix) != 0)
-            return true;
-
-        std::string_view body(msg.c_str() + prefixLen, msg.size() - prefixLen);
-        if (body == "REQ" || body == "HELLO")
-        {
-            if (IsWarlock(player) && IsEnabled())
-                SendVoidLedgerSync(player);
-            return false;
-        }
-
-        return true;
-    }
-
     void OnPlayerLogin(Player* player) override
     {
         if (!IsWarlock(player))
@@ -947,28 +841,26 @@ public:
 
         StripRetiredRankSpells(player);
 
-        bool enabled = IsEnabled();
+        bool enabled = IsSystemEnabled();
         ResyncSoulEffects(player, souls);
         player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY)->suspended = !enabled;
 
         if (!enabled)
             return;
 
-        SendVoidLedgerSync(player);
-
         RankTier const& tier = RANKS[RankIndexFor(souls.lifetime)];
         if (souls.lifetime)
         {
             SendMessageIfOnline(player, Acore::StringFormat(
                 "|cff9370dbDemonic Empowerment:|r your legions ({}) have grown strong on {} souls. "
-                "Open the |cffffff00Void Ledger|r or type |cffffff00.demons|r.",
+                "Type |cffffff00.demons|r.",
                 tier.name, souls.lifetime));
         }
         else
         {
             SendMessageIfOnline(player,
                 "|cff9370dbDemonic Empowerment:|r ready for your first soul. "
-                "Open the |cffffff00Void Ledger|r or type |cffffff00.demons|r.");
+                "Type |cffffff00.demons|r.");
         }
     }
 
@@ -983,7 +875,8 @@ public:
 
     void OnPlayerJustDied(Player* player) override
     {
-        ClearEmbraceUndeathMorph(player);
+        if (IsWarlock(player))
+            ClearEmbraceUndeathMorph(player);
     }
 
     void OnPlayerSave(Player* player) override
@@ -996,7 +889,7 @@ public:
 
     void OnPlayerRewardKillRewarder(Player* player, KillRewarder* rewarder, bool /*isDungeon*/, float& /*rate*/) override
     {
-        if (!IsEnabled() || !IsWarlock(player) || !IsQualifyingKill(player, rewarder))
+        if (!IsSystemEnabled() || !IsWarlock(player) || !IsQualifyingKill(player, rewarder))
             return;
 
         if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
@@ -1032,7 +925,6 @@ public:
                 t.intellect * int32(temperAfter),
                 t.spellPower * int32(temperAfter),
                 t.manaPer5 * int32(temperAfter)));
-            SendVoidLedgerSync(player);
         }
 
         if (MaybeAnnounceRankUp(player, before.lifetime, total.lifetime))
@@ -1042,12 +934,9 @@ public:
             if (gained)
                 SendMessageIfOnline(player, Acore::StringFormat(
                     "|cff9370dbThe Void grants insight:|r |cff00ff00+{}|r bonus talent points!", gained));
-            SendVoidLedgerSync(player);
         }
-        else if ((total.lifetime % 5u) == 0u)
-            SendVoidLedgerSync(player);
 
-        if (int32 announceEvery = sConfigMgr->GetOption<int32>(CONFIG_ANNOUNCE_KILLS, 100))
+        if (int32 announceEvery = AnnounceEveryNKills())
             if (announceEvery > 0 && (total.lifetime % uint32(announceEvery)) == 0u)
                 SendMessageIfOnline(player, Acore::StringFormat(
                     "|cff9370dbDemonic Empowerment:|r {} souls harvested.", total.lifetime));
@@ -1058,41 +947,13 @@ public:
 
     void OnPlayerAfterGuardianInitStatsForLevel(Player* player, Guardian* guardian) override
     {
-        if (!IsEnabled() || !IsWarlock(player) || !guardian || !guardian->IsPet())
+        if (!IsSystemEnabled() || !IsWarlock(player) || !guardian || !guardian->IsPet())
             return;
 
         if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
             return;
 
-        // Level-up re-init: skip strip/reapply when applied souls and rates already match.
-        auto* state = guardian->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
-        uint32 current = AppliedSoulsFor(sWarlockEmpower->Get(player->GetGUID()).current);
-        BonusValues fresh = LoadedBonus();
-        if (state->applied == current)
-            if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
-                return;
-
-        if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
-        {
-            if (current > state->applied)
-                ApplyKillBonusWith(guardian, current - state->applied, fresh, true);
-            else if (state->applied > current)
-                ApplyKillBonusWith(guardian, state->applied - current, fresh, false);
-            state->applied = current;
-        }
-        else
-        {
-            if (state->applied)
-            {
-                BonusValues const& strip = state->hasValues ? state->appliedValues : fresh;
-                ApplyKillBonusWith(guardian, state->applied, strip, false);
-            }
-            if (current)
-                ApplyKillBonusWith(guardian, current, fresh, true);
-            state->applied = current;
-            state->appliedValues = fresh;
-            state->hasValues = true;
-        }
+        SyncPetSoulBonus(guardian, sWarlockEmpower->Get(player->GetGUID()).current);
     }
 };
 
@@ -1110,7 +971,7 @@ public:
             return;
         _elapsedMs = 0;
 
-        bool const enabled = IsEnabled();
+        bool const enabled = IsSystemEnabled();
         if (!_initialized)
         {
             _knownEnabled = enabled;

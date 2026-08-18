@@ -17,7 +17,6 @@ namespace ArcturusSpells
     // Felguard Legion Mandate
     constexpr uint32 SPELL_LEGION_BRAND_PASSIVE     = 90021;
     constexpr uint32 SPELL_LEGION_BRAND             = 90022;
-    constexpr uint32 SPELL_FELSTORM_THREAT_PULSE    = 90023;
     constexpr uint32 SPELL_FELGUARD_MANDATE         = 90024;
     constexpr uint32 SPELL_LEGION_BRAND_AMP         = 90026; // owner-cast +% taken from warlock
 
@@ -29,10 +28,6 @@ namespace ArcturusSpells
     constexpr uint32 SPELL_WITHERING_TOUCH          = 90034;
     constexpr uint32 SPELL_WITHERING_AMP            = 90035;
     constexpr uint32 SPELL_TORMENTING_SILENCE       = 90036;
-    // 90037 pet stealth — retired (deleted from spell_dbc); Shade does not force pet stealth.
-
-    // FORM_STEALTH stance mask (1 << (FORM_STEALTH - 1)) — Ambush / Meta-style gate
-    constexpr uint32 STANCE_MASK_STEALTH            = 536870912u;
 
     constexpr uint32 BRAND_OWNER_DAMAGE_PCT         = 8;
     constexpr uint32 FELSTORM_BRAND_BONUS_PCT       = 25;

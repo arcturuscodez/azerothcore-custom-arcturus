@@ -2,16 +2,18 @@
  * Endless Instances — removes dungeon and raid lockouts so instances can be
  * farmed repeatedly instead of once per day (heroics) or week (raids).
  *
- * How it works: whenever a player arrives on a regular (non-instanced) world
- * map while alive, every instance bind they hold — all maps, all difficulties —
- * is deleted. The next time they walk into a raid or dungeon a brand-new
- * instance is created, with all bosses and trash up again.
+ * How it works: when a living player leaves an instanceable map for a regular
+ * world map, every instance bind they hold — all maps, all difficulties — is
+ * deleted. Login on a world map does the same. The next dungeon/raid entry
+ * creates a brand-new instance.
  *
  * Deliberate behaviors:
  *   - Corpse runs are safe: a dead player on a world map is mid corpse-run,
  *     so binds are kept and running back in resumes the same instance.
  *     (Resurrecting at a spirit healer counts as an intentional exit, though:
  *     the run resets.)
+ *   - Continent hops (Dalaran ↔ Crystalsong, hearth to a city from the world)
+ *     do not unbind — only leaving an instance (or logging in on a world map).
  *   - Logging out inside an instance keeps the bind; the run resumes on login.
  *   - Playerbots are Player objects, so their binds clear the same way when
  *     they follow the leader out. Additionally, whenever the leader's binds
@@ -28,6 +30,7 @@
  */
 
 #include "Config.h"
+#include "DataMap.h"
 #include "Group.h"
 #include "GroupReference.h"
 #include "InstanceSaveMgr.h"
@@ -35,22 +38,54 @@
 #include "Player.h"
 #include "PlayerScript.h"
 #include "ScriptMgr.h"
+#include "Timer.h"
 
 #include <vector>
 
 namespace
 {
     constexpr char const* CONFIG_ENABLED = "EndlessInstances.Enable";
+    constexpr char const* BIND_STATE_KEY = "Arcturus.EndlessInstances";
+    constexpr uint32 CONFIG_CACHE_MS = 5000u;
+
+    bool _enabledCache = true;
+    uint32 _enabledCacheMs = 0;
 
     bool IsEnabled()
     {
-        return sConfigMgr->GetOption<bool>(CONFIG_ENABLED, true);
+        uint32 const now = getMSTime();
+        if (!_enabledCacheMs || getMSTimeDiff(_enabledCacheMs, now) >= CONFIG_CACHE_MS)
+        {
+            _enabledCache = sConfigMgr->GetOption<bool>(CONFIG_ENABLED, true);
+            _enabledCacheMs = now ? now : 1u;
+        }
+        return _enabledCache;
     }
 
     bool OnWorldMap(Player* player)
     {
         Map* map = player->GetMap();
         return map && !map->Instanceable();
+    }
+
+    bool MapIsInstanceable(Player* player)
+    {
+        Map* map = player->GetMap();
+        return map && map->Instanceable();
+    }
+
+    class EndlessBindState : public DataMap::Base
+    {
+    public:
+        bool lastInstanceable = false;
+        bool initialized = false;
+    };
+
+    void RememberMap(Player* player)
+    {
+        auto* state = player->CustomData.GetDefault<EndlessBindState>(BIND_STATE_KEY);
+        state->lastInstanceable = MapIsInstanceable(player);
+        state->initialized = true;
     }
 
     // Wipe every instance bind for this player. Only ever called while the
@@ -112,17 +147,21 @@ public:
             UnbindAll(player);
             UnbindGroupOnWorldMaps(player);
         }
+        RememberMap(player);
     }
 
-    // Fires after the player has fully arrived on a new map. A dead arrival on
-    // a world map is a corpse run — keep the binds so the run can continue.
+    // Fires after the player has fully arrived on a new map. Unbind only when
+    // they just left an instance. A dead arrival is a corpse run — keep binds.
     void OnPlayerMapChanged(Player* player) override
     {
-        if (IsEnabled() && player->IsAlive() && OnWorldMap(player))
+        auto* state = player->CustomData.GetDefault<EndlessBindState>(BIND_STATE_KEY);
+        bool const leftInstance = state->initialized && state->lastInstanceable;
+        if (IsEnabled() && leftInstance && player->IsAlive() && OnWorldMap(player))
         {
             UnbindAll(player);
             UnbindGroupOnWorldMaps(player);
         }
+        RememberMap(player);
     }
 };
 

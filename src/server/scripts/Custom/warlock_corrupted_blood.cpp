@@ -29,6 +29,7 @@
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "StringFormat.h"
+#include "Timer.h"
 #include "Unit.h"
 #include "WorldSession.h"
 
@@ -52,6 +53,7 @@ namespace
 
     constexpr uint32 WHISPER_MIN_SECONDS_DEFAULT = 240;
     constexpr uint32 WHISPER_MAX_SECONDS_DEFAULT = 900;
+    constexpr uint32 CONFIG_CACHE_MS = 5000u;
 
     constexpr uint8  COAGULATE_TRIGGER_HEALTH_PCT = 25;
     constexpr uint8  COAGULATE_ABSORB_HEALTH_PCT  = 40;
@@ -76,15 +78,43 @@ namespace
         "You are not a warlock. You are a wound that walks."
     }};
 
+    struct BloodConfig
+    {
+        uint32 visualSpellId = 0;
+        bool whispersEnable = true;
+        uint32 whisperMinSecs = WHISPER_MIN_SECONDS_DEFAULT;
+        uint32 whisperMaxSecs = WHISPER_MAX_SECONDS_DEFAULT;
+    };
+
+    BloodConfig _bloodCache{};
+    uint32 _bloodCacheMs = 0;
+
+    BloodConfig const& LoadedBloodConfig()
+    {
+        uint32 const now = getMSTime();
+        if (!_bloodCacheMs || getMSTimeDiff(_bloodCacheMs, now) >= CONFIG_CACHE_MS)
+        {
+            _bloodCache.visualSpellId = sConfigMgr->GetOption<uint32>(CONFIG_VISUAL_SPELL_ID, 0);
+            _bloodCache.whispersEnable = sConfigMgr->GetOption<bool>(CONFIG_WHISPERS_ENABLE, true);
+            _bloodCache.whisperMinSecs = sConfigMgr->GetOption<uint32>(
+                CONFIG_WHISPER_MIN_SECS, WHISPER_MIN_SECONDS_DEFAULT);
+            _bloodCache.whisperMaxSecs = sConfigMgr->GetOption<uint32>(
+                CONFIG_WHISPER_MAX_SECS, WHISPER_MAX_SECONDS_DEFAULT);
+            _bloodCacheMs = now ? now : 1u;
+        }
+        return _bloodCache;
+    }
+
     uint32 ConfiguredVisualSpellId()
     {
-        return sConfigMgr->GetOption<uint32>(CONFIG_VISUAL_SPELL_ID, 0);
+        return LoadedBloodConfig().visualSpellId;
     }
 
     time_t RollNextWhisper()
     {
-        uint32 minSecs = sConfigMgr->GetOption<uint32>(CONFIG_WHISPER_MIN_SECS, WHISPER_MIN_SECONDS_DEFAULT);
-        uint32 maxSecs = sConfigMgr->GetOption<uint32>(CONFIG_WHISPER_MAX_SECS, WHISPER_MAX_SECONDS_DEFAULT);
+        BloodConfig const& cfg = LoadedBloodConfig();
+        uint32 minSecs = cfg.whisperMinSecs;
+        uint32 maxSecs = cfg.whisperMaxSecs;
         if (maxSecs < minSecs)
             std::swap(minSecs, maxSecs);
 
@@ -175,7 +205,7 @@ private:
 
     void TryWhisper(Player* player)
     {
-        if (!player || !sConfigMgr->GetOption<bool>(CONFIG_WHISPERS_ENABLE, true))
+        if (!player || !LoadedBloodConfig().whispersEnable)
             return;
 
         WorldSession* session = player->GetSession();
