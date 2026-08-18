@@ -7,8 +7,9 @@
  * spell power coefficients, the Agony ramp, Nightfall / Molten Core procs, and
  * Conflagrate-on-Immolate all keep working because the auras are the real ones.
  *
- * The rank walk is spell_dk_sudden_doom's: step GetNextRankSpell() from rank 1 and keep the
- * last id the caster actually knows.
+ * Rank walk: step GetNextRankSpell() from rank 1 and keep the last id the caster actually
+ * knows. Do not stop at the first gap — WotLK unlearns superseded ranks, so a leftover
+ * rank 1 with a hole at rank 2 is common. Breaking there would apply rank 1 forever.
  */
 
 #include "warlock_arcturus_spells.h"
@@ -38,12 +39,8 @@ namespace
 
         uint32 known = 0;
         for (SpellInfo const* info = sSpellMgr->GetSpellInfo(firstRankId); info; info = info->GetNextRankSpell())
-        {
-            if (!player->HasSpell(info->Id))
-                break;
-
-            known = info->Id;
-        }
+            if (player->HasSpell(info->Id))
+                known = info->Id;
 
         return known;
     }
