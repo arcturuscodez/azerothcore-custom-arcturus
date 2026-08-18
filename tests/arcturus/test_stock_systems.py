@@ -40,6 +40,7 @@ from arcturus_lib import (
     replay_pet_levelstats,
     replay_skilllineability,
     replay_spell_dbc_ids,
+    replay_spell_pet_auras,
     replay_spell_script_names,
     strip_sql_comments,
 )
@@ -160,6 +161,14 @@ class StockPetAndFelguardTests(unittest.TestCase):
         # Infernal uses the Felguard DE buff (54508) but not Mandate 90024.
         infernal_branch = src[src.index("NPC_INFERNAL") :]
         self.assertNotIn("SPELL_FELGUARD_MANDATE", infernal_branch.split("break;")[0])
+        self.assertIn("SPELL_WARLOCK_DEMONIC_EMPOWERMENT_FELGUARD", infernal_branch.split("break;")[0])
+
+    def test_infernal_and_doomguard_share_felguard_master_demonologist(self) -> None:
+        rows = replay_spell_pet_auras()
+        md = {(23785, 35702), (23822, 35703), (23823, 35704), (23824, 35705), (23825, 35706)}
+        for npc in (NPC_INFERNAL, NPC_DOOMGUARD):
+            found = {(row[0], row[3]) for row in rows if row[2] == npc}
+            self.assertTrue(md <= found, f"{npc} missing MD pet auras: {md - found}")
 
 
 class StockSkillAndProfessionTests(unittest.TestCase):

@@ -21,6 +21,7 @@ from arcturus_lib import (
     read_text,
     replay_skilllineability,
     replay_spell_dbc_ids,
+    replay_spell_pet_auras,
     strip_sql_comments,
 )
 
@@ -199,6 +200,13 @@ class PendingSqlHygieneTests(unittest.TestCase):
         self.assertNotIn(90025, present)
         self.assertNotIn(90010, present)
         self.assertNotIn(90009, present)
+
+    def test_retired_communion_is_gone_from_pet_auras(self) -> None:
+        rows = replay_spell_pet_auras()
+        spells = {row[0] for row in rows}
+        auras = {row[3] for row in rows}
+        self.assertNotIn(90003, spells)
+        self.assertNotIn(90009, auras)
 
     def test_header_does_not_reference_dropped_souls_lost_column(self) -> None:
         self.assertNotIn("souls_lost", read_text(DE_HEADER))

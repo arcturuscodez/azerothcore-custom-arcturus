@@ -173,6 +173,20 @@ namespace WarlockEmpowerment
         return cap;
     }
 
+    // Re-apply HP/mana after a stamina/intellect flat so soul ticks don't heal or wipe the bar.
+    // minValue 1 for health (alive units stay at least 1 HP); 0 for mana.
+    inline constexpr uint32 RestoreFromPct(uint32 maxValue, float pct, uint32 minValue = 0)
+    {
+        if (!maxValue)
+            return 0;
+        uint32 want = uint32(float(maxValue) * pct + 0.5f);
+        if (want < minValue)
+            want = minValue;
+        if (want > maxValue)
+            want = maxValue;
+        return want;
+    }
+
     uint32 TemperTiersFor(uint32 lifetime);
 
     struct BonusValues

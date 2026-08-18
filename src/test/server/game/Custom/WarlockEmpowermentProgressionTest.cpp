@@ -10,6 +10,8 @@
 #include "Custom/warlock_arcturus_spells.h"
 #include "gtest/gtest.h"
 
+#include <unordered_set>
+
 using namespace WarlockEmpowerment;
 
 TEST(WarlockEmpowermentProgression, RankIndexBoundaries)
@@ -92,7 +94,38 @@ TEST(WarlockEmpowermentProgression, BrandCapIsBelowDefaultSoulCap)
         ArcturusSpells::BRAND_SOUL_CAP);
 }
 
-TEST(WarlockEmpowermentProgression, ShadeAndWardShareDreadWarlockGate)
+TEST(WarlockEmpowermentProgression, RestoreFromPctPreservesHealthAndMana)
+{
+    EXPECT_EQ(RestoreFromPct(1000, 0.5f, 1), 500u);
+    EXPECT_EQ(RestoreFromPct(1000, 1.0f, 1), 1000u);
+    EXPECT_EQ(RestoreFromPct(1000, 0.0f, 1), 1u) << "alive health floor";
+    EXPECT_EQ(RestoreFromPct(1000, 0.0f, 0), 0u) << "mana may hit zero";
+    EXPECT_EQ(RestoreFromPct(1000, 1.5f, 1), 1000u) << "never exceed max";
+    EXPECT_EQ(RestoreFromPct(0, 0.5f, 1), 0u);
+    EXPECT_EQ(RestoreFromPct(3, 0.5f, 1), 2u); // 1.5 + 0.5 -> 2
+}
+
+TEST(WarlockEmpowermentProgression, RankSpellsAreUniqueAndNondecreasing)
+{
+    std::unordered_set<uint32> ids;
+    uint32 prev = 0;
+    for (RankSpell const& taught : RANK_SPELLS)
+    {
+        EXPECT_TRUE(ids.insert(taught.id).second) << taught.name;
+        EXPECT_GE(taught.minSouls, prev) << taught.name;
+        prev = taught.minSouls;
+        EXPECT_NE(taught.name, nullptr);
+    }
+    EXPECT_EQ(ids.size(), RANK_SPELLS.size());
+}
+
+TEST(WarlockEmpowermentProgression, RestoreFromPctDefaultMinIsZero)
+{
+    EXPECT_EQ(RestoreFromPct(1000, 0.0f), 0u);
+    EXPECT_EQ(RestoreFromPct(1000, 0.25f), 250u);
+}
+
+TEST(WarlockEmpowermentProgression, ShadeKitUnlocksWithWard)
 {
     uint32 shadeSouls = 0;
     uint32 wardSouls = 0;

@@ -23,6 +23,7 @@ SHARED_DEFINES = REPO_ROOT / "src" / "server" / "shared" / "SharedDefines.h"
 CHAR_DB_H = REPO_ROOT / "src" / "server" / "database" / "Database" / "Implementation" / "CharacterDatabase.h"
 CHAR_DB_CPP = REPO_ROOT / "src" / "server" / "database" / "Database" / "Implementation" / "CharacterDatabase.cpp"
 SPELL_INFO_FIX = REPO_ROOT / "src" / "server" / "game" / "Spells" / "SpellInfoCorrections.cpp"
+CHAR_HANDLER = REPO_ROOT / "src" / "server" / "game" / "Handlers" / "CharacterHandler.cpp"
 TRADE_SKILLS_CPP = CUSTOM_DIR / "arcturus_trade_skills.cpp"
 CONF_DIST = REPO_ROOT / "conf" / "dist" / "arcturus-recommended-overrides.conf.dist"
 BASE_SCRIPT_NAMES = BASE_WORLD / "spell_script_names.sql"
@@ -234,6 +235,43 @@ def replay_spell_dbc_ids() -> set[int]:
                     if first.isdigit():
                         present.add(int(first))
     return present
+
+
+def replay_spell_pet_auras() -> set[tuple[int, int, int, int]]:
+    """(spell, effectId, pet, aura) after pending replay. Last write wins per (spell, effect, pet)."""
+    keyed: dict[tuple[int, int, int], int] = {}
+    for path in pending_sql_files(PENDING_WORLD):
+        text = strip_sql_comments(read_text(path))
+        for stmt in text.split(";"):
+            if "spell_pet_auras" not in stmt.lower():
+                continue
+            head = stmt.lstrip().upper()
+            if head.startswith("DELETE"):
+                spells: set[int] = set()
+                pets: set[int] = set()
+                if match := re.search(r"`spell`\s*=\s*(\d+)", stmt, re.I):
+                    spells.add(int(match.group(1)))
+                if match := re.search(r"`spell`\s+IN\s*\(([^)]+)\)", stmt, re.I):
+                    spells |= {int(v) for v in re.findall(r"\d+", match.group(1))}
+                if match := re.search(r"`pet`\s*=\s*(\d+)", stmt, re.I):
+                    pets.add(int(match.group(1)))
+                if match := re.search(r"`pet`\s+IN\s*\(([^)]+)\)", stmt, re.I):
+                    pets |= {int(v) for v in re.findall(r"\d+", match.group(1))}
+                if not spells and not pets:
+                    keyed.clear()
+                    continue
+                for key in list(keyed):
+                    spell, _effect, pet = key
+                    if (not spells or spell in spells) and (not pets or pet in pets):
+                        del keyed[key]
+            elif head.startswith("INSERT"):
+                values = stmt[stmt.upper().rindex("VALUES") + 6 :]
+                for tup in re.findall(r"\(([^()]+)\)", values):
+                    parts = [p.strip() for p in tup.split(",")]
+                    if len(parts) >= 4 and all(p.isdigit() for p in parts[:4]):
+                        spell, effect, pet, aura = (int(p) for p in parts[:4])
+                        keyed[(spell, effect, pet)] = aura
+    return {(spell, effect, pet, aura) for (spell, effect, pet), aura in keyed.items()}
 
 
 def replay_pet_levelstats() -> dict[int, set[int]]:

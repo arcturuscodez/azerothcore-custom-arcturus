@@ -1,18 +1,74 @@
 #!/bin/sh
 # Arcturus custom-system tests — a failing run blocks the commit.
 # This is not the retired GATE-* suite (tests/arcturus_gates).
+#
+# Cursor / Git GUI often have a thinner PATH than conda PowerShell. Probe
+# python, python3, Windows `py -3`, where.exe, and common install layouts.
 set -e
 ROOT=$(git rev-parse --show-toplevel)
 cd "$ROOT" || exit 1
+export PYTHONIOENCODING=utf-8
 
-if command -v python >/dev/null 2>&1; then
-  PY=python
-elif command -v python3 >/dev/null 2>&1; then
-  PY=python3
-else
-  echo "python is required to run Arcturus tests before commit" >&2
-  exit 1
+run_python() {
+    "$@" tests/arcturus/run.py
+}
+
+python_ok() {
+    "$@" -c "import sys" >/dev/null 2>&1
+}
+
+if python_ok python; then
+    run_python python
+    exit $?
+fi
+if python_ok python3; then
+    run_python python3
+    exit $?
+fi
+if command -v py >/dev/null 2>&1 && python_ok py -3; then
+    run_python py -3
+    exit $?
 fi
 
-export PYTHONIOENCODING=utf-8
-"$PY" tests/arcturus/run.py
+if command -v where.exe >/dev/null 2>&1; then
+    FOUND=$(where.exe python 2>/dev/null | tr -d '\r' | head -n 1 || true)
+    if [ -n "$FOUND" ] && python_ok "$FOUND"; then
+        run_python "$FOUND"
+        exit $?
+    fi
+    FOUND=$(where.exe py 2>/dev/null | tr -d '\r' | head -n 1 || true)
+    if [ -n "$FOUND" ] && python_ok "$FOUND" -3; then
+        run_python "$FOUND" -3
+        exit $?
+    fi
+fi
+
+to_posix() {
+    printf '%s' "$1" | tr '\\' '/'
+}
+
+HOME_DIR=$(to_posix "${HOME:-${USERPROFILE:-}}")
+LOCAL_DIR=$(to_posix "${LOCALAPPDATA:-}")
+for candidate in \
+    "$HOME_DIR/miniconda3/python.exe" \
+    "$HOME_DIR/miniconda3/python" \
+    "$HOME_DIR/anaconda3/python.exe" \
+    "$HOME_DIR/anaconda3/python" \
+    "$HOME_DIR/miniconda3/Scripts/python.exe" \
+    "$LOCAL_DIR/Programs/Python/Python313/python.exe" \
+    "$LOCAL_DIR/Programs/Python/Python312/python.exe" \
+    "$LOCAL_DIR/Programs/Python/Python311/python.exe" \
+    "$LOCAL_DIR/Programs/Python/Python310/python.exe" \
+    /c/Python313/python.exe \
+    /c/Python312/python.exe \
+    /c/Python311/python.exe
+do
+    if [ -n "$candidate" ] && [ -f "$candidate" ] && python_ok "$candidate"; then
+        run_python "$candidate"
+        exit $?
+    fi
+done
+
+echo "python is required to run Arcturus tests before commit" >&2
+echo "Git GUI PATH often omits conda; install Python or add it to PATH." >&2
+exit 1

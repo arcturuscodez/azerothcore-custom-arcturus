@@ -219,20 +219,12 @@ namespace WarlockEmpowerment
         {
             if (uint32 maxHealth = pet->GetMaxHealth())
             {
-                uint32 want = uint32(float(maxHealth) * healthPct + 0.5f);
-                if (want < 1)
-                    want = 1;
-                if (want > maxHealth)
-                    want = maxHealth;
-                pet->SetHealth(want);
+                pet->SetHealth(RestoreFromPct(maxHealth, healthPct, 1));
             }
 
             if (uint32 maxMana = pet->GetMaxPower(POWER_MANA))
             {
-                uint32 want = uint32(float(maxMana) * manaPct + 0.5f);
-                if (want > maxMana)
-                    want = maxMana;
-                pet->SetPower(POWER_MANA, want);
+                pet->SetPower(POWER_MANA, RestoreFromPct(maxMana, manaPct));
             }
         }
     }
@@ -605,20 +597,12 @@ namespace
         {
             if (uint32 maxHealth = player->GetMaxHealth())
             {
-                uint32 want = uint32(float(maxHealth) * healthPct + 0.5f);
-                if (want < 1)
-                    want = 1;
-                if (want > maxHealth)
-                    want = maxHealth;
-                player->SetHealth(want);
+                player->SetHealth(RestoreFromPct(maxHealth, healthPct, 1));
             }
 
             if (uint32 maxMana = player->GetMaxPower(POWER_MANA))
             {
-                uint32 want = uint32(float(maxMana) * manaPct + 0.5f);
-                if (want > maxMana)
-                    want = maxMana;
-                player->SetPower(POWER_MANA, want);
+                player->SetPower(POWER_MANA, RestoreFromPct(maxMana, manaPct));
             }
         }
     }
