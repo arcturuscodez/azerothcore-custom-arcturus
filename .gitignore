@@ -145,3 +145,4 @@ MY_SERVER.txt
 dml-start.sh
 
 .agents/*
+data/sql/updates/pending_db_characters/rev_1787071088219556758.sql
