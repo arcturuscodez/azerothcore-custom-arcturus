@@ -4,4 +4,4 @@ $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $Root
 git config core.hooksPath .githooks
 Write-Host "core.hooksPath=$(git config --get core.hooksPath)"
-Write-Host "core.hooksPath installed (Arcturus gates retired; pre-commit is a no-op)."
+Write-Host "core.hooksPath installed. pre-commit runs tests/arcturus/run.py (GATE-* still retired)."

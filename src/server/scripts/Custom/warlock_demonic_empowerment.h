@@ -126,7 +126,14 @@ namespace WarlockEmpowerment
         { 500000u, "Void Eternal"          }
     }};
 
-    std::size_t RankIndexFor(uint32 kills);
+    inline constexpr std::size_t RankIndexFor(uint32 kills)
+    {
+        std::size_t idx = 0;
+        for (std::size_t i = 0; i < RANKS.size(); ++i)
+            if (kills >= RANKS[i].minKills)
+                idx = i;
+        return idx;
+    }
 
     // Bonus talent points at lifetime milestones. Cumulative +145 — enough that a
     // level-80 warlock (71 from levels) can fill all three trees (216 points).
@@ -149,7 +156,22 @@ namespace WarlockEmpowerment
         { 250000u, 25u }
     }};
 
-    uint32 BonusTalentPointsFor(uint32 lifetime);
+    inline constexpr uint32 BonusTalentPointsFor(uint32 lifetime)
+    {
+        uint32 points = 0;
+        for (TalentGrant const& grant : TALENT_GRANTS)
+            if (lifetime >= grant.souls)
+                points += grant.points;
+        return points;
+    }
+
+    // PerKill pet flats: cap 0 means uncapped. Brand then clamps this further to BRAND_SOUL_CAP.
+    inline constexpr uint32 ClampAppliedSouls(uint32 current, uint32 cap)
+    {
+        if (!cap || current <= cap)
+            return current;
+        return cap;
+    }
 
     uint32 TemperTiersFor(uint32 lifetime);
 

@@ -84,15 +84,6 @@ namespace WarlockEmpowerment
         uint32 _enabledCacheMs = 0;
     }
 
-    std::size_t RankIndexFor(uint32 kills)
-    {
-        std::size_t idx = 0;
-        for (std::size_t i = 0; i < RANKS.size(); ++i)
-            if (kills >= RANKS[i].minKills)
-                idx = i;
-        return idx;
-    }
-
     BonusValues LoadedBonus()
     {
         uint32 const now = getMSTime();
@@ -126,10 +117,7 @@ namespace WarlockEmpowerment
 
     uint32 AppliedSoulsFor(uint32 current)
     {
-        uint32 const cap = MaxSoulsApplied();
-        if (!cap || current <= cap)
-            return current;
-        return cap;
+        return ClampAppliedSouls(current, MaxSoulsApplied());
     }
 
     int32 AnnounceEveryNKills()
@@ -179,15 +167,6 @@ namespace WarlockEmpowerment
     {
         return a.stamina == b.stamina && a.intellect == b.intellect
             && a.spellPower == b.spellPower && a.manaPer5 == b.manaPer5;
-    }
-
-    uint32 BonusTalentPointsFor(uint32 lifetime)
-    {
-        uint32 points = 0;
-        for (TalentGrant const& grant : TALENT_GRANTS)
-            if (lifetime >= grant.souls)
-                points += grant.points;
-        return points;
     }
 
     uint32 TemperTiersFor(uint32 lifetime)

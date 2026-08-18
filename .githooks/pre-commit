@@ -1,3 +1,18 @@
 #!/bin/sh
-# Arcturus frozen gates retired — commits are not blocked.
-exit 0
+# Arcturus custom-system tests — a failing run blocks the commit.
+# This is not the retired GATE-* suite (tests/arcturus_gates).
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT" || exit 1
+
+if command -v python >/dev/null 2>&1; then
+  PY=python
+elif command -v python3 >/dev/null 2>&1; then
+  PY=python3
+else
+  echo "python is required to run Arcturus tests before commit" >&2
+  exit 1
+fi
+
+export PYTHONIOENCODING=utf-8
+"$PY" tests/arcturus/run.py
