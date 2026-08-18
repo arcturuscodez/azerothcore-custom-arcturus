@@ -6,7 +6,7 @@
  *   current  — same as lifetime (souls are never lost); flat stats on the summoned demon
  *
  * Login strips retired rank spells left on characters from older builds.
- * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 / 90042 (see
+ * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 / 90042 / 90046 (see
  * RANK_SPELLS; 90006 hop, 90008 Ward absorb, 90041 Damned Resonance, 90043–90045
  * Corrupted Blood halves are script/DB-triggered only). Passives use the stock talent
  * path (self-only + PASSIVE; pet auras via spell_pet_auras only — never
@@ -69,6 +69,7 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_WARD_OF_THE_SOUL_EATER_ABSORB = 90008; // triggered absorb (not taught)
     constexpr uint32 SPELL_DAMNED_RESONANCE          = 90041; // pet damage buff when ward absorbs
     constexpr uint32 SPELL_CORRUPTED_BLOOD           = 90042; // Soul Reaver (5000) passive
+    constexpr uint32 SPELL_WRATH_OF_CHAOS            = 90046; // Soul Reaver (5000) DoT applicator
     constexpr uint32 SPELL_CRIMSON_SHADE           = 90030; // Dread Warlock (2500) Stealth-style stance
     constexpr uint32 SPELL_SOUL_REAVING            = 90031; // Shade opener (stance-gated)
     constexpr uint32 SPELL_SEARING_BRAND           = 90032;
@@ -96,7 +97,7 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    inline constexpr std::array<RankSpell, 11> RANK_SPELLS = {{
+    inline constexpr std::array<RankSpell, 12> RANK_SPELLS = {{
         { 100u,  SPELL_SANGUINE_RUIN,            "Sanguine Ruin"            },
         { 250u,  SPELL_NETHER_PRESENCE,          "Nether Presence"          },
         { 500u,  SPELL_EMBRACE_UNDEATH,          "Embrace Undeath"          },
@@ -107,7 +108,8 @@ namespace WarlockEmpowerment
         { 2500u, SPELL_SEARING_BRAND,            "Searing Brand"            },
         { 2500u, SPELL_TORMENTING_REND,          "Tormenting Rend"          },
         { 2500u, SPELL_WITHERING_TOUCH,          "Withering Touch"          },
-        { 5000u, SPELL_CORRUPTED_BLOOD,          "Corrupted Blood"          }
+        { 5000u, SPELL_CORRUPTED_BLOOD,          "Corrupted Blood"          },
+        { 5000u, SPELL_WRATH_OF_CHAOS,           "Wrath of Chaos"           }
     }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{

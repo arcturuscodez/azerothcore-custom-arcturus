@@ -169,21 +169,25 @@ def main() -> int:
                 print(f"  FAIL  {rel} hash mismatch")
                 failures += 1
 
-    # Sanity: Chaos + Corrupted Blood must both be present in the MPQ we're checking.
+    # Sanity: the Chaos tab and the newest spells riding it must be in the MPQ we're checking.
     print("\nSanity")
     sla = read_inner(lib, mpq, "SkillLineAbility.dbc")
     spell = read_inner(lib, mpq, "Spell.dbc")
     chaos = chaos_spells(sla)
-    if 90042 not in chaos:
-        print("  FAIL  90042 Corrupted Blood not on Chaos SkillLineAbility")
+
+    on_chaos = ((90042, "Corrupted Blood"), (90046, "Wrath of Chaos"))
+    if absent := [f"{spell_id} {name}" for spell_id, name in on_chaos if spell_id not in chaos]:
+        print(f"  FAIL  not on Chaos SkillLineAbility: {', '.join(absent)}")
         failures += 1
     else:
-        print(f"  ok    Chaos has {len(chaos)} spells (incl. 90042)")
-    if not spell_has(spell, 90042) or not spell_has(spell, 90043):
-        print("  FAIL  Spell.dbc missing 90042 and/or 90043")
+        print(f"  ok    Chaos has {len(chaos)} spells (incl. 90042, 90046)")
+
+    in_spell_dbc = (90042, 90043, 90046)
+    if missing := [spell_id for spell_id in in_spell_dbc if not spell_has(spell, spell_id)]:
+        print(f"  FAIL  Spell.dbc missing {missing}")
         failures += 1
     else:
-        print("  ok    Spell.dbc has 90042 + 90043")
+        print("  ok    Spell.dbc has 90042, 90043, 90046")
 
     if failures:
         print(f"\n{failures} failure(s).")
