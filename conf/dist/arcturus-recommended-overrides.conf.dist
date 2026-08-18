@@ -73,10 +73,15 @@ Arcturus.CorruptedBlood.Whispers.MaxSeconds = 900
 #
 # Arcturus fairness model:
 #   Warlock + permanent pet + Demonic Empowerment (souls → pet flats, lifetime → tempering)
-#   are the "party". Do NOT scale enemies down for 1 human in the instance — that made
-#   dungeons/raids trivial once souls stacked. Hold full instance stats (CurveFloor=Ceiling=1),
-#   then apply a light StatModifier premium so stock dungeon tuning still challenges DE power.
-#   Tune Global/Boss.* up or down if early (0 souls) feels too hard or late feels too soft.
+#   are the "party". Hold full instance baselines (CurveFloor=Ceiling=1) so difficulty does
+#   not collapse when bots join or souls stack.
+#
+#   Dungeons: light premium on full 5-man stats (feels good for solo DE).
+#   Raids: same locked baseline, but StatModifier is size-scaled (~5/N of the dungeon
+#   premium, with a challenge fudge). Otherwise MC/BWL/etc. stay at full 40-man * 1.5x
+#   and one-shot fresh 60s. Larger raids use lower multipliers; bosses sit above trash.
+#   Tune size keys if early feels too hard or late feels too soft — leave 5-man alone
+#   when only raids need work.
 #
 AutoBalance.Enable.Global = 1
 AutoBalance.playerCountDifficultyOffset = 0
@@ -87,7 +92,7 @@ AutoBalance.reward.enable = 0
 AutoBalance.PlayerChangeNotify = 0
 AutoBalanceAnnounce.enable = 0
 
-# Always use full instance baseline (no solo downscale).
+# Always use full instance baseline (no player-count downscale).
 AutoBalance.InflectionPoint.CurveFloor = 1.0
 AutoBalance.InflectionPoint.CurveCeiling = 1.0
 AutoBalance.InflectionPointHeroic.CurveFloor = 1.0
@@ -97,15 +102,37 @@ AutoBalance.InflectionPointRaid.CurveCeiling = 1.0
 AutoBalance.InflectionPointRaidHeroic.CurveFloor = 1.0
 AutoBalance.InflectionPointRaidHeroic.CurveCeiling = 1.0
 
-# Premium on top of full-strength tuning (trash slightly less than bosses).
+# 5-man: premium on full-strength tuning (trash slightly less than bosses).
 AutoBalance.StatModifier.Global = 1.5
 AutoBalance.StatModifier.Boss.Global = 1.75
 AutoBalance.StatModifierHeroic.Global = 1.5
 AutoBalance.StatModifierHeroic.Boss.Global = 1.75
-AutoBalance.StatModifierRaid.Global = 1.5
-AutoBalance.StatModifierRaid.Boss.Global = 1.75
-AutoBalance.StatModifierRaidHeroic.Global = 1.5
-AutoBalance.StatModifierRaidHeroic.Boss.Global = 1.75
+
+# Raid fallback + size-specific solo-challenge curve (merge into live AutoBalance.conf).
+AutoBalance.StatModifierRaid.Global = 0.45
+AutoBalance.StatModifierRaid.Boss.Global = 0.60
+AutoBalance.StatModifierRaidHeroic.Global = 0.50
+AutoBalance.StatModifierRaidHeroic.Boss.Global = 0.65
+
+AutoBalance.StatModifierRaid10M.Global = 0.85
+AutoBalance.StatModifierRaid10M.Boss.Global = 1.05
+AutoBalance.StatModifierRaid10MHeroic.Global = 0.90
+AutoBalance.StatModifierRaid10MHeroic.Boss.Global = 1.15
+
+AutoBalance.StatModifierRaid15M.Global = 0.60
+AutoBalance.StatModifierRaid15M.Boss.Global = 0.75
+
+AutoBalance.StatModifierRaid20M.Global = 0.48
+AutoBalance.StatModifierRaid20M.Boss.Global = 0.62
+
+AutoBalance.StatModifierRaid25M.Global = 0.38
+AutoBalance.StatModifierRaid25M.Boss.Global = 0.50
+AutoBalance.StatModifierRaid25MHeroic.Global = 0.42
+AutoBalance.StatModifierRaid25MHeroic.Boss.Global = 0.55
+
+# Vanilla 40s (MC / BWL / AQ40 / Naxx40) — still a step up from heroics, not a brick wall.
+AutoBalance.StatModifierRaid40M.Global = 0.28
+AutoBalance.StatModifierRaid40M.Boss.Global = 0.38
 
 ####################################################################################################
 # individualProgression.conf  (modules/mod-individual-progression/conf/)
