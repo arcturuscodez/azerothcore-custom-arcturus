@@ -134,6 +134,7 @@ debug-*.log
 !/src/server/scripts/Custom/warlock_felguard_mandate.cpp
 !/src/server/scripts/Custom/warlock_crimson_shade.cpp
 !/src/server/scripts/Custom/warlock_corrupted_blood.cpp
+!/src/server/scripts/Custom/warlock_wrath_of_chaos.cpp
 !/src/server/scripts/Custom/CMakeLists.txt
 
 # Generated / local-only client patch artifacts (tracked DBCs live in client-patches/dbc/)
