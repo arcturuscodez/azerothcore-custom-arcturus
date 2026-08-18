@@ -21,11 +21,11 @@
 #define _WARLOCK_DEMONIC_EMPOWERMENT_H_
 
 #include "Define.h"
+#include "Custom/warlock_arcturus_spells.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -70,11 +70,6 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_DAMNED_RESONANCE          = 90041; // pet damage buff when ward absorbs
     constexpr uint32 SPELL_CORRUPTED_BLOOD           = 90042; // Soul Reaver (5000) passive
     constexpr uint32 SPELL_WRATH_OF_CHAOS            = 90046; // Soul Reaver (5000) DoT applicator
-    constexpr uint32 SPELL_CRIMSON_SHADE           = 90030; // Dread Warlock (2500) Stealth-style stance
-    constexpr uint32 SPELL_SOUL_REAVING            = 90031; // Shade opener (stance-gated)
-    constexpr uint32 SPELL_SEARING_BRAND           = 90032;
-    constexpr uint32 SPELL_TORMENTING_REND         = 90033;
-    constexpr uint32 SPELL_WITHERING_TOUCH         = 90034;
 
     // Retired spells stripped on login (no longer taught).
     inline constexpr std::array<uint32, 2> RETIRED_RANK_SPELLS = {{
@@ -103,11 +98,11 @@ namespace WarlockEmpowerment
         { 500u,  SPELL_EMBRACE_UNDEATH,          "Embrace Undeath"          },
         { 1000u, SPELL_SCARLET_SCOURGE,          "Scarlet Scourge"          },
         { 2500u, SPELL_WARD_OF_THE_SOUL_EATER,   "Ward of the Soul-Eater"   },
-        { 2500u, SPELL_CRIMSON_SHADE,            "Crimson Shade"            },
-        { 2500u, SPELL_SOUL_REAVING,             "Soul Reaving"             },
-        { 2500u, SPELL_SEARING_BRAND,            "Searing Brand"            },
-        { 2500u, SPELL_TORMENTING_REND,          "Tormenting Rend"          },
-        { 2500u, SPELL_WITHERING_TOUCH,          "Withering Touch"          },
+        { 2500u, ArcturusSpells::SPELL_CRIMSON_SHADE,    "Crimson Shade"     },
+        { 2500u, ArcturusSpells::SPELL_SOUL_REAVING,     "Soul Reaving"      },
+        { 2500u, ArcturusSpells::SPELL_SEARING_BRAND,    "Searing Brand"     },
+        { 2500u, ArcturusSpells::SPELL_TORMENTING_REND,  "Tormenting Rend"   },
+        { 2500u, ArcturusSpells::SPELL_WITHERING_TOUCH,  "Withering Touch"   },
         { 5000u, SPELL_CORRUPTED_BLOOD,          "Corrupted Blood"          },
         { 5000u, SPELL_WRATH_OF_CHAOS,           "Wrath of Chaos"           }
     }};
@@ -174,6 +169,9 @@ namespace WarlockEmpowerment
     int32 PetSoulSpellPowerBonus(Unit const* pet);
     // Souls counted toward PerKill pet flats (min(current, MaxSoulsApplied); 0 cap = no clamp).
     uint32 AppliedSoulsFor(uint32 current);
+    uint32 MaxSoulsApplied();
+    int32 TemperInterval();
+    int32 AnnounceEveryNKills();
     bool IsSystemEnabled();
 
     struct TemperValues
@@ -185,7 +183,6 @@ namespace WarlockEmpowerment
     };
 
     TemperValues LoadedTemper();
-    void ApplyKillBonus(Unit* pet, uint32 kills, bool apply);
 
     struct Souls
     {
@@ -208,7 +205,7 @@ namespace WarlockEmpowerment
 
     private:
         Mgr() = default;
-        static void PersistNow(uint32 low, Souls const& souls);
+        static void Persist(uint32 low, Souls const& souls, bool direct);
 
         mutable std::shared_mutex _mutex;
         std::unordered_map<uint32, Souls> _souls;
