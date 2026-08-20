@@ -99,28 +99,33 @@ public:
             handler->PSendSysMessage("Next:  |cff00ff00(max rank)|r");
 
         BonusValues b = LoadedBonus();
-        uint32 const petSouls = AppliedSoulsFor(souls.current);
+        float const petPower = SoulPowerFrom(souls.current);
+        float const petMult = CurrentBracketMult(souls.current);
+        uint32 const petRemain = SoulsIntoNextBracket(souls.current);
         handler->PSendSysMessage(
-            "Demon ({} applied of {} current; cap {}): |cff00ffff+{} Sta / +{} Str / +{} Agi / +{} Int / +{} Spi / +{} AP / +{:.1f} SP / +{} Armor|r",
-            petSouls, souls.current,
-            MaxSoulsApplied(),
-            uint32(b.stamina * float(petSouls)),
-            uint32(b.strength * float(petSouls)),
-            uint32(b.agility * float(petSouls)),
-            uint32(b.intellect * float(petSouls)),
-            uint32(b.spirit * float(petSouls)),
-            uint32(b.attackPower * float(petSouls)),
-            b.spellPower * float(petSouls),
-            uint32(b.armor * float(petSouls)));
+            "Demon (SoulPower |cffffff00{:.1f}|r, {:.0f}%{}): |cff00ffff+{} Sta / +{} Str / +{} Agi / "
+            "+{} Int / +{} Spi / +{} AP / +{:.1f} SP / +{} Armor|r",
+            petPower, petMult * 100.f,
+            petRemain ? Acore::StringFormat(", {} to next bracket", petRemain) : std::string(", max bracket"),
+            uint32(b.stamina * petPower),
+            uint32(b.strength * petPower),
+            uint32(b.agility * petPower),
+            uint32(b.intellect * petPower),
+            uint32(b.spirit * petPower),
+            uint32(b.attackPower * petPower),
+            b.spellPower * petPower,
+            uint32(b.armor * petPower));
 
-        uint32 tiers = TemperTiersFor(souls.lifetime);
         TemperValues t = LoadedTemper();
-        int32 interval = TemperInterval();
+        float const temperPower = SoulPowerFrom(souls.lifetime);
+        float const temperMult = CurrentBracketMult(souls.lifetime);
+        uint32 const temperRemain = SoulsIntoNextBracket(souls.lifetime);
         handler->PSendSysMessage(
-            "Tempering (every {} lifetime → {} tiers): |cff00ffff+{} Sta / +{} Int / +{} SP / +{} Mana/5|r",
-            interval, tiers,
-            t.stamina * int32(tiers), t.intellect * int32(tiers),
-            t.spellPower * int32(tiers), t.manaPer5 * int32(tiers));
+            "Tempering (SoulPower |cffffff00{:.1f}|r, {:.0f}%{}): |cff00ffff+{} Sta / +{} Int / +{} SP / +{} Mana/5|r",
+            temperPower, temperMult * 100.f,
+            temperRemain ? Acore::StringFormat(", {} to next bracket", temperRemain) : std::string(", max bracket"),
+            int32(t.stamina * temperPower), int32(t.intellect * temperPower),
+            int32(t.spellPower * temperPower), int32(t.manaPer5 * temperPower));
 
         handler->PSendSysMessage("Bonus talents: |cff00ff00+{}|r of +145 (fill every warlock talent at Dark Titan)",
             BonusTalentPointsFor(souls.lifetime));

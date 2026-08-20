@@ -17,7 +17,9 @@ Rate.Corpse.Decay.Looted = 0.01
 Updates.EnableDatabases = 7
 
 # Creature kill XP (quests/explore stay at 1x unless you change them too)
-Rate.XP.Kill = 3
+Rate.XP.Kill = 0.2
+Rate.XP.Quest = 1.2
+Rate.XP.Exploration = 5
 
 # Allow learning every primary profession from trainers (still learn/rank normally).
 # Range 0-11; secondaries (First Aid/Cooking/Fishing) are already unlimited.
@@ -39,21 +41,26 @@ WarlockDemonicEmpowerment.Enable = 1
 # Explicit keys silence Config "Missing property" spam on every kill/login under bots.
 # Merge into live env/dist/etc/worldserver.conf (gitignored) or rely on AC_* env in
 # docker-compose.override.yml — .dist alone is not auto-applied.
-# PerKill rates are floats; pet flats use min(current, MaxSoulsApplied). 0 = uncapped.
-WarlockDemonicEmpowerment.PerKill.Stamina = 0.2
-WarlockDemonicEmpowerment.PerKill.Strength = 0.1
-WarlockDemonicEmpowerment.PerKill.Agility = 0.1
-WarlockDemonicEmpowerment.PerKill.Intellect = 0.1
-WarlockDemonicEmpowerment.PerKill.Spirit = 0.1
-WarlockDemonicEmpowerment.PerKill.AttackPower = 0.1
-WarlockDemonicEmpowerment.PerKill.SpellPower = 0.05
-WarlockDemonicEmpowerment.PerKill.Armor = 0.5
-WarlockDemonicEmpowerment.PerKill.MaxSoulsApplied = 10000
-WarlockDemonicEmpowerment.Tempering.Stamina = 2
-WarlockDemonicEmpowerment.Tempering.Intellect = 2
-WarlockDemonicEmpowerment.Tempering.SpellPower = 3
-WarlockDemonicEmpowerment.Tempering.ManaPer5 = 1
-WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 25
+# Soul flats: both warlock (Tempering.*) and pet (PerKill.*) scale with SoulPower.
+# SoulPower = sum over brackets of (souls in bracket) / 250 * mult. Never hits zero.
+#   0–5k 100% | 5–25k 50% | 25–50k 25% | 50–100k 15% | 100–250k 10% | 250–500k 5% | 500k+ 2.5%
+# Coeffs are per SoulPower unit. Anchor: ~5.7k souls ≈ half of the old linear flats, SP a bit above half.
+# Balance solo content around ~25k–100k + gear. Ranks/kits/talents still use raw lifetime.
+# PerKill.MaxSoulsApplied is unused for flats (kept so old conf does not spam missing-option).
+WarlockDemonicEmpowerment.PerKill.Stamina = 25
+WarlockDemonicEmpowerment.PerKill.Strength = 12.5
+WarlockDemonicEmpowerment.PerKill.Agility = 12.5
+WarlockDemonicEmpowerment.PerKill.Intellect = 12.5
+WarlockDemonicEmpowerment.PerKill.Spirit = 12.5
+WarlockDemonicEmpowerment.PerKill.AttackPower = 12.5
+WarlockDemonicEmpowerment.PerKill.SpellPower = 6.25
+WarlockDemonicEmpowerment.PerKill.Armor = 62.5
+WarlockDemonicEmpowerment.PerKill.MaxSoulsApplied = 0
+WarlockDemonicEmpowerment.Tempering.Stamina = 10
+WarlockDemonicEmpowerment.Tempering.Intellect = 10
+WarlockDemonicEmpowerment.Tempering.SpellPower = 17.5
+WarlockDemonicEmpowerment.Tempering.ManaPer5 = 5
+WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 250
 WarlockDemonicEmpowerment.Tempering.MaxTiers = 0
 WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
 
@@ -73,15 +80,11 @@ Arcturus.CorruptedBlood.Whispers.MaxSeconds = 900
 #
 # Arcturus fairness model:
 #   Warlock + permanent pet + Demonic Empowerment (souls → pet flats, lifetime → tempering)
-#   are the "party". Hold full instance baselines (CurveFloor=Ceiling=1) so difficulty does
-#   not collapse when bots join or souls stack.
-#
-#   Dungeons: light premium on full 5-man stats (feels good for solo DE).
-#   Raids: same locked baseline, but StatModifier is size-scaled (~5/N of the dungeon
-#   premium, with a challenge fudge). Otherwise MC/BWL/etc. stay at full 40-man * 1.5x
-#   and one-shot fresh 60s. Larger raids use lower multipliers; bosses sit above trash.
-#   Tune size keys if early feels too hard or late feels too soft — leave 5-man alone
-#   when only raids need work.
+#   are the "party". Do NOT scale enemies down for 1 human in the instance — that made
+#   dungeons/raids trivial once souls stacked. Hold full instance stats (CurveFloor=Ceiling=1),
+#   then apply a light StatModifier premium so stock dungeon tuning still challenges DE power
+#   around ~25k–100k souls + gear (not a 500k naked warlock). Tune Global/Boss.* if early
+#   (0 souls) feels too hard or late feels too soft.
 #
 AutoBalance.Enable.Global = 1
 AutoBalance.playerCountDifficultyOffset = 0
@@ -102,37 +105,34 @@ AutoBalance.InflectionPointRaid.CurveCeiling = 1.0
 AutoBalance.InflectionPointRaidHeroic.CurveFloor = 1.0
 AutoBalance.InflectionPointRaidHeroic.CurveCeiling = 1.0
 
-# 5-man: premium on full-strength tuning (trash slightly less than bosses).
-AutoBalance.StatModifier.Global = 1.5
-AutoBalance.StatModifier.Boss.Global = 1.75
-AutoBalance.StatModifierHeroic.Global = 1.5
-AutoBalance.StatModifierHeroic.Boss.Global = 1.75
-
-# Raid fallback + size-specific solo-challenge curve (merge into live AutoBalance.conf).
-AutoBalance.StatModifierRaid.Global = 0.45
-AutoBalance.StatModifierRaid.Boss.Global = 0.60
-AutoBalance.StatModifierRaidHeroic.Global = 0.50
-AutoBalance.StatModifierRaidHeroic.Boss.Global = 0.65
-
-AutoBalance.StatModifierRaid10M.Global = 0.85
-AutoBalance.StatModifierRaid10M.Boss.Global = 1.05
-AutoBalance.StatModifierRaid10MHeroic.Global = 0.90
-AutoBalance.StatModifierRaid10MHeroic.Boss.Global = 1.15
-
-AutoBalance.StatModifierRaid15M.Global = 0.60
-AutoBalance.StatModifierRaid15M.Boss.Global = 0.75
-
-AutoBalance.StatModifierRaid20M.Global = 0.48
-AutoBalance.StatModifierRaid20M.Boss.Global = 0.62
-
-AutoBalance.StatModifierRaid25M.Global = 0.38
-AutoBalance.StatModifierRaid25M.Boss.Global = 0.50
-AutoBalance.StatModifierRaid25MHeroic.Global = 0.42
-AutoBalance.StatModifierRaid25MHeroic.Boss.Global = 0.55
-
-# Vanilla 40s (MC / BWL / AQ40 / Naxx40) — still a step up from heroics, not a brick wall.
-AutoBalance.StatModifierRaid40M.Global = 0.28
-AutoBalance.StatModifierRaid40M.Boss.Global = 0.38
+# Premium is NOT one number. CurveFloor=Ceiling=1 already holds full instance stats
+# (no solo downscale). Global then multiplies BOTH enemy HP and damage.
+# Same Global on 5-man and 40-man was the MC stomp: pet ate 40-man tank damage.
+# Picks from a TTK+pet-TTD sim at the SoulPower curve (tune souls in parens):
+#   5N (5.7k) 0.90/1.00  5H (25k) 1.70/2.00
+#   10N (25k) 1.25/1.45  10H (50k) 1.50/1.75
+#   25N (50k) 1.05/1.20  25H (100k) 1.25/1.45
+#   40N (25k) 0.50/0.60  — MC at old 1.75 + inflated souls still had ~7s pet TTD.
+# Arenas/BGs are not AutoBalance maps; these keys do not touch PvP.
+#
+AutoBalance.StatModifier.Global = 0.90
+AutoBalance.StatModifier.Boss.Global = 1.00
+AutoBalance.StatModifierHeroic.Global = 1.70
+AutoBalance.StatModifierHeroic.Boss.Global = 2.00
+AutoBalance.StatModifierRaid.Global = 1.25
+AutoBalance.StatModifierRaid.Boss.Global = 1.45
+AutoBalance.StatModifierRaidHeroic.Global = 1.50
+AutoBalance.StatModifierRaidHeroic.Boss.Global = 1.75
+AutoBalance.StatModifierRaid10M.Global = 1.25
+AutoBalance.StatModifierRaid10M.Boss.Global = 1.45
+AutoBalance.StatModifierRaid10MHeroic.Global = 1.50
+AutoBalance.StatModifierRaid10MHeroic.Boss.Global = 1.75
+AutoBalance.StatModifierRaid25M.Global = 1.05
+AutoBalance.StatModifierRaid25M.Boss.Global = 1.20
+AutoBalance.StatModifierRaid25MHeroic.Global = 1.25
+AutoBalance.StatModifierRaid25MHeroic.Boss.Global = 1.45
+AutoBalance.StatModifierRaid40M.Global = 0.50
+AutoBalance.StatModifierRaid40M.Boss.Global = 0.60
 
 ####################################################################################################
 # individualProgression.conf  (modules/mod-individual-progression/conf/)

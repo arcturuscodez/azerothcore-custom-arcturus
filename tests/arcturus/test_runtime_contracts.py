@@ -14,6 +14,7 @@ from arcturus_lib import (
     CHAR_HANDLER,
     CUSTOM_DIR,
     DE_CPP,
+    DE_HEADER,
     SPELL_WARLOCK,
     read_text,
 )
@@ -81,6 +82,11 @@ class DemonicEmpowermentRuntimeTests(unittest.TestCase):
         self.assertIn("RestoreFromPct(maxMana, manaPct)", temper)
         self.assertIn("player->IsAlive()", temper)
 
+        sync_t = _func(self.de, "void SyncTempering(", "void SyncTalentPoints(")
+        self.assertLess(sync_t.index("TemperFlatsMatch"), sync_t.index("ApplyTempering"))
+        pet_sync = _func(self.de, "void SyncPetSoulBonus(", "void StripRetiredRankSpells(")
+        self.assertLess(pet_sync.index("PetFlatsMatch"), pet_sync.index("ApplyKillBonusWith"))
+
     def test_qualifying_kill_adds_exactly_one_soul(self) -> None:
         kill = _func(self.de, "void OnPlayerRewardKillRewarder(", "void OnPlayerAfterGuardianInitStatsForLevel(")
         self.assertIn("IsQualifyingKill(player, rewarder)", kill)
@@ -107,13 +113,70 @@ class DemonicEmpowermentRuntimeTests(unittest.TestCase):
         self.assertIn("IsSystemEnabled()", first_return)
         self.assertIn("CLASS_WARLOCK", bonus)
         self.assertIn("CLASS_CONTEXT_PET", bonus)
-        self.assertIn("AppliedSoulsFor", bonus)
+        self.assertIn("SoulPowerFrom", bonus)
         self.assertEqual(self.warlock.count("PetSoulSpellPowerBonus(GetUnitOwner())"), 2)
         self.assertNotIn("PetSoulSpellPowerBonus(owner)", self.warlock)
 
     def test_applied_souls_use_the_per_kill_cap(self) -> None:
         applied = _func(self.de, "uint32 AppliedSoulsFor(", "int32 AnnounceEveryNKills(")
         self.assertIn("ClampAppliedSouls(current, MaxSoulsApplied())", applied)
+
+    def test_soulpower_brackets_match_golden_values(self) -> None:
+        header = read_text(DE_HEADER)
+        self.assertIn("SOUL_POWER_STEP_DEFAULT = 250u", header)
+        self.assertIn("{ 5000u,   1.00f  }", header)
+        self.assertIn("{ 25000u,  0.50f  }", header)
+        self.assertIn("{ 50000u,  0.25f  }", header)
+        self.assertIn("{ 100000u, 0.15f  }", header)
+        self.assertIn("{ 250000u, 0.10f  }", header)
+        self.assertIn("{ 500000u, 0.05f  }", header)
+        self.assertIn("{ 0u,      0.025f }", header)
+        self.assertIn("float SoulPowerFrom(uint32 souls)", header)
+
+        step = 250
+        brackets = (
+            (5000, 1.00),
+            (25000, 0.50),
+            (50000, 0.25),
+            (100000, 0.15),
+            (250000, 0.10),
+            (500000, 0.05),
+            (None, 0.025),
+        )
+
+        def soul_power(souls: int) -> float:
+            if not souls or not step:
+                return 0.0
+            power = 0.0
+            prev = 0
+            for until, mult in brackets:
+                hi = until if until is not None else 2**32 - 1
+                if souls <= prev:
+                    break
+                overlap_end = souls if souls < hi else hi
+                power += (overlap_end - prev) / step * mult
+                if until is None or souls <= hi:
+                    break
+                prev = hi
+            return power
+
+        golden = {
+            5000: 20.0,
+            5700: 21.4,
+            6000: 22.0,
+            25000: 60.0,
+            50000: 85.0,
+            100000: 115.0,
+            250000: 175.0,
+            500000: 225.0,
+            1000000: 275.0,
+        }
+        for souls, want in golden.items():
+            self.assertAlmostEqual(soul_power(souls), want, places=5, msg=souls)
+
+        self.assertIn("SoulPowerFrom(want)", self.de)
+        self.assertIn("SoulPowerFrom(lifetime)", self.de)
+        self.assertNotIn("t.stamina * int32(temperAfter)", self.de)
 
     def test_logout_forgets_and_save_queues(self) -> None:
         logout = _func(self.de, "void OnPlayerLogout(", "void OnPlayerJustDied(")
@@ -157,8 +220,10 @@ class MandateAndKitRuntimeTests(unittest.TestCase):
         src = read_text(CUSTOM_DIR / "warlock_felguard_mandate.cpp")
         brand = _func(src, "uint32 BrandSoulPoints(", "void SyncPetSpellCooldown(")
         self.assertIn("IsLoaded(owner->GetGUID())", brand)
-        self.assertLess(brand.index("AppliedSoulsFor"), brand.index("BRAND_SOUL_CAP"))
+        self.assertIn("souls.current", brand)
+        self.assertLess(brand.index("souls.current"), brand.index("BRAND_SOUL_CAP"))
         self.assertIn("if (applied > BRAND_SOUL_CAP)", brand)
+        self.assertNotIn("AppliedSoulsFor", brand)
 
     def test_coagulate_is_a_low_health_emergency_not_a_death_save(self) -> None:
         src = read_text(CUSTOM_DIR / "warlock_corrupted_blood.cpp")
@@ -206,6 +271,11 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         self.assertIn("CLASS_WARLOCK", target)
         self.assertIn("LoadFromDB", target)
         self.assertIn("Warlock-only", target)
+
+        src = read_text(CUSTOM_DIR / "cs_demons.cpp")
+        self.assertIn("SoulPowerFrom", src)
+        self.assertIn("CurrentBracketMult", src)
+        self.assertIn("SoulsIntoNextBracket", src)
 
     def test_profession_sync_skips_bots(self) -> None:
         src = read_text(CUSTOM_DIR / "arcturus_trade_skills.cpp")
