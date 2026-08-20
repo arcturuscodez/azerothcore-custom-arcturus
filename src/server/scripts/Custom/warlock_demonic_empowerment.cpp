@@ -27,6 +27,7 @@
  */
 
 #include "warlock_demonic_empowerment.h"
+#include "arcturus_gameplay_watch.h"
 
 #include "Chat.h"
 #include "Config.h"
@@ -795,6 +796,7 @@ namespace
             LOG_ERROR("scripts.arcturus",
                 "Rank passive {} ({}) failed CastSpell for {} — fix spell_dbc targets (must be self-only). Forcing AddAura.",
                 entry.id, entry.name, player->GetName());
+            ArcturusWatch::SpellPassiveFail(player, entry.id, entry.name);
             player->AddAura(entry.id, player);
         }
 
@@ -817,6 +819,8 @@ namespace
         // because PetSoulSpellPowerBonus reads the Mgr live). Re-sync the live demon here.
         if (Pet* pet = player->GetPet())
             SyncPetSoulBonus(pet, IsSystemEnabled() ? souls.current : 0u);
+
+        ArcturusWatch::Login(player, souls);
     }
 
     bool MaybeAnnounceRankUp(Player* player, uint32 before, uint32 after)
@@ -874,8 +878,11 @@ public:
 
     void OnPlayerMapChanged(Player* player) override
     {
-        if (IsWarlock(player))
-            ScheduleEmbraceUndeathReapply(player);
+        if (!IsWarlock(player))
+            return;
+
+        ScheduleEmbraceUndeathReapply(player);
+        ArcturusWatch::MapChange(player, player->GetMapId());
     }
 
     void OnPlayerLogin(Player* player) override
@@ -911,6 +918,8 @@ public:
                 "|cff9370dbDemonic Empowerment:|r ready for your first soul. "
                 "Type |cffffff00.demons|r.");
         }
+
+        ArcturusWatch::Login(player, souls);
     }
 
     void OnPlayerLogout(Player* player) override
@@ -918,14 +927,20 @@ public:
         if (!IsWarlock(player))
             return;
 
+        Souls souls = sWarlockEmpower->Get(player->GetGUID());
+        ArcturusWatch::Logout(player, souls);
         UntrackOnlineWarlock(player);
         sWarlockEmpower->FlushAndForget(player->GetGUID());
     }
 
     void OnPlayerJustDied(Player* player) override
     {
-        if (IsWarlock(player))
-            ClearEmbraceUndeathMorph(player);
+        if (!IsWarlock(player))
+            return;
+
+        ClearEmbraceUndeathMorph(player);
+        sWarlockEmpower->LoadFromDB(player->GetGUID());
+        ArcturusWatch::Death(player, sWarlockEmpower->Get(player->GetGUID()));
     }
 
     void OnPlayerSave(Player* player) override
@@ -993,6 +1008,9 @@ public:
 
         if ((total.lifetime / 25u) != (before.lifetime / 25u))
             sWarlockEmpower->FlushIfDirty(player->GetGUID());
+
+        Unit* victim = rewarder ? rewarder->GetVictim() : nullptr;
+        ArcturusWatch::Kill(player, before, total, victim);
     }
 
     void OnPlayerAfterGuardianInitStatsForLevel(Player* player, Guardian* guardian) override
@@ -1003,7 +1021,9 @@ public:
         if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
             return;
 
-        SyncPetSoulBonus(guardian, sWarlockEmpower->Get(player->GetGUID()).current);
+        uint32 const current = sWarlockEmpower->Get(player->GetGUID()).current;
+        SyncPetSoulBonus(guardian, current);
+        ArcturusWatch::PetSync(player, SoulPowerFrom(current), current, true);
     }
 };
 

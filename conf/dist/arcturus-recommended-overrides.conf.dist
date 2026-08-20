@@ -74,6 +74,13 @@ Arcturus.CorruptedBlood.Whispers.Enable = 1
 Arcturus.CorruptedBlood.Whispers.MinSeconds = 240
 Arcturus.CorruptedBlood.Whispers.MaxSeconds = 900
 
+# Gameplay watch — compact events for agents (tools/arcturus_watch/README.md)
+Arcturus.GameplayWatch.Enable = 1
+# Empty = all real players; set to one character name to reduce noise on multi-player realms
+Arcturus.GameplayWatch.PlayerName =
+Appender.ArcturusWatch=2,4,0,ArcturusWatch.log,a
+Logger.scripts.arcturus.watch=4,Console ArcturusWatch
+
 ####################################################################################################
 # AutoBalance.conf  (modules/mod-autobalance/conf/)
 ####################################################################################################

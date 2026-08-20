@@ -236,7 +236,7 @@ class MandateAndKitRuntimeTests(unittest.TestCase):
         src = read_text(CUSTOM_DIR / "warlock_wrath_of_chaos.cpp")
         walk = _func(src, "uint32 HighestKnownRank(", "uint32 ImmolateOrUnstableAffliction(")
         self.assertIn("GetNextRankSpell()", walk)
-        self.assertIn("HasSpell(info->Id)", walk)
+        self.assertIn("HasActiveSpell(info->Id)", walk)
         self.assertNotIn("break;", walk)
 
 

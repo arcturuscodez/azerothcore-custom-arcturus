@@ -1,6 +1,5 @@
 #!/bin/sh
 # Arcturus custom-system tests — a failing run blocks the commit.
-# This is not the retired GATE-* suite (tests/arcturus_gates).
 #
 # Cursor / Git GUI often have a thinner PATH than conda PowerShell. Probe
 # python, python3, Windows `py -3`, where.exe, and common install layouts.
