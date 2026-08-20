@@ -3,11 +3,11 @@
  *
  * Live systems:
  *  - Qualifying kills harvest +1 soul (lifetime + current)
- *  - CURRENT souls → flat stats on every summoned demon (config PerKill.*)
- *    clamped by PerKill.MaxSoulsApplied (lifetime / tempering / ranks uncapped)
+ *  - CURRENT souls → SoulPower → flat stats on every summoned demon (config PerKill.*)
+ *  - LIFETIME souls → SoulPower → Soul Tempering on the warlock (config Tempering.*)
+ *  - SoulPower is diminishing by soul bracket (step Tempering.SoulsPerTier, default 250)
  *  - WorldScript (5s) handles rare Enable config flips
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
- *  - Every N LIFETIME souls → Soul Tempering on the warlock (config Tempering.*)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
  *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90030–90034 / 90042 / 90046 (RANK_SPELLS) + chat announcement
  *  - Passives (90001 / 90002 / 90007 / 90042): same path as talent passives —
@@ -73,7 +73,7 @@ namespace WarlockEmpowerment
         BonusValues _bonusCache{};
         uint32 _bonusCacheMs = 0;
         TemperValues _temperCache{};
-        int32 _temperInterval = 25;
+        int32 _temperInterval = 250;
         int32 _temperMaxTiers = 0;
         uint32 _temperCacheMs = 0;
         uint32 _maxSoulsApplied = 10000u;
@@ -90,14 +90,14 @@ namespace WarlockEmpowerment
         if (!_bonusCacheMs || getMSTimeDiff(_bonusCacheMs, now) >= CONFIG_CACHE_MS)
         {
             _bonusCache = BonusValues{
-                sConfigMgr->GetOption<float>(CONFIG_BONUS_STAMINA,     0.2f),
-                sConfigMgr->GetOption<float>(CONFIG_BONUS_STRENGTH,    0.1f),
-                sConfigMgr->GetOption<float>(CONFIG_BONUS_AGILITY,     0.1f),
-                sConfigMgr->GetOption<float>(CONFIG_BONUS_INTELLECT,   0.1f),
-                sConfigMgr->GetOption<float>(CONFIG_BONUS_SPIRIT,      0.1f),
-                sConfigMgr->GetOption<float>(CONFIG_BONUS_ATTACKPOWER, 0.1f),
-                sConfigMgr->GetOption<float>(CONFIG_BONUS_SPELLPOWER,  0.05f),
-                sConfigMgr->GetOption<float>(CONFIG_BONUS_ARMOR,       0.5f)
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_STAMINA,     25.0f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_STRENGTH,    12.5f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_AGILITY,     12.5f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_INTELLECT,   12.5f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_SPIRIT,      12.5f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_ATTACKPOWER, 12.5f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_SPELLPOWER,  6.25f),
+                sConfigMgr->GetOption<float>(CONFIG_BONUS_ARMOR,       62.5f)
             };
             _bonusCacheMs = now ? now : 1u;
         }
@@ -137,12 +137,12 @@ namespace WarlockEmpowerment
         if (!_temperCacheMs || getMSTimeDiff(_temperCacheMs, now) >= CONFIG_CACHE_MS)
         {
             _temperCache = TemperValues{
-                sConfigMgr->GetOption<int32>(CONFIG_TEMPER_STAMINA,    2),
-                sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTELLECT,  2),
-                sConfigMgr->GetOption<int32>(CONFIG_TEMPER_SPELLPOWER, 3),
-                sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MANA_PER5,  1)
+                sConfigMgr->GetOption<float>(CONFIG_TEMPER_STAMINA,    10.0f),
+                sConfigMgr->GetOption<float>(CONFIG_TEMPER_INTELLECT,  10.0f),
+                sConfigMgr->GetOption<float>(CONFIG_TEMPER_SPELLPOWER, 17.5f),
+                sConfigMgr->GetOption<float>(CONFIG_TEMPER_MANA_PER5,  5.0f)
             };
-            _temperInterval = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTERVAL, 25);
+            _temperInterval = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_INTERVAL, int32(SOUL_POWER_STEP_DEFAULT));
             _temperMaxTiers = sConfigMgr->GetOption<int32>(CONFIG_TEMPER_MAX_TIERS, 0);
             _temperCacheMs = now ? now : 1u;
         }
@@ -152,7 +152,31 @@ namespace WarlockEmpowerment
     int32 TemperInterval()
     {
         LoadedTemper();
-        return _temperInterval > 0 ? _temperInterval : 25;
+        return _temperInterval > 0 ? _temperInterval : int32(SOUL_POWER_STEP_DEFAULT);
+    }
+
+    float SoulPowerStep()
+    {
+        return float(TemperInterval());
+    }
+
+    float SoulPowerFrom(uint32 souls)
+    {
+        LoadedTemper();
+        float power = SoulPowerFromSouls(souls, uint32(TemperInterval()));
+        if (_temperMaxTiers > 0 && power > float(_temperMaxTiers))
+            power = float(_temperMaxTiers);
+        return power;
+    }
+
+    float CurrentBracketMult(uint32 souls)
+    {
+        return CurrentBracketMultFrom(souls);
+    }
+
+    uint32 SoulsIntoNextBracket(uint32 souls)
+    {
+        return SoulsIntoNextBracketFrom(souls);
     }
 
     bool BonusValuesEqual(BonusValues const& a, BonusValues const& b)
@@ -171,19 +195,32 @@ namespace WarlockEmpowerment
 
     uint32 TemperTiersFor(uint32 lifetime)
     {
-        LoadedTemper(); // refreshes _temperInterval / _temperMaxTiers
-        if (_temperInterval <= 0)
-            return 0;
-
-        uint32 tiers = lifetime / uint32(_temperInterval);
-        if (_temperMaxTiers > 0 && tiers > uint32(_temperMaxTiers))
-            tiers = uint32(_temperMaxTiers);
-        return tiers;
+        return uint32(SoulPowerFrom(lifetime));
     }
 
-    void ApplyKillBonusWith(Unit* pet, uint32 kills, BonusValues const& b, bool apply)
+    bool TemperFlatsMatch(float powerA, TemperValues const& a, float powerB, TemperValues const& b)
     {
-        if (!pet || !kills)
+        return int32(powerA * a.stamina) == int32(powerB * b.stamina)
+            && int32(powerA * a.intellect) == int32(powerB * b.intellect)
+            && int32(powerA * a.spellPower) == int32(powerB * b.spellPower)
+            && int32(powerA * a.manaPer5) == int32(powerB * b.manaPer5);
+    }
+
+    bool PetFlatsMatch(float powerA, BonusValues const& a, float powerB, BonusValues const& b)
+    {
+        return int32(powerA * a.stamina) == int32(powerB * b.stamina)
+            && int32(powerA * a.strength) == int32(powerB * b.strength)
+            && int32(powerA * a.agility) == int32(powerB * b.agility)
+            && int32(powerA * a.intellect) == int32(powerB * b.intellect)
+            && int32(powerA * a.spirit) == int32(powerB * b.spirit)
+            && int32(powerA * a.attackPower) == int32(powerB * b.attackPower)
+            && int32(powerA * a.armor) == int32(powerB * b.armor)
+            && int32(powerA * a.spellPower + 0.5f) == int32(powerB * b.spellPower + 0.5f);
+    }
+
+    void ApplyKillBonusWith(Unit* pet, float units, BonusValues const& b, bool apply)
+    {
+        if (!pet || units == 0.f)
             return;
 
         uint32 const maxHealthBefore = pet->GetMaxHealth();
@@ -195,7 +232,7 @@ namespace WarlockEmpowerment
             ? float(pet->GetPower(POWER_MANA)) / float(maxManaBefore)
             : 1.0f;
 
-        float mult = float(kills);
+        float mult = units;
 
         pet->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA,   TOTAL_VALUE, b.stamina     * mult, apply);
         pet->HandleStatFlatModifier(UNIT_MOD_STAT_STRENGTH,  TOTAL_VALUE, b.strength    * mult, apply);
@@ -242,11 +279,12 @@ namespace WarlockEmpowerment
         if (!player || !player->IsClass(CLASS_WARLOCK, CLASS_CONTEXT_PET))
             return 0;
 
-        uint32 souls = AppliedSoulsFor(Mgr::instance()->Get(player->GetGUID()).current);
-        if (!souls)
+        uint32 souls = Mgr::instance()->Get(player->GetGUID()).current;
+        float power = SoulPowerFrom(souls);
+        if (power <= 0.f)
             return 0;
 
-        return int32(LoadedBonus().spellPower * float(souls) + 0.5f);
+        return int32(LoadedBonus().spellPower * power + 0.5f);
     }
 
     bool IsSystemEnabled()
@@ -381,7 +419,7 @@ namespace
     class EmpowermentPetState : public DataMap::Base
     {
     public:
-        uint32      applied = 0;
+        float       applied = 0.f;
         BonusValues appliedValues{};
         bool        hasValues = false;
     };
@@ -389,8 +427,8 @@ namespace
     class EmpowermentPlayerState : public DataMap::Base
     {
     public:
-        uint32       appliedTiers = 0;
-        TemperValues appliedValues = { 0, 0, 0, 0 };
+        float        appliedPower = 0.f;
+        TemperValues appliedValues = { 0.f, 0.f, 0.f, 0.f };
         // Soul-granted share of m_extraBonusTalentCount (Add/Remove, never Set).
         uint32       appliedSoulTalents = 0;
         bool         soulTalentsAdopted = false;
@@ -571,9 +609,9 @@ namespace
         SendMessageIfOnline(player, "|cff9370dbAshen bones take the place of flesh.|r");
     }
 
-    void ApplyTempering(Player* player, uint32 tiers, TemperValues const& values, bool apply)
+    void ApplyTempering(Player* player, float power, TemperValues const& values, bool apply)
     {
-        if (!tiers)
+        if (power <= 0.f)
             return;
 
         uint32 const maxHealthBefore = player->GetMaxHealth();
@@ -585,12 +623,18 @@ namespace
             ? float(player->GetPower(POWER_MANA)) / float(maxManaBefore)
             : 1.0f;
 
-        float mult = float(tiers);
-        player->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA,   TOTAL_VALUE, float(values.stamina)   * mult, apply);
-        player->HandleStatFlatModifier(UNIT_MOD_STAT_INTELLECT, TOTAL_VALUE, float(values.intellect) * mult, apply);
-        player->ApplySpellPowerBonus(values.spellPower * int32(tiers), apply);
-        if (values.manaPer5)
-            player->ApplyManaRegenBonus(values.manaPer5 * int32(tiers), apply);
+        int32 const sta = int32(power * values.stamina);
+        int32 const intel = int32(power * values.intellect);
+        int32 const sp = int32(power * values.spellPower);
+        int32 const mp5 = int32(power * values.manaPer5);
+        if (!sta && !intel && !sp && !mp5)
+            return;
+
+        player->HandleStatFlatModifier(UNIT_MOD_STAT_STAMINA,   TOTAL_VALUE, float(sta), apply);
+        player->HandleStatFlatModifier(UNIT_MOD_STAT_INTELLECT, TOTAL_VALUE, float(intel), apply);
+        player->ApplySpellPowerBonus(sp, apply);
+        if (mp5)
+            player->ApplyManaRegenBonus(mp5, apply);
         player->UpdateAllStats();
 
         if (player->IsAlive())
@@ -610,14 +654,16 @@ namespace
     void SyncTempering(Player* player, uint32 lifetime)
     {
         auto* state = player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY);
-        uint32 target = IsSystemEnabled() ? TemperTiersFor(lifetime) : 0u;
+        float target = IsSystemEnabled() ? SoulPowerFrom(lifetime) : 0.f;
         TemperValues values = LoadedTemper();
-        if (state->appliedTiers == target && TemperValuesEqual(state->appliedValues, values))
+        if (state->appliedPower == target && TemperValuesEqual(state->appliedValues, values))
+            return;
+        if (TemperFlatsMatch(state->appliedPower, state->appliedValues, target, values))
             return;
 
-        ApplyTempering(player, state->appliedTiers, state->appliedValues, false);
+        ApplyTempering(player, state->appliedPower, state->appliedValues, false);
         ApplyTempering(player, target, values, true);
-        state->appliedTiers  = target;
+        state->appliedPower  = target;
         state->appliedValues = values;
     }
 
@@ -667,33 +713,36 @@ namespace
 
     void SyncPetSoulBonus(Unit* pet, uint32 want)
     {
-        want = AppliedSoulsFor(want);
+        float wantPower = SoulPowerFrom(want);
         auto* state = pet->CustomData.GetDefault<EmpowermentPetState>(PET_STATE_KEY);
         BonusValues fresh = LoadedBonus();
-        if (state->applied == want && state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
+        if (state->applied == wantPower && state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
+            return;
+        if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh)
+            && PetFlatsMatch(state->applied, fresh, wantPower, fresh))
             return;
 
-        // Same rates: apply only the soul delta (avoids full strip/reapply + double UpdateAllStats per kill).
+        // Same rates: apply only the SoulPower delta (avoids full strip/reapply + double UpdateAllStats per kill).
         if (state->hasValues && BonusValuesEqual(state->appliedValues, fresh))
         {
-            if (want > state->applied)
-                ApplyKillBonusWith(pet, want - state->applied, fresh, true);
-            else if (state->applied > want)
-                ApplyKillBonusWith(pet, state->applied - want, fresh, false);
+            if (wantPower > state->applied)
+                ApplyKillBonusWith(pet, wantPower - state->applied, fresh, true);
+            else if (state->applied > wantPower)
+                ApplyKillBonusWith(pet, state->applied - wantPower, fresh, false);
 
-            state->applied = want;
+            state->applied = wantPower;
             return;
         }
 
-        if (state->applied)
+        if (state->applied != 0.f)
         {
             BonusValues const& strip = state->hasValues ? state->appliedValues : fresh;
             ApplyKillBonusWith(pet, state->applied, strip, false);
         }
-        if (want)
-            ApplyKillBonusWith(pet, want, fresh, true);
+        if (wantPower != 0.f)
+            ApplyKillBonusWith(pet, wantPower, fresh, true);
 
-        state->applied = want;
+        state->applied = wantPower;
         state->appliedValues = fresh;
         state->hasValues = true;
     }
@@ -902,7 +951,7 @@ public:
         }
 
         Souls before = sWarlockEmpower->Get(player->GetGUID());
-        uint32 temperBefore = TemperTiersFor(before.lifetime);
+        uint32 temperBefore = uint32(SoulPowerFrom(before.lifetime));
 
         Souls total = sWarlockEmpower->Add(player->GetGUID(), 1u);
         if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
@@ -914,17 +963,18 @@ public:
         SyncTempering(player, total.lifetime);
         SyncRankSpells(player, total.lifetime, true);
 
-        uint32 temperAfter = TemperTiersFor(total.lifetime);
+        float const powerAfter = SoulPowerFrom(total.lifetime);
+        uint32 temperAfter = uint32(powerAfter);
         if (temperAfter > temperBefore)
         {
             TemperValues t = LoadedTemper();
             SendMessageIfOnline(player, Acore::StringFormat(
-                "|cff9370dbSoul Tempering:|r tier |cffffff00{}|r — |cff00ffff+{} Sta / +{} Int / +{} SP / +{} Mana/5|r.",
-                temperAfter,
-                t.stamina * int32(temperAfter),
-                t.intellect * int32(temperAfter),
-                t.spellPower * int32(temperAfter),
-                t.manaPer5 * int32(temperAfter)));
+                "|cff9370dbSoul Tempering:|r SoulPower |cffffff00{:.1f}|r — |cff00ffff+{} Sta / +{} Int / +{} SP / +{} Mana/5|r.",
+                powerAfter,
+                int32(t.stamina * powerAfter),
+                int32(t.intellect * powerAfter),
+                int32(t.spellPower * powerAfter),
+                int32(t.manaPer5 * powerAfter)));
         }
 
         if (MaybeAnnounceRankUp(player, before.lifetime, total.lifetime))

@@ -113,7 +113,7 @@ class ProgressionCrossSystemTests(unittest.TestCase):
     def test_mandate_brand_reads_demonic_empowerment_souls(self) -> None:
         src = read_text(CUSTOM_DIR / "warlock_felguard_mandate.cpp")
         self.assertIn("sWarlockEmpower", src)
-        self.assertIn("AppliedSoulsFor", src)
+        self.assertIn("souls.current", src)
         self.assertIn("BRAND_SOUL_CAP", src)
         self.assertIn("SPELL_LEGION_BRAND", src)
         self.assertIn("NPC_FELGUARD", src)

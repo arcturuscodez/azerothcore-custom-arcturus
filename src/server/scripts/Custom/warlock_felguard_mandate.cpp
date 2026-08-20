@@ -48,7 +48,7 @@ namespace
         if (!sWarlockEmpower->IsLoaded(owner->GetGUID()))
             return 0;
         WarlockEmpowerment::Souls souls = sWarlockEmpower->Get(owner->GetGUID());
-        uint32 applied = WarlockEmpowerment::AppliedSoulsFor(souls.current);
+        uint32 applied = souls.current;
         if (applied > BRAND_SOUL_CAP)
             applied = BRAND_SOUL_CAP;
         return applied;
