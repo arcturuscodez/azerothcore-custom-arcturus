@@ -640,6 +640,13 @@ void CharacterDatabaseConnection::DoPrepareStatements()
         "SELECT kills, lifetime FROM character_warlock_demon_kills WHERE guid = ?", CONNECTION_SYNCH);
     PrepareStatement(CHAR_REP_WARLOCK_SOULS,
         "REPLACE INTO character_warlock_demon_kills (guid, kills, lifetime) VALUES (?, ?, ?)", CONNECTION_BOTH);
+
+    // CHAR_NO_OP_PROVIDE_REALM_CONTEXT is a no-op query that accepts a single parameter: the realm ID.
+    // This query is used specifically in cross-realm scenarios when the database transaction
+    // lacks sufficient context to determine which realm's database the query should target.
+    // By providing the realm ID explicitly, this ensures that mysql reverse proxy will use
+    // correct realm database for the transaction.
+    PrepareStatement(CHAR_NO_OP_PROVIDE_REALM_CONTEXT, "SELECT ? AS no_op", CONNECTION_ASYNC);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)
