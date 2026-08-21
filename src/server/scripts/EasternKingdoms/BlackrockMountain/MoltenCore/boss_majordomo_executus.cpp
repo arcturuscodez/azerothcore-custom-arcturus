@@ -139,6 +139,7 @@ struct boss_majordomo : public BossAI
     {
         if (summon->GetEntry() == NPC_RAGNAROS)
         {
+            summon->UpdateEntry(NPC_RAGNAROS);
             summon->CastSpell(summon, SPELL_RAGNAROS_FADE);
             summon->CastSpell(summon, SPELL_RAGNAROS_SUBMERGE_EFFECT, true);
             summon->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
@@ -573,8 +574,12 @@ class spell_summon_ragnaros : public SpellScript
 
     void HandleHit()
     {
-        if (Unit* caster = GetCaster())
-            caster->SummonCreature(NPC_RAGNAROS, RagnarosSummonPos, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 2 * HOUR * IN_MILLISECONDS);
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+
+        if (Creature* ragnaros = caster->SummonCreature(NPC_RAGNAROS, RagnarosSummonPos, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 2 * HOUR * IN_MILLISECONDS))
+            ragnaros->UpdateEntry(NPC_RAGNAROS);
     }
 
     void Register() override

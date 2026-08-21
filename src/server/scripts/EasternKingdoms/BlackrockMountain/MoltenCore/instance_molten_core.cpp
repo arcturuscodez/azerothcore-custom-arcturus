@@ -64,6 +64,7 @@ struct instance_molten_core : public InstanceScript
 
     void OnPlayerEnter(Player* /*player*/) override
     {
+        ExtinguishLinkedRunes();
         if (CheckMajordomoExecutus())
             SummonMajordomoExecutus();
     }
@@ -342,20 +343,30 @@ struct instance_molten_core : public InstanceScript
         if (GetBossState(DATA_RAGNAROS) == DONE)
             return false;
 
-        for (uint8 i = 0; i < DATA_MAJORDOMO_EXECUTUS; ++i)
-        {
-            if (i == DATA_LUCIFRON)
-                continue;
-
-            if (GetBossState(i) != DONE)
-                return false;
-        }
-
         // Prevent spawning if Ragnaros is present
         if (instance->GetCreature(_ragnarosGUID))
             return false;
 
         return true;
+    }
+
+    // WotLK 3.3.5+: runes are cosmetic; do not gate Majordomo on boss kills or quintessence.
+    void ExtinguishLinkedRunes()
+    {
+        for (MCBossObject const& link : linkedBossObjData)
+        {
+            if (GameObject* circle = instance->GetGameObject(_circlesGUIDs[link.bossId]))
+            {
+                circle->DespawnOrUnsummon(0ms, Seconds(WEEK));
+                _circlesGUIDs[link.bossId].Clear();
+            }
+
+            if (GameObject* rune = instance->GetGameObject(_runesGUIDs[link.bossId]))
+            {
+                rune->UseDoorOrButton(WEEK * IN_MILLISECONDS);
+                _runesGUIDs[link.bossId].Clear();
+            }
+        }
     }
 
 private:
