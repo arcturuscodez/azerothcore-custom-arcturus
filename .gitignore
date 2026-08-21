@@ -51,6 +51,18 @@ CMakeLists.txt.user
 *.LOCAL.*
 
 #
+# Agents
+#
+.agents/plans/**
+
+#
+# Claude
+#
+.claude/worktrees
+.claude/settings.local.json
+.claude/plans/**
+
+#
 # IDE & other software
 #
 /.settings/
@@ -151,4 +163,5 @@ MY_SERVER.txt
 dml-start.sh
 
 .agents/*
-data/sql/updates/pending_db_characters/rev_1787071088219556758.sql
+!.agents/docs/
+!.agents/README.md

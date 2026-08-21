@@ -134,10 +134,11 @@ class PersistenceContractTests(unittest.TestCase):
         cpp = read_text(CHAR_DB_CPP)
         self.assertIn("CHAR_SEL_WARLOCK_SOULS", header)
         self.assertIn("CHAR_REP_WARLOCK_SOULS", header)
-        # New statements must sit immediately before MAX so the enum is not shifted mid-list.
+        self.assertIn("CHAR_NO_OP_PROVIDE_REALM_CONTEXT", header)
+        # Custom and upstream tail statements must sit immediately before MAX.
         self.assertRegex(
             header,
-            r"CHAR_SEL_WARLOCK_SOULS,\s*CHAR_REP_WARLOCK_SOULS,\s*MAX_CHARACTERDATABASE_STATEMENTS",
+            r"CHAR_SEL_WARLOCK_SOULS,\s*CHAR_REP_WARLOCK_SOULS,\s*CHAR_NO_OP_PROVIDE_REALM_CONTEXT,\s*MAX_CHARACTERDATABASE_STATEMENTS",
         )
         self.assertIn(
             "SELECT kills, lifetime FROM character_warlock_demon_kills WHERE guid = ?",
