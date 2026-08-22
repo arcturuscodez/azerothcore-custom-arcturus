@@ -226,6 +226,7 @@ struct instance_blackwing_lair : public InstanceScript
             {
                 case DONE:
                     EggEvent = data;
+                    _events.CancelEvent(EVENT_RAZOR_SPAWN);
                     break;
                 case FAIL:
                     _events.CancelEvent(EVENT_RAZOR_SPAWN);

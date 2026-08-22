@@ -84,6 +84,7 @@ struct boss_vaelastrasz : public BossAI
         PlayerGUID.Clear();
         HasYelled = false;
         _introDone = false;
+        _encounterStarted = false;
         _burningAdrenalineCast = 0;
         me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
         me->SetNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
@@ -107,12 +108,27 @@ struct boss_vaelastrasz : public BossAI
         {
             HasYelled = false;
             _burningAdrenalineCast = 0;
+            _encounterStarted = false;
         }
     }
 
     void JustEngagedWith(Unit* who) override
     {
         BossAI::JustEngagedWith(who);
+
+        // Bots can pull during the RP; defer abilities until the intro finishes.
+        if (!_introDone)
+            return;
+
+        StartEncounter();
+    }
+
+    void StartEncounter()
+    {
+        if (_encounterStarted)
+            return;
+
+        _encounterStarted = true;
 
         DoCastAOE(SPELL_ESSENCE_OF_THE_RED);
         // now drop damage requirement to be able to take loot
@@ -186,17 +202,21 @@ struct boss_vaelastrasz : public BossAI
                         Talk(SAY_LINE3);
                         me->HandleEmoteCommand(EMOTE_ONESHOT_TALK);
                         _eventsIntro.ScheduleEvent(EVENT_SPEECH_7, 17s);
-                        me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         break;
                     case EVENT_SPEECH_7:
+                        me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         me->SetFaction(FACTION_DRAGONFLIGHT_BLACK);
-                        if (PlayerGUID && ObjectAccessor::GetUnit(*me, PlayerGUID))
-                            AttackStart(ObjectAccessor::GetUnit(*me, PlayerGUID));
                         me->SetReactState(REACT_AGGRESSIVE);
                         _introDone = true;
+                        if (PlayerGUID && ObjectAccessor::GetUnit(*me, PlayerGUID))
+                            AttackStart(ObjectAccessor::GetUnit(*me, PlayerGUID));
+                        StartEncounter();
                         break;
                 }
             }
+
+            if (!_introDone)
+                return;
         }
 
         if (!UpdateVictim() || me->HasUnitState(UNIT_STATE_CASTING))
@@ -278,6 +298,7 @@ private:
     ObjectGuid m_nefariusGuid;
     bool HasYelled;
     bool _introDone;
+    bool _encounterStarted;
     EventMap _eventsIntro;
     uint8 _burningAdrenalineCast;
 };

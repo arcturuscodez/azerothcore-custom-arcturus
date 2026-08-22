@@ -2549,11 +2549,12 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
     }
 
     // Run guild recovery/assignment at login to handle empty guild tables after restart.
+    PlayerbotFactory factory(bot, bot->GetLevel());
     if (sPlayerbotAIConfig.randomBotGuildCount > 0)
-    {
-        PlayerbotFactory factory(bot, bot->GetLevel());
         factory.InitGuild();
-    }
+
+    if (sPlayerbotAIConfig.altMaintenanceAttunementQs && bot->GetLevel() >= 55)
+        factory.InitAttunementQuests();
 
     if (sPlayerbotAIConfig.randomBotFixedLevel)
     {

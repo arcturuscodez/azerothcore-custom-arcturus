@@ -1644,6 +1644,12 @@ void PlayerbotMgr::OnBotLoginInternal(Player* const bot)
     botAI->SetMaster(master);
     botAI->ResetStrategies();
 
+    if (sPlayerbotAIConfig.altMaintenanceAttunementQs && bot->GetLevel() >= 55)
+    {
+        PlayerbotFactory factory(bot, bot->GetLevel());
+        factory.InitAttunementQuests();
+    }
+
     LOG_INFO("playerbots", "Bot {} logged in", bot->GetName().c_str());
 }
 

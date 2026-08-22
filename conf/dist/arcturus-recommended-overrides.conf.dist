@@ -64,6 +64,11 @@ WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100
 WarlockDemonicEmpowerment.Tempering.MaxTiers = 0
 WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
 
+# Raid/dungeon boss loot volume — reference tables roll MaxCount * this (uint32).
+# ~4 purples per 40-man boss at 1.0 → ~10 at 2.5. Also affects grouped dungeon drops.
+Rate.Drop.Item.ReferencedAmount = 2.5
+Rate.Drop.Item.GroupAmount = 2.5
+
 # Corrupted Blood (90042) — Soul Reaver (5000 souls) passive.
 # Stat values live in spell_dbc (90042 / 90043), not here: tune them with an UPDATE.
 # VisualSpellId is the animation seam — set it to a spell_dbc row with the visual you
@@ -221,6 +226,10 @@ OllamaChat.RandomChatterRealPlayerDistance = 40
 ####################################################################################################
 # playerbots.conf  — see modules/mod-playerbots/conf/playerbots.conf.dist for Arcturus defaults
 ####################################################################################################
+
+# Bots auto-complete attunement quests (MC/BWL/Onyxia/Naxx40/TBC/ICC); players still attune normally.
+# See modules/mod-playerbots/conf/playerbots.conf.dist AiPlayerbot.AttunementQuests for the full ID list.
+# AiPlayerbot.AttunementQuests = ...
 
 # AiPlayerbot.DisableWarlockLogin = 1  (blocks randombot + addclass warlock)
 # AiPlayerbot.MaxAddedBots = 4

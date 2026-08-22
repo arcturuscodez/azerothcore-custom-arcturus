@@ -214,7 +214,8 @@ bool PlayerbotAIConfig::Initialize()
         disallowedGameObjects);
     LoadSet<std::set<uint32>>(
         sConfigMgr->GetOption<std::string>("AiPlayerbot.AttunementQuests", "10279,10277,10282,10283,10284,10285,10296,"
-                                           "10297,10298,11481,11482,11488,11490,11492,10901,10888,10445,10985"),
+                                           "10297,10298,11481,11482,11488,11490,11492,10901,10888,10445,10985,3802,5505,"
+                                           "6502,7761,7848,7487,6821,6822,6823,9121,9122,9123,24499,24511,24710,24712"),
         attunementQuests);
 
     LoadSet<std::set<uint32>>(
