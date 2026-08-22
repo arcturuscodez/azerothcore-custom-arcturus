@@ -819,6 +819,73 @@ namespace
             SyncPetSoulBonus(pet, IsSystemEnabled() ? souls.current : 0u);
     }
 
+    void AppendStatGain(std::string& out, char const* label, int32 delta)
+    {
+        if (!delta)
+            return;
+
+        if (!out.empty())
+            out += " / ";
+
+        out += Acore::StringFormat("|cff00ff00+{}|r {}", delta, label);
+    }
+
+    std::string FormatTemperGain(float powerDelta, TemperValues const& values)
+    {
+        if (powerDelta <= 0.f)
+            return {};
+
+        std::string out;
+        AppendStatGain(out, "Sta", int32(powerDelta * values.stamina));
+        AppendStatGain(out, "Int", int32(powerDelta * values.intellect));
+        AppendStatGain(out, "SP", int32(powerDelta * values.spellPower));
+        AppendStatGain(out, "Mana/5", int32(powerDelta * values.manaPer5));
+        return out;
+    }
+
+    std::string FormatPetGain(float powerDelta, BonusValues const& values)
+    {
+        if (powerDelta <= 0.f)
+            return {};
+
+        std::string out;
+        AppendStatGain(out, "Sta", int32(powerDelta * values.stamina));
+        AppendStatGain(out, "Str", int32(powerDelta * values.strength));
+        AppendStatGain(out, "Agi", int32(powerDelta * values.agility));
+        AppendStatGain(out, "Int", int32(powerDelta * values.intellect));
+        AppendStatGain(out, "Spi", int32(powerDelta * values.spirit));
+        AppendStatGain(out, "AP", int32(powerDelta * values.attackPower));
+        AppendStatGain(out, "SP", int32(powerDelta * values.spellPower + 0.5f));
+        AppendStatGain(out, "Armor", int32(powerDelta * values.armor));
+        return out;
+    }
+
+    void AnnounceStatGainsSince(Player* player, uint32 soulsFrom, uint32 soulsTo)
+    {
+        if (soulsTo <= soulsFrom)
+            return;
+
+        float const powerDelta = SoulPowerFrom(soulsTo) - SoulPowerFrom(soulsFrom);
+        if (powerDelta <= 0.f)
+            return;
+
+        TemperValues temper = LoadedTemper();
+        BonusValues pet = LoadedBonus();
+
+        std::string const temperGain = FormatTemperGain(powerDelta, temper);
+        std::string const petGain = FormatPetGain(powerDelta, pet);
+        if (temperGain.empty() && petGain.empty())
+            return;
+
+        if (!temperGain.empty())
+            SendMessageIfOnline(player, Acore::StringFormat(
+                "|cff9370dbSoul Tempering:|r {}", temperGain));
+
+        if (!petGain.empty())
+            SendMessageIfOnline(player, Acore::StringFormat(
+                "|cff9370dbDemon:|r {}", petGain));
+    }
+
     bool MaybeAnnounceRankUp(Player* player, uint32 before, uint32 after)
     {
         if (before == after)
@@ -829,10 +896,15 @@ namespace
         if (newIdx <= oldIdx)
             return false;
 
-        RankTier const& tier = RANKS[newIdx];
+        RankTier const& oldTier = RANKS[oldIdx];
+        RankTier const& newTier = RANKS[newIdx];
+
         SendMessageIfOnline(player, Acore::StringFormat(
-            "|cffff8000A new rank!|r You are now |cff9370db{}|r ({} souls harvested).",
-            tier.name, after));
+            "|cffff8000New rank:|r |cff9370db{}|r ({} souls harvested).",
+            newTier.name, after));
+
+        AnnounceStatGainsSince(player, oldTier.minKills, after);
+
         return true;
     }
 
@@ -951,7 +1023,6 @@ public:
         }
 
         Souls before = sWarlockEmpower->Get(player->GetGUID());
-        uint32 temperBefore = uint32(SoulPowerFrom(before.lifetime));
 
         Souls total = sWarlockEmpower->Add(player->GetGUID(), 1u);
         if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
@@ -963,21 +1034,25 @@ public:
         SyncTempering(player, total.lifetime);
         SyncRankSpells(player, total.lifetime, true);
 
-        float const powerAfter = SoulPowerFrom(total.lifetime);
-        uint32 temperAfter = uint32(powerAfter);
-        if (temperAfter > temperBefore)
+        bool const rankedUp = MaybeAnnounceRankUp(player, before.lifetime, total.lifetime);
+
+        if (!rankedUp)
         {
-            TemperValues t = LoadedTemper();
-            SendMessageIfOnline(player, Acore::StringFormat(
-                "|cff9370dbSoul Tempering:|r SoulPower |cffffff00{:.1f}|r — |cff00ffff+{} Sta / +{} Int / +{} SP / +{} Mana/5|r.",
-                powerAfter,
-                int32(t.stamina * powerAfter),
-                int32(t.intellect * powerAfter),
-                int32(t.spellPower * powerAfter),
-                int32(t.manaPer5 * powerAfter)));
+            if (int32 announceEvery = AnnounceEveryNKills())
+            {
+                if (announceEvery > 0 && (total.lifetime % uint32(announceEvery)) == 0u)
+                {
+                    uint32 const blockStart = total.lifetime >= uint32(announceEvery)
+                        ? total.lifetime - uint32(announceEvery)
+                        : 0u;
+                    SendMessageIfOnline(player, Acore::StringFormat(
+                        "|cff9370dbDemonic Empowerment:|r {} souls harvested.", total.lifetime));
+                    AnnounceStatGainsSince(player, blockStart, total.lifetime);
+                }
+            }
         }
 
-        if (MaybeAnnounceRankUp(player, before.lifetime, total.lifetime))
+        if (rankedUp)
         {
             uint32 gained = BonusTalentPointsFor(total.lifetime) - BonusTalentPointsFor(before.lifetime);
             SyncTalentPoints(player, total.lifetime);
@@ -985,11 +1060,6 @@ public:
                 SendMessageIfOnline(player, Acore::StringFormat(
                     "|cff9370dbThe Void grants insight:|r |cff00ff00+{}|r bonus talent points!", gained));
         }
-
-        if (int32 announceEvery = AnnounceEveryNKills())
-            if (announceEvery > 0 && (total.lifetime % uint32(announceEvery)) == 0u)
-                SendMessageIfOnline(player, Acore::StringFormat(
-                    "|cff9370dbDemonic Empowerment:|r {} souls harvested.", total.lifetime));
 
         if ((total.lifetime / 25u) != (before.lifetime / 25u))
             sWarlockEmpower->FlushIfDirty(player->GetGUID());
