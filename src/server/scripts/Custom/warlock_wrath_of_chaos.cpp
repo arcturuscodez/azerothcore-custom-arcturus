@@ -15,11 +15,13 @@
 
 #include "warlock_arcturus_spells.h"
 
+#include "Custom/arcturus_gameplay_watch.h"
 #include "Player.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
+#include "StringFormat.h"
 #include "Unit.h"
 
 using namespace ArcturusSpells;
@@ -95,26 +97,47 @@ class spell_warlock_wrath_of_chaos : public SpellScript
     {
         Unit* caster = GetCaster();
         Unit* target = GetHitUnit();
-        if (!caster || !target)
-            return;
+        if (!target)
+            target = GetExplTargetUnit();
 
-        // Triggered: the wrapper already paid mana and the GCD, so each DoT lands free.
-        ApplyIfKnown(caster, target, HighestKnownRank(caster, SPELL_WARLOCK_CORRUPTION_R1));
-        ApplyIfKnown(caster, target, HighestKnownRank(caster, SPELL_WARLOCK_CURSE_OF_AGONY_R1));
-        ApplyIfKnown(caster, target, ImmolateOrUnstableAffliction(caster));
+        Player* player = caster ? caster->ToPlayer() : nullptr;
+        if (!caster || !target)
+        {
+            if (player)
+                ArcturusWatch::SpellCast(player, 90046, "hit=no_target");
+            return;
+        }
+
+        uint32 const corruption = HighestKnownRank(caster, SPELL_WARLOCK_CORRUPTION_R1);
+        uint32 const agony = HighestKnownRank(caster, SPELL_WARLOCK_CURSE_OF_AGONY_R1);
+        uint32 const immolate = ImmolateOrUnstableAffliction(caster);
+
+        auto applyAndLog = [&](uint32 spellId) -> std::string
+        {
+            if (!spellId)
+                return "0:-";
+
+            SpellCastResult result = caster->CastSpell(target, spellId, true);
+            bool const aura = target->HasAura(spellId, caster->GetGUID());
+            return Acore::StringFormat("{}:{}:{}", spellId, static_cast<uint32>(result), aura ? 1 : 0);
+        };
+
+        std::string const corrResult = applyAndLog(corruption);
+        std::string const agonyResult = applyAndLog(agony);
+        std::string const immoResult = applyAndLog(immolate);
+
+        if (player)
+        {
+            ArcturusWatch::SpellCast(player, 90046,
+                Acore::StringFormat("hit=1 tgt={} corr={} agony={} immo={}",
+                    target->GetEntry(), corrResult, agonyResult, immoResult));
+        }
     }
 
     void Register() override
     {
         OnCheckCast += SpellCheckCastFn(spell_warlock_wrath_of_chaos::CheckCast);
         OnEffectHitTarget += SpellEffectFn(spell_warlock_wrath_of_chaos::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
-    }
-
-private:
-    static void ApplyIfKnown(Unit* caster, Unit* target, uint32 spellId)
-    {
-        if (spellId)
-            caster->CastSpell(target, spellId, true);
     }
 };
 

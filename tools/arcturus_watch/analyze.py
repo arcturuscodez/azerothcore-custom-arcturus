@@ -107,6 +107,13 @@ def ingest_event(state: WatchState, code: str, player: str, detail: str) -> None
         state.recent.append(msg)
         return
 
+    if code == "SPELL_CAST":
+        msg = f"{stamp} SPELL_CAST {detail}"
+        state.recent.append(msg)
+        if "hit=no_target" in detail or ":255" in detail or detail.endswith(":11"):
+            state.flags.append(msg)
+        return
+
     if code == "FLAG":
         msg = f"{stamp} FLAG {detail}"
         state.flags.append(msg)

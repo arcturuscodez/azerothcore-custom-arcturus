@@ -4,7 +4,7 @@
  * Live progression:
  *   lifetime — never decreases; ranks, bonus talents, and Soul Tempering (via SoulPower)
  *   current  — same as lifetime (souls are never lost); pet flats via SoulPower
- *   SoulPower — diminishing brackets (step Tempering.SoulsPerTier, default 250); never zero
+ *   SoulPower — diminishing brackets (step Tempering.SoulsPerTier, default 100); never zero
  *
  * Login strips retired rank spells left on characters from older builds.
  * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 / 90042 / 90046 (see
@@ -51,7 +51,7 @@ namespace WarlockEmpowerment
     constexpr char const* CONFIG_MAX_SOULS_APPLIED = "WarlockDemonicEmpowerment.PerKill.MaxSoulsApplied";
     constexpr char const* CONFIG_ANNOUNCE_KILLS    = "WarlockDemonicEmpowerment.AnnounceEveryNKills";
 
-    // Soul Tempering: PerKill.* / Tempering.* are coeffs per SoulPower unit (step default 250).
+    // Soul Tempering: PerKill.* / Tempering.* are coeffs per SoulPower unit (step default 100).
     constexpr char const* CONFIG_TEMPER_INTERVAL   = "WarlockDemonicEmpowerment.Tempering.SoulsPerTier";
     constexpr char const* CONFIG_TEMPER_STAMINA    = "WarlockDemonicEmpowerment.Tempering.Stamina";
     constexpr char const* CONFIG_TEMPER_INTELLECT  = "WarlockDemonicEmpowerment.Tempering.Intellect";
@@ -182,16 +182,16 @@ namespace WarlockEmpowerment
     };
 
     inline constexpr std::array<SoulPowerBracket, 7> SOUL_POWER_BRACKETS = {{
-        { 5000u,   1.00f  },
-        { 25000u,  0.50f  },
-        { 50000u,  0.25f  },
-        { 100000u, 0.15f  },
-        { 250000u, 0.10f  },
-        { 500000u, 0.05f  },
-        { 0u,      0.025f }
+        { 4999u,   1.00f  },
+        { 10000u,  0.25f  },
+        { 20000u,  0.15f  },
+        { 40000u,  0.10f  },
+        { 75000u,  0.05f  },
+        { 150000u, 0.025f },
+        { 0u,      0.0125f }
     }};
 
-    inline constexpr uint32 SOUL_POWER_STEP_DEFAULT = 250u;
+    inline constexpr uint32 SOUL_POWER_STEP_DEFAULT = 100u;
 
     inline constexpr float SoulPowerFromSouls(uint32 souls, uint32 step)
     {

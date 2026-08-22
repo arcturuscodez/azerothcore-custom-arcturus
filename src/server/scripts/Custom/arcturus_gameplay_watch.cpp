@@ -11,7 +11,10 @@
 #include "ObjectAccessor.h"
 #include "Pet.h"
 #include "Player.h"
+#include "PlayerScript.h"
 #include "ScriptMgr.h"
+#include "Spell.h"
+#include "StringFormat.h"
 #include "WorldScript.h"
 
 namespace
@@ -121,6 +124,15 @@ namespace ArcturusWatch
             Acore::StringFormat("id={} name={}", spellId, spellName ? spellName : "?"));
     }
 
+    void SpellCast(Player* player, uint32 spellId, std::string const& detail)
+    {
+        if (!ShouldLog(player))
+            return;
+
+        WriteEvent(player, "SPELL_CAST",
+            Acore::StringFormat("id={} {}", spellId, detail));
+    }
+
     void PetSync(Player* player, float appliedPower, uint32 soulCount, bool hadPet)
     {
         if (!ShouldLog(player))
@@ -195,7 +207,39 @@ private:
     uint32 _timer = 0;
 };
 
+class arcturus_gameplay_watch_playerscript : public PlayerScript
+{
+public:
+    arcturus_gameplay_watch_playerscript() : PlayerScript("arcturus_gameplay_watch_playerscript",
+        { PLAYERHOOK_ON_SPELL_CAST })
+    {
+    }
+
+    void OnPlayerSpellCast(Player* player, Spell* spell, bool /*skipCheck*/) override
+    {
+        if (!spell || !Enabled() || !ArcturusWatch::ShouldLog(player))
+            return;
+
+        SpellInfo const* info = spell->GetSpellInfo();
+        if (!info)
+            return;
+
+        uint32 const spellId = info->Id;
+        if (spellId != 90046)
+            return;
+
+        if (Unit* target = spell->m_targets.GetUnitTarget())
+        {
+            ArcturusWatch::SpellCast(player, spellId,
+                Acore::StringFormat("tgt={} entry={}", target->GetName(), target->GetEntry()));
+        }
+        else
+            ArcturusWatch::SpellCast(player, spellId, "tgt=none");
+    }
+};
+
 void AddSC_arcturus_gameplay_watch()
 {
     new arcturus_gameplay_watch_worldscript();
+    new arcturus_gameplay_watch_playerscript();
 }

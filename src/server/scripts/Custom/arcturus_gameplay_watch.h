@@ -6,6 +6,8 @@
 #ifndef ARCTURUS_GAMEPLAY_WATCH_H
 #define ARCTURUS_GAMEPLAY_WATCH_H
 
+#include <string>
+
 class Player;
 class Unit;
 struct ObjectGuid;
@@ -26,6 +28,7 @@ namespace ArcturusWatch
     void Death(Player* player, WarlockEmpowerment::Souls const& souls);
     void MapChange(Player* player, uint32 mapId);
     void SpellPassiveFail(Player* player, uint32 spellId, char const* spellName);
+    void SpellCast(Player* player, uint32 spellId, std::string const& detail);
     void PetSync(Player* player, float appliedPower, uint32 soulCount, bool hadPet);
 }
 

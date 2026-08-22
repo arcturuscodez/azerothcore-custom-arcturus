@@ -5,7 +5,7 @@
  *  - Qualifying kills harvest +1 soul (lifetime + current)
  *  - CURRENT souls → SoulPower → flat stats on every summoned demon (config PerKill.*)
  *  - LIFETIME souls → SoulPower → Soul Tempering on the warlock (config Tempering.*)
- *  - SoulPower is diminishing by soul bracket (step Tempering.SoulsPerTier, default 250)
+ *  - SoulPower is diminishing by soul bracket (step Tempering.SoulsPerTier, default 100)
  *  - WorldScript (5s) handles rare Enable config flips
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
@@ -74,7 +74,7 @@ namespace WarlockEmpowerment
         BonusValues _bonusCache{};
         uint32 _bonusCacheMs = 0;
         TemperValues _temperCache{};
-        int32 _temperInterval = 250;
+        int32 _temperInterval = 100;
         int32 _temperMaxTiers = 0;
         uint32 _temperCacheMs = 0;
         uint32 _maxSoulsApplied = 10000u;
