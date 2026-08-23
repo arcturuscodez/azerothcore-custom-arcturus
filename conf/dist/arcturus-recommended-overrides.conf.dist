@@ -36,6 +36,10 @@ MaxPrimaryTradeSkill = 11
 # → Data/enUS/patch-enUS-z.MPQ → clear Cache/WDB. Keep WEAPON_SKILLS in sync with that script.
 Arcturus.WarlockWeaponTrainers.Enable = 1
 
+# Any class may dual-wield any two-handed weapon (staves, polearms, swords, …).
+# Requires rebuild; grants dual wield + titan grip on login/spec swap. Default off — enable here for Arcturus live.
+Arcturus.UnrestrictedDualWield.Enable = 1
+
 EndlessInstances.Enable = 1
 WarlockDemonicEmpowerment.Enable = 1
 # Explicit keys silence Config "Missing property" spam on every kill/login under bots.

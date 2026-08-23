@@ -16,6 +16,7 @@
  */
 
 #include "AchievementMgr.h"
+#include "ArcturusUnrestrictedDualWield.h"
 #include "BattlefieldMgr.h"
 #include "CellImpl.h"
 #include "Channel.h"
@@ -1851,6 +1852,8 @@ void Player::UpdateForQuestWorldObjects()
 
 void Player::UpdateTitansGrip()
 {
+    Arcturus::UnrestrictedDualWield::RefreshPenaltyAura(this);
+
     // 10% damage reduce if 2x2h weapons are used
     if (!CanTitanGrip())
         RemoveAurasDueToSpell(49152);

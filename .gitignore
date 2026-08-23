@@ -138,6 +138,7 @@ debug-*.log
 !/src/server/scripts/Custom/custom_script_loader.cpp
 !/src/server/scripts/Custom/endless_instances.cpp
 !/src/server/scripts/Custom/arcturus_trade_skills.cpp
+!/src/server/scripts/Custom/arcturus_unrestricted_dual_wield.cpp
 !/src/server/scripts/Custom/warlock_arcturus_spells.h
 !/src/server/scripts/Custom/warlock_felguard_mandate.cpp
 !/src/server/scripts/Custom/warlock_crimson_shade.cpp

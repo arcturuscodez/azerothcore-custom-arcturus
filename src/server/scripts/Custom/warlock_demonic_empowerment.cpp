@@ -29,6 +29,7 @@
 
 #include "warlock_demonic_empowerment.h"
 #include "arcturus_gameplay_watch.h"
+#include "ArcturusUnrestrictedDualWield.h"
 
 #include "Chat.h"
 #include "Config.h"
@@ -757,6 +758,12 @@ namespace
     {
         if (player->HasTalent(SPELL_WARRIOR_TITANS_GRIP, player->GetActiveSpec()))
             return;
+
+        if (Arcturus::UnrestrictedDualWield::IsEnabled())
+        {
+            Arcturus::UnrestrictedDualWield::Apply(player);
+            return;
+        }
 
         player->SetCanTitanGrip(false);
         player->RemoveAurasDueToSpell(SPELL_TITANS_GRIP_PENALTY);

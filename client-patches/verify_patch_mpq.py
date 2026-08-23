@@ -29,6 +29,7 @@ MPQ_OPEN_READ_ONLY = 0x100
 CHAOS_SKILL = 900
 
 TRACKED = (
+    "Item.dbc",
     "SkillLine.dbc",
     "SkillLineAbility.dbc",
     "SkillRaceClassInfo.dbc",

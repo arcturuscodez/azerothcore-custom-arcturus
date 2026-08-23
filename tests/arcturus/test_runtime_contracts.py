@@ -16,6 +16,7 @@ from arcturus_lib import (
     CUSTOM_DIR,
     DE_CPP,
     DE_HEADER,
+    REPO_ROOT,
     SPELL_WARLOCK,
     read_text,
 )
@@ -308,6 +309,26 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         self.assertIn("session->IsBot()", src)
         self.assertIn("CONFIG_MAX_PRIMARY_TRADE_SKILL", src)
         self.assertIn("IsPrimaryProfessionFirstRank", src)
+
+    def test_unrestricted_dual_wield_wires_config_login_and_equip(self) -> None:
+        script = read_text(CUSTOM_DIR / "arcturus_unrestricted_dual_wield.cpp")
+        helper = read_text(REPO_ROOT / "src/server/game/Arcturus/ArcturusUnrestrictedDualWield.cpp")
+        storage = read_text(REPO_ROOT / "src/server/game/Entities/Player/PlayerStorage.cpp")
+        player_cpp = read_text(REPO_ROOT / "src/server/game/Entities/Player/Player.cpp")
+
+        self.assertIn("Arcturus::UnrestrictedDualWield::Apply", script)
+        self.assertIn('GetOption<bool>(CONFIG_ENABLE, false)', helper)
+        self.assertIn("ApplyPlayerFlags(this)", storage)
+        self.assertIn("_LoadInventory", storage)
+        self.assertIn("Arcturus::UnrestrictedDualWield::Apply(this)", player_cpp)
+        self.assertIn("AutoUnequipOffhandIfNeed", player_cpp)
+        self.assertIn("CanEquipTwoHandInOffhand", helper)
+        self.assertIn("MainHandBlocksOffhand", helper)
+        self.assertIn("SheathForItemQuery", helper)
+        self.assertIn("SubClassForItemQuery", helper)
+        item_handler = read_text(REPO_ROOT / "src/server/game/Handlers/ItemHandler.cpp")
+        self.assertIn("SheathForItemQuery(pProto)", item_handler)
+        self.assertIn("SubClassForItemQuery(pProto)", item_handler)
 
 
 if __name__ == "__main__":

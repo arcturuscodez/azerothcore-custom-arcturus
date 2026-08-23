@@ -175,6 +175,7 @@ class ConfigAndLoaderAlignmentTests(unittest.TestCase):
         self.assertFalse(missing, missing)
         self.assertIn("EndlessInstances.Enable", dist)
         self.assertIn("Arcturus.WarlockWeaponTrainers.Enable", dist)
+        self.assertIn("Arcturus.UnrestrictedDualWield.Enable", dist)
         self.assertIn("MaxPrimaryTradeSkill", dist)
         self.assertIn("Arcturus.CorruptedBlood.VisualSpellId", dist)
         self.assertIn("AccountInstancesPerHour", dist)
@@ -194,6 +195,7 @@ class ConfigAndLoaderAlignmentTests(unittest.TestCase):
             "demons_commandscript",
             "endless_instances",
             "arcturus_trade_skills",
+            "arcturus_unrestricted_dual_wield",
             "arcturus_gameplay_watch",
         }
         calls = set(loader_addsc_calls())
