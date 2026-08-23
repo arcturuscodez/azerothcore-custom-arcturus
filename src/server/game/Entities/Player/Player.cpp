@@ -15665,7 +15665,7 @@ void Player::ActivateSpec(uint8 spec)
     SetPower(pw, 0);
 
     // xinef: remove titan grip if player had it set and does not have appropriate talent
-    if (!HasTalent(46917, GetActiveSpec()) && m_canTitanGrip)
+    if (!HasTalent(46917, GetActiveSpec()) && !HasSpell(90047) && m_canTitanGrip)
         SetCanTitanGrip(false);
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
     if (!HasSpell(674) && CanDualWield())
