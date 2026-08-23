@@ -1007,6 +1007,9 @@ public:
         ResyncSoulEffects(player, souls);
         player->CustomData.GetDefault<EmpowermentPlayerState>(PLAYER_STATE_KEY)->suspended = !enabled;
 
+        if (IsWarlock(player))
+            ApplyDemonicGrip(player);
+
         if (!enabled)
             return;
 

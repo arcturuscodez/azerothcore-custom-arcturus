@@ -36,8 +36,8 @@ VALUES
      0, 4,
      49152, 0,
      2750, 'Demonic Grip', 'Passive',
-     'Allows you to equip two-handed axes, maces and swords in one hand. While you have a two-handed weapon equipped in one hand, your physical damage done is reduced by $49152s1%.',
-     'Allows you to equip two-handed axes, maces and swords in one hand. While you have a two-handed weapon equipped in one hand, your physical damage done is reduced by $49152s1%.',
+     'Allows you to equip two-handed axes, maces, swords and staves in one hand. While you have a two-handed weapon equipped in one hand, your physical damage done is reduced by $49152s1%.',
+     'Allows you to equip two-handed axes, maces, swords and staves in one hand. While you have a two-handed weapon equipped in one hand, your physical damage done is reduced by $49152s1%.',
      5, 1, 1, 32,
      1, 1, 1);
 

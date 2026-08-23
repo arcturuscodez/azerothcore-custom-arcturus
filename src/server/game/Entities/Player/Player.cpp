@@ -12740,10 +12740,21 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
     // unequip offhand weapon if player main hand weapon is a polearm or staff or fishing pole
     if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
         if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
+        {
+            bool const demonicGrip = getClass() == CLASS_WARLOCK && HasSpell(90047) && CanDualWield() && CanTitanGrip();
+            bool const staffMainBlocksOffhand = mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF
+                && !(demonicGrip && offItem && offItem->GetTemplate() && offItem->GetTemplate()->InventoryType == INVTYPE_2HWEAPON
+                    && offItem->GetTemplate()->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM
+                    && offItem->GetTemplate()->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE
+                    && (offItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_AXE2
+                        || offItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_MACE2
+                        || offItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_SWORD2));
+
             if (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
-                mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF ||
-                mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
+                mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE ||
+                staffMainBlocksOffhand)
                 force = true;
+        }
 
     // need unequip offhand for 2h-weapon without TitanGrip (in any from hands)
     if (!force && (CanTitanGrip() || (offItem->GetTemplate()->InventoryType != INVTYPE_2HWEAPON && !IsTwoHandUsed())))
@@ -15658,7 +15669,7 @@ void Player::ActivateSpec(uint8 spec)
     SetPower(pw, 0);
 
     // xinef: remove titan grip if player had it set and does not have appropriate talent
-    if (!HasTalent(46917, GetActiveSpec()) && m_canTitanGrip)
+    if (!HasTalent(46917, GetActiveSpec()) && !HasSpell(90047) && m_canTitanGrip)
         SetCanTitanGrip(false);
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
     if (!HasSpell(674) && CanDualWield())

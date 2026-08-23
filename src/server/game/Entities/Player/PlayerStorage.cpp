@@ -68,6 +68,43 @@
 #include "World.h"
 #include "WorldPacket.h"
 
+namespace
+{
+    // Arcturus Soulbinder rank — warlock_demonic_empowerment.cpp (SPELL_DEMONIC_GRIP).
+    constexpr uint32 SPELL_WARLOCK_DEMONIC_GRIP = 90047;
+
+    bool PlayerHasDemonicGrip(Player const* player)
+    {
+        return player && player->getClass() == CLASS_WARLOCK && player->HasSpell(SPELL_WARLOCK_DEMONIC_GRIP)
+            && player->CanDualWield() && player->CanTitanGrip();
+    }
+
+    bool DemonicGripAllows2HPair(ItemTemplate const* proto)
+    {
+        if (!proto || proto->Class != ITEM_CLASS_WEAPON || proto->InventoryType != INVTYPE_2HWEAPON)
+            return false;
+
+        switch (proto->SubClass)
+        {
+            case ITEM_SUBCLASS_WEAPON_AXE2:
+            case ITEM_SUBCLASS_WEAPON_MACE2:
+            case ITEM_SUBCLASS_WEAPON_SWORD2:
+            case ITEM_SUBCLASS_WEAPON_STAFF:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool DemonicGripStaffMainhandBlocksOffhand(ItemTemplate const* mhProto, ItemTemplate const* equipProto, Player const* player)
+    {
+        if (!PlayerHasDemonicGrip(player) || !mhProto || mhProto->SubClass != ITEM_SUBCLASS_WEAPON_STAFF)
+            return true;
+
+        return !DemonicGripAllows2HPair(equipProto);
+    }
+}
+
 /// @todo: this import is not necessary for compilation and marked as unused by the IDE
 //  however, for some reasons removing it would cause a damn linking issue
 //  there is probably some underlying problem with imports which should properly addressed
@@ -199,10 +236,12 @@ uint8 Player::FindEquipSlot(ItemTemplate const* proto, uint32 slot, bool swap) c
             break;
         case INVTYPE_2HWEAPON:
             slots[0] = EQUIPMENT_SLOT_MAINHAND;
-            if (CanDualWield() && CanTitanGrip() && proto->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM && proto->SubClass != ITEM_SUBCLASS_WEAPON_STAFF && proto->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE)
+            if (CanDualWield() && CanTitanGrip() && proto->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM && proto->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE
+                && (PlayerHasDemonicGrip(this) || proto->SubClass != ITEM_SUBCLASS_WEAPON_STAFF))
                 if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
                     if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-                        if (mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM && mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_STAFF && mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE)
+                        if (mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM && mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE
+                            && (PlayerHasDemonicGrip(this) || mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_STAFF))
                             slots[1] = EQUIPMENT_SLOT_OFFHAND;
             break;
         case INVTYPE_TABARD:
@@ -2045,9 +2084,9 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
                 // Do not allow offhand with main hand polearm, staff or fishing pole
                 if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
                     if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-                        if (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
-                            mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF ||
-                            mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
+                        if ((mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
+                            mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE ||
+                            DemonicGripStaffMainhandBlocksOffhand(mhWeaponProto, pProto, this)))
                             return EQUIP_ERR_CANT_EQUIP_WITH_TWOHANDED;
 
                 if (IsTwoHandUsed())
@@ -2065,7 +2104,9 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
                 else if (eslot != EQUIPMENT_SLOT_MAINHAND)
                     return EQUIP_ERR_ITEM_CANT_BE_EQUIPPED;
 
-                if (!CanTitanGrip() || (pProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM || pProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF || pProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE))
+                if (!CanTitanGrip() || pProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM || pProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE
+                    || (!PlayerHasDemonicGrip(this) && pProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF)
+                    || (PlayerHasDemonicGrip(this) && !DemonicGripAllows2HPair(pProto)))
                 {
                     // offhand item must can be stored in inventory for offhand item and it also must be unequipped
                     Item* offItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
