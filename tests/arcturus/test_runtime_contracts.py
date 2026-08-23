@@ -12,6 +12,7 @@ import unittest
 
 from arcturus_lib import (
     CHAR_HANDLER,
+    CONF_DIST,
     CUSTOM_DIR,
     DE_CPP,
     DE_HEADER,
@@ -177,6 +178,31 @@ class DemonicEmpowermentRuntimeTests(unittest.TestCase):
         self.assertIn("SoulPowerFrom(want)", self.de)
         self.assertIn("SoulPowerFrom(lifetime)", self.de)
         self.assertNotIn("t.stamina * int32(temperAfter)", self.de)
+
+    def test_kill_announcement_every_100_with_delta_stats(self) -> None:
+        """Periodic kill chat must fire every AnnounceEveryNKills (100), with per-stat deltas — not cumulative totals."""
+        kill = _func(self.de, "void OnPlayerRewardKillRewarder(", "void OnPlayerAfterGuardianInitStatsForLevel(")
+        self.assertIn("MaybeAnnounceRankUp(player, before.lifetime, total.lifetime)", kill)
+        self.assertIn("if (!rankedUp)", kill)
+        self.assertIn("AnnounceEveryNKills()", kill)
+        self.assertIn("(total.lifetime % uint32(announceEvery)) == 0u", kill)
+        self.assertIn("total.lifetime - uint32(announceEvery)", kill)
+        self.assertIn("AnnounceStatGainsSince(player, blockStart, total.lifetime)", kill)
+        self.assertNotIn("temperBefore", kill)
+        self.assertNotIn("temperAfter", kill)
+        self.assertNotIn("powerAfter,", kill)
+
+        announce = _func(self.de, "void AnnounceStatGainsSince(", "bool MaybeAnnounceRankUp(")
+        self.assertIn("SoulPowerFrom(soulsTo) - SoulPowerFrom(soulsFrom)", announce)
+        self.assertIn("FormatTemperGain(powerDelta", announce)
+        self.assertIn("FormatPetGain(powerDelta", announce)
+
+        fmt = _func(self.de, "void AppendStatGain(", "std::string FormatTemperGain(")
+        self.assertIn("|cff00ff00+{}|r {}", fmt)
+
+        conf = read_text(CONF_DIST)
+        self.assertIn("WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100", conf)
+        self.assertIn("WarlockDemonicEmpowerment.AnnounceEveryNKills = 100", conf)
 
     def test_logout_forgets_and_save_queues(self) -> None:
         logout = _func(self.de, "void OnPlayerLogout(", "void OnPlayerJustDied(")
