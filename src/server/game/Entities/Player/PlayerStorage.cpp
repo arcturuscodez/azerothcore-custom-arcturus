@@ -74,6 +74,56 @@
 //  see: https://github.com/azerothcore/azerothcore-wotlk/issues/9766
 #include "GridNotifiersImpl.h"
 
+namespace
+{
+    constexpr char const* CONFIG_UNRESTRICTED_DUAL_WIELD = "Arcturus.UnrestrictedDualWield.Enable";
+
+    bool UnrestrictedDualWieldEnabled()
+    {
+        return sConfigMgr->GetOption<bool>(CONFIG_UNRESTRICTED_DUAL_WIELD, true);
+    }
+
+    bool IsStaffLikeWeaponSubclass(uint32 subClass)
+    {
+        return subClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
+            subClass == ITEM_SUBCLASS_WEAPON_STAFF ||
+            subClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE;
+    }
+
+    bool CanEquipTwoHandInOffhand(Player const* player, ItemTemplate const* proto)
+    {
+        if (!player->CanDualWield() || proto->InventoryType != INVTYPE_2HWEAPON)
+            return false;
+
+        if (UnrestrictedDualWieldEnabled())
+            return proto->Class == ITEM_CLASS_WEAPON;
+
+        if (!player->CanTitanGrip())
+            return false;
+
+        return !IsStaffLikeWeaponSubclass(proto->SubClass);
+    }
+
+    bool MainHandBlocksOffhand(Player const* player, ItemTemplate const* mhProto)
+    {
+        if (UnrestrictedDualWieldEnabled())
+            return false;
+
+        return IsStaffLikeWeaponSubclass(mhProto->SubClass);
+    }
+
+    bool MainHandTwoHandRequiresClearOffhand(Player const* player, ItemTemplate const* proto)
+    {
+        if (UnrestrictedDualWieldEnabled())
+            return false;
+
+        if (!player->CanTitanGrip())
+            return true;
+
+        return IsStaffLikeWeaponSubclass(proto->SubClass);
+    }
+}
+
 /*********************************************************/
 /***                    STORAGE SYSTEM                 ***/
 /*********************************************************/
@@ -199,11 +249,15 @@ uint8 Player::FindEquipSlot(ItemTemplate const* proto, uint32 slot, bool swap) c
             break;
         case INVTYPE_2HWEAPON:
             slots[0] = EQUIPMENT_SLOT_MAINHAND;
-            if (CanDualWield() && CanTitanGrip() && proto->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM && proto->SubClass != ITEM_SUBCLASS_WEAPON_STAFF && proto->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE)
-                if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
-                    if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-                        if (mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM && mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_STAFF && mhWeaponProto->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE)
-                            slots[1] = EQUIPMENT_SLOT_OFFHAND;
+            if (CanEquipTwoHandInOffhand(this, proto))
+            {
+                Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+                if (!mhWeapon)
+                    slots[1] = EQUIPMENT_SLOT_OFFHAND;
+                else if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
+                    if (!MainHandBlocksOffhand(this, mhWeaponProto))
+                        slots[1] = EQUIPMENT_SLOT_OFFHAND;
+            }
             break;
         case INVTYPE_TABARD:
             slots[0] = EQUIPMENT_SLOT_TABARD;
@@ -2028,7 +2082,8 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
             {
                 // Do not allow polearm to be equipped in the offhand (rare case for the only 1h polearm 41750)
                 // xinef: same for fishing poles
-                if (type == INVTYPE_WEAPON && (pProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM || pProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE))
+                if (!UnrestrictedDualWieldEnabled() && type == INVTYPE_WEAPON &&
+                    (pProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM || pProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE))
                     return EQUIP_ERR_ITEM_DOESNT_GO_TO_SLOT;
 
                 else if (type == INVTYPE_WEAPON || type == INVTYPE_WEAPONOFFHAND)
@@ -2038,16 +2093,14 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
                 }
                 else if (type == INVTYPE_2HWEAPON)
                 {
-                    if (!CanDualWield() || !CanTitanGrip())
+                    if (!CanEquipTwoHandInOffhand(this, pProto))
                         return EQUIP_ERR_CANT_DUAL_WIELD;
                 }
 
                 // Do not allow offhand with main hand polearm, staff or fishing pole
                 if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
                     if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-                        if (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
-                            mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF ||
-                            mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
+                        if (MainHandBlocksOffhand(this, mhWeaponProto))
                             return EQUIP_ERR_CANT_EQUIP_WITH_TWOHANDED;
 
                 if (IsTwoHandUsed())
@@ -2059,13 +2112,13 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
             {
                 if (eslot == EQUIPMENT_SLOT_OFFHAND)
                 {
-                    if (!CanTitanGrip())
+                    if (!CanEquipTwoHandInOffhand(this, pProto))
                         return EQUIP_ERR_ITEM_CANT_BE_EQUIPPED;
                 }
                 else if (eslot != EQUIPMENT_SLOT_MAINHAND)
                     return EQUIP_ERR_ITEM_CANT_BE_EQUIPPED;
 
-                if (!CanTitanGrip() || (pProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM || pProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF || pProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE))
+                if (MainHandTwoHandRequiresClearOffhand(this, pProto))
                 {
                     // offhand item must can be stored in inventory for offhand item and it also must be unequipped
                     Item* offItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);

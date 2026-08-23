@@ -16,6 +16,7 @@ from arcturus_lib import (
     CUSTOM_DIR,
     DE_CPP,
     DE_HEADER,
+    REPO_ROOT,
     SPELL_WARLOCK,
     read_text,
 )
@@ -308,6 +309,15 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         self.assertIn("session->IsBot()", src)
         self.assertIn("CONFIG_MAX_PRIMARY_TRADE_SKILL", src)
         self.assertIn("IsPrimaryProfessionFirstRank", src)
+
+    def test_unrestricted_dual_wield_wires_config_login_and_equip(self) -> None:
+        script = read_text(CUSTOM_DIR / "arcturus_unrestricted_dual_wield.cpp")
+        storage = read_text(REPO_ROOT / "src/server/game/Entities/Player/PlayerStorage.cpp")
+        self.assertIn("Arcturus.UnrestrictedDualWield.Enable", script)
+        self.assertIn("SetCanDualWield(true)", script)
+        self.assertIn("SetCanTitanGrip(true)", script)
+        self.assertIn("CanEquipTwoHandInOffhand", storage)
+        self.assertIn("MainHandBlocksOffhand", storage)
 
 
 if __name__ == "__main__":
