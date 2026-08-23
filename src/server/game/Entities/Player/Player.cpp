@@ -12738,7 +12738,7 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
     }
 
     // unequip offhand weapon if player doesn't have dual wield anymore
-    if (!CanDualWield() && !Arcturus::UnrestrictedDualWield::IsEnabled() &&
+    if (!CanDualWield() && !Arcturus::UnrestrictedDualWield::HasAccess(this) &&
         (offItem->GetTemplate()->InventoryType == INVTYPE_WEAPONOFFHAND || offItem->GetTemplate()->InventoryType == INVTYPE_WEAPON))
         force = true;
 
