@@ -54,6 +54,25 @@ namespace
 
         return HighestKnownRank(caster, SPELL_WARLOCK_IMMOLATE_R1);
     }
+
+    // Offensive DoTs only. CheckTarget / CheckExplicitTarget mirror DBC enemy targeting; players
+    // additionally require a legal PvP context (duel, FFA, or flagged) via IsValidAttackTarget.
+    bool CanWrathTarget(Unit const* caster, Unit const* target, SpellInfo const* spellInfo)
+    {
+        if (!caster || !target || !spellInfo)
+            return false;
+
+        if (spellInfo->CheckTarget(caster, target) != SPELL_CAST_OK)
+            return false;
+
+        if (spellInfo->CheckExplicitTarget(caster, target) != SPELL_CAST_OK)
+            return false;
+
+        if (target->ToPlayer())
+            return caster->IsValidAttackTarget(target, spellInfo);
+
+        return caster->IsHostileTo(target) && caster->IsValidAttackTarget(target, spellInfo);
+    }
 }
 
 class spell_warlock_wrath_of_chaos : public SpellScript
@@ -87,6 +106,13 @@ class spell_warlock_wrath_of_chaos : public SpellScript
             && !ImmolateOrUnstableAffliction(caster))
             return SPELL_FAILED_NOT_KNOWN;
 
+        Unit* target = GetExplTargetUnit();
+        if (!target)
+            return SPELL_FAILED_BAD_TARGETS;
+
+        if (!CanWrathTarget(caster, target, GetSpellInfo()))
+            return SPELL_FAILED_BAD_TARGETS;
+
         return SPELL_CAST_OK;
     }
 
@@ -95,6 +121,9 @@ class spell_warlock_wrath_of_chaos : public SpellScript
         Unit* caster = GetCaster();
         Unit* target = GetHitUnit();
         if (!caster || !target)
+            return;
+
+        if (!CanWrathTarget(caster, target, GetSpellInfo()))
             return;
 
         // Triggered: the wrapper already paid mana and the GCD, so each DoT lands free.
