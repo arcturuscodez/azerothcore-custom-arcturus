@@ -324,7 +324,11 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         self.assertIn("AutoUnequipOffhandIfNeed", player_cpp)
         self.assertIn("CanEquipTwoHandInOffhand", helper)
         self.assertIn("MainHandBlocksOffhand", helper)
-        self.assertIn("RefreshPenaltyAura", helper)
+        self.assertIn("SheathForItemQuery", helper)
+        self.assertIn("SubClassForItemQuery", helper)
+        item_handler = read_text(REPO_ROOT / "src/server/game/Handlers/ItemHandler.cpp")
+        self.assertIn("SheathForItemQuery(pProto)", item_handler)
+        self.assertIn("SubClassForItemQuery(pProto)", item_handler)
 
 
 if __name__ == "__main__":

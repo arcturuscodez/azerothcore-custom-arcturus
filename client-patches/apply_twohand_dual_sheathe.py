@@ -40,12 +40,17 @@ ITEM_FIELDS = 8
 ITEM_RECORD_SIZE = ITEM_FIELDS * 4
 
 # Item.dbc field indices (see DBCStructure.h ItemEntry).
+FIELD_CLASS = 1
+FIELD_SUBCLASS = 2
 FIELD_INVENTORY_TYPE = 6
 FIELD_SHEATHE_TYPE = 7
 
+# Atiesh class staves: polearm subclass + type-1 sheathe = upright on the dual-2H X back slot.
+ATIESH_STAFF_IDS = frozenset({22589, 22630, 22631, 22632})
+
 # Subclass hints for reporting only.
-SUBCLASS_STAFF = 10
 SUBCLASS_POLEARM = 6
+SUBCLASS_STAFF = 10
 SUBCLASS_FISHING_POLE = 20
 
 MPQ_OPEN_READ_ONLY = 0x100
@@ -194,6 +199,7 @@ def parse_item_dbc(data: bytes) -> tuple[int, bytearray]:
 def patch_twohand_sheathe(data: bytearray) -> dict[str, int | set[int]]:
     count = struct.unpack_from("<I", data, 4)[0]
     patched = 0
+    atiesh = 0
     samples: set[int] = set()
     subclass_hits: Counter[int] = Counter()
     old_sheathe: Counter[int] = Counter()
@@ -205,17 +211,25 @@ def patch_twohand_sheathe(data: bytearray) -> dict[str, int | set[int]]:
             continue
         old = row[FIELD_SHEATHE_TYPE]
         old_sheathe[old] += 1
-        if old == SHEATHE_DUAL_2H:
+        changed = False
+        if old != SHEATHE_DUAL_2H:
+            row[FIELD_SHEATHE_TYPE] = SHEATHE_DUAL_2H
+            changed = True
+        if row[0] in ATIESH_STAFF_IDS and row[FIELD_SUBCLASS] == SUBCLASS_STAFF:
+            row[FIELD_SUBCLASS] = SUBCLASS_POLEARM
+            atiesh += 1
+            changed = True
+        if not changed:
             continue
-        row[FIELD_SHEATHE_TYPE] = SHEATHE_DUAL_2H
         struct.pack_into("<" + "I" * ITEM_FIELDS, data, off, *row)
         patched += 1
-        subclass_hits[row[2]] += 1
+        subclass_hits[row[FIELD_SUBCLASS]] += 1
         if len(samples) < 8:
             samples.add(row[0])
 
     return {
         "patched": patched,
+        "atiesh": atiesh,
         "samples": samples,
         "subclass_hits": subclass_hits,
         "old_sheathe": old_sheathe,
@@ -236,16 +250,20 @@ def refresh_manifest() -> None:
 
 def verify_patched(data: bytes) -> bool:
     count = struct.unpack_from("<I", data, 4)[0]
-    bad: list[tuple[int, int]] = []
+    bad: list[tuple[int, int, int]] = []
     for i in range(count):
         off = 20 + i * ITEM_RECORD_SIZE
         row = struct.unpack_from("<" + "I" * ITEM_FIELDS, data, off)
-        if row[FIELD_INVENTORY_TYPE] == INVTYPE_2HWEAPON and row[FIELD_SHEATHE_TYPE] != SHEATHE_DUAL_2H:
-            bad.append((row[0], row[FIELD_SHEATHE_TYPE]))
-            if len(bad) >= 5:
-                break
+        if row[FIELD_INVENTORY_TYPE] != INVTYPE_2HWEAPON:
+            continue
+        if row[FIELD_SHEATHE_TYPE] != SHEATHE_DUAL_2H:
+            bad.append((row[0], row[FIELD_SHEATHE_TYPE], row[FIELD_SUBCLASS]))
+        elif row[0] in ATIESH_STAFF_IDS and row[FIELD_SUBCLASS] != SUBCLASS_POLEARM:
+            bad.append((row[0], row[FIELD_SHEATHE_TYPE], row[FIELD_SUBCLASS]))
+        if len(bad) >= 5:
+            break
     if bad:
-        print("Verification failed — 2H rows still not type 1:", bad, file=sys.stderr)
+        print("Verification failed — expected type 1 / Atiesh polearm subclass:", bad, file=sys.stderr)
         return False
     return True
 
@@ -283,6 +301,7 @@ def main() -> int:
     digest = sha256_bytes(bytes(body))
     print(f"Wrote {OUT_DBC.relative_to(PATCH_DIR.parent)} ({len(body):,} bytes)")
     print(f"  patched {stats['patched']} INVTYPE_2HWEAPON rows -> SheatheType {SHEATHE_DUAL_2H}")
+    print(f"  Atiesh class staves remapped to polearm subclass: {stats['atiesh']}")
     print(f"  sample ids: {sorted(stats['samples'])}")
     if stats["subclass_hits"]:
         staff = stats["subclass_hits"].get(SUBCLASS_STAFF, 0)
@@ -292,12 +311,15 @@ def main() -> int:
 
     # Spot-check Atiesh + Ashbringer if present.
     for item_id, label in ((22630, "Atiesh"), (49623, "Ashbringer")):
-        count = struct.unpack_from("<I", body, 8)[0]
+        count = struct.unpack_from("<I", body, 4)[0]
         for i in range(count):
             off = 20 + i * ITEM_RECORD_SIZE
             row = struct.unpack_from("<" + "I" * ITEM_FIELDS, body, off)
             if row[0] == item_id:
-                print(f"  {label} {item_id}: InventoryType={row[FIELD_INVENTORY_TYPE]} SheatheType={row[FIELD_SHEATHE_TYPE]}")
+                print(
+                    f"  {label} {item_id}: InventoryType={row[FIELD_INVENTORY_TYPE]} "
+                    f"SubClass={row[FIELD_SUBCLASS]} SheatheType={row[FIELD_SHEATHE_TYPE]}"
+                )
                 break
 
     refresh_manifest()

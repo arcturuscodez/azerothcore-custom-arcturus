@@ -27,6 +27,13 @@ namespace Arcturus::UnrestrictedDualWield
     bool MainHandTwoHandRequiresClearOffhand(Player const* player, ItemTemplate const* proto);
     bool OffhandNonWeaponBlockedByMainHandTwoHand(Player const* player, ItemTemplate const* offProto);
     bool IsTwoHandUsed(Player const* player);
+
+    // Item query / client cache: match client Item.dbc dual-2H sheathe (type 1).
+    uint32 SheathForItemQuery(ItemTemplate const* proto);
+
+    // Atiesh staves: polearm subclass in the item query uses the type-1 back attachment
+    // without flipping the model (staff SheatheType 1 alone is upside down).
+    uint32 SubClassForItemQuery(ItemTemplate const* proto);
 }
 
 #endif

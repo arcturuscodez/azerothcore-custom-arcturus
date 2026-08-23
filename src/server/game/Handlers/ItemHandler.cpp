@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ArcturusUnrestrictedDualWield.h"
 #include "Common.h"
 #include "Item.h"
 #include "Log.h"
@@ -413,7 +414,7 @@ void WorldSession::HandleItemQuerySingleOpcode(WorldPacket& recvData)
         WorldPacket queryData(SMSG_ITEM_QUERY_SINGLE_RESPONSE, 600);
         queryData << pProto->ItemId;
         queryData << pProto->Class;
-        queryData << pProto->SubClass;
+        queryData << Arcturus::UnrestrictedDualWield::SubClassForItemQuery(pProto);
         queryData << pProto->SoundOverrideSubclass;
         queryData << Name;
         queryData << uint8(0x00);                                //pProto->Name2; // blizz not send name there, just uint8(0x00); <-- \0 = empty string = empty name...
@@ -512,7 +513,7 @@ void WorldSession::HandleItemQuerySingleOpcode(WorldPacket& recvData)
         queryData << pProto->StartQuest;
         queryData << pProto->LockID;
         queryData << int32(pProto->Material);
-        queryData << pProto->Sheath;
+        queryData << Arcturus::UnrestrictedDualWield::SheathForItemQuery(pProto);
         queryData << pProto->RandomProperty;
         queryData << pProto->RandomSuffix;
         queryData << pProto->Block;

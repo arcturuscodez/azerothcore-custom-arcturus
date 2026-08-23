@@ -5,6 +5,7 @@
 #include "ArcturusUnrestrictedDualWield.h"
 #include "Config.h"
 #include "Item.h"
+#include "ItemTemplate.h"
 #include "Player.h"
 #include "SpellAuras.h"
 
@@ -12,6 +13,17 @@ namespace
 {
     constexpr char const* CONFIG_ENABLE = "Arcturus.UnrestrictedDualWield.Enable";
     constexpr uint32 SPELL_TITANS_GRIP_PENALTY = 49152u;
+
+    // Atiesh class staves — client Item.dbc uses polearm subclass for dual-2H sheathe visuals.
+    constexpr uint32 ATIESH_STAFF_IDS[] = { 22589, 22630, 22631, 22632 };
+
+    bool IsAtieshStaffItem(uint32 itemId)
+    {
+        for (uint32 id : ATIESH_STAFF_IDS)
+            if (id == itemId)
+                return true;
+        return false;
+    }
 
     bool IsStaffLikeWeaponSubclass(uint32 subClass)
     {
@@ -132,5 +144,32 @@ namespace Arcturus::UnrestrictedDualWield
 
         Item* mainItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
         return mainItem && mainItem->GetTemplate()->InventoryType == INVTYPE_2HWEAPON && !player->CanTitanGrip();
+    }
+
+    uint32 SheathForItemQuery(ItemTemplate const* proto)
+    {
+        if (!proto)
+            return 0;
+
+        if (!IsEnabled() || proto->InventoryType != INVTYPE_2HWEAPON)
+            return proto->Sheath;
+
+        // Match client Item.dbc: type 1 places 2H weapons on opposite back shoulders (dual-2H X).
+        // Stock staff SheatheType 2 recenters on re-equip when the server query still sends 2.
+        return 1;
+    }
+
+    uint32 SubClassForItemQuery(ItemTemplate const* proto)
+    {
+        if (!proto)
+            return 0;
+
+        if (!IsEnabled() || proto->InventoryType != INVTYPE_2HWEAPON)
+            return proto->SubClass;
+
+        if (proto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF && IsAtieshStaffItem(proto->ItemId))
+            return ITEM_SUBCLASS_WEAPON_POLEARM;
+
+        return proto->SubClass;
     }
 }
