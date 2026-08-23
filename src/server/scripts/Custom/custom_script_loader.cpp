@@ -24,6 +24,7 @@ void AddSC_warlock_wrath_of_chaos();
 void AddSC_demons_commandscript();
 void AddSC_endless_instances();
 void AddSC_arcturus_trade_skills();
+void AddSC_arcturus_gameplay_watch();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
@@ -37,4 +38,5 @@ void AddCustomScripts()
     AddSC_demons_commandscript();
     AddSC_endless_instances();
     AddSC_arcturus_trade_skills();
+    AddSC_arcturus_gameplay_watch();
 }

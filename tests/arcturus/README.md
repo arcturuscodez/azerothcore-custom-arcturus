@@ -1,7 +1,6 @@
 # Arcturus custom-system tests
 
-Python contract tests for the live customs. They do **not** restore the retired
-`GATE-*` suite.
+Python contract tests for the live customs.
 
 Run:
 

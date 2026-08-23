@@ -5,7 +5,7 @@
  *  - Qualifying kills harvest +1 soul (lifetime + current)
  *  - CURRENT souls → SoulPower → flat stats on every summoned demon (config PerKill.*)
  *  - LIFETIME souls → SoulPower → Soul Tempering on the warlock (config Tempering.*)
- *  - SoulPower is diminishing by soul bracket (step Tempering.SoulsPerTier, default 250)
+ *  - SoulPower is diminishing by soul bracket (step Tempering.SoulsPerTier, default 100)
  *  - WorldScript (5s) handles rare Enable config flips
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
@@ -27,6 +27,7 @@
  */
 
 #include "warlock_demonic_empowerment.h"
+#include "arcturus_gameplay_watch.h"
 
 #include "Chat.h"
 #include "Config.h"
@@ -73,7 +74,7 @@ namespace WarlockEmpowerment
         BonusValues _bonusCache{};
         uint32 _bonusCacheMs = 0;
         TemperValues _temperCache{};
-        int32 _temperInterval = 250;
+        int32 _temperInterval = 100;
         int32 _temperMaxTiers = 0;
         uint32 _temperCacheMs = 0;
         uint32 _maxSoulsApplied = 10000u;
@@ -795,6 +796,7 @@ namespace
             LOG_ERROR("scripts.arcturus",
                 "Rank passive {} ({}) failed CastSpell for {} — fix spell_dbc targets (must be self-only). Forcing AddAura.",
                 entry.id, entry.name, player->GetName());
+            ArcturusWatch::SpellPassiveFail(player, entry.id, entry.name);
             player->AddAura(entry.id, player);
         }
 
@@ -817,6 +819,8 @@ namespace
         // because PetSoulSpellPowerBonus reads the Mgr live). Re-sync the live demon here.
         if (Pet* pet = player->GetPet())
             SyncPetSoulBonus(pet, IsSystemEnabled() ? souls.current : 0u);
+
+        ArcturusWatch::Login(player, souls);
     }
 
     void AppendStatGain(std::string& out, char const* label, int32 delta)
@@ -946,8 +950,11 @@ public:
 
     void OnPlayerMapChanged(Player* player) override
     {
-        if (IsWarlock(player))
-            ScheduleEmbraceUndeathReapply(player);
+        if (!IsWarlock(player))
+            return;
+
+        ScheduleEmbraceUndeathReapply(player);
+        ArcturusWatch::MapChange(player, player->GetMapId());
     }
 
     void OnPlayerLogin(Player* player) override
@@ -983,6 +990,8 @@ public:
                 "|cff9370dbDemonic Empowerment:|r ready for your first soul. "
                 "Type |cffffff00.demons|r.");
         }
+
+        ArcturusWatch::Login(player, souls);
     }
 
     void OnPlayerLogout(Player* player) override
@@ -990,14 +999,20 @@ public:
         if (!IsWarlock(player))
             return;
 
+        Souls souls = sWarlockEmpower->Get(player->GetGUID());
+        ArcturusWatch::Logout(player, souls);
         UntrackOnlineWarlock(player);
         sWarlockEmpower->FlushAndForget(player->GetGUID());
     }
 
     void OnPlayerJustDied(Player* player) override
     {
-        if (IsWarlock(player))
-            ClearEmbraceUndeathMorph(player);
+        if (!IsWarlock(player))
+            return;
+
+        ClearEmbraceUndeathMorph(player);
+        sWarlockEmpower->LoadFromDB(player->GetGUID());
+        ArcturusWatch::Death(player, sWarlockEmpower->Get(player->GetGUID()));
     }
 
     void OnPlayerSave(Player* player) override
@@ -1063,6 +1078,9 @@ public:
 
         if ((total.lifetime / 25u) != (before.lifetime / 25u))
             sWarlockEmpower->FlushIfDirty(player->GetGUID());
+
+        Unit* victim = rewarder ? rewarder->GetVictim() : nullptr;
+        ArcturusWatch::Kill(player, before, total, victim);
     }
 
     void OnPlayerAfterGuardianInitStatsForLevel(Player* player, Guardian* guardian) override
@@ -1073,7 +1091,9 @@ public:
         if (!sWarlockEmpower->IsLoaded(player->GetGUID()))
             return;
 
-        SyncPetSoulBonus(guardian, sWarlockEmpower->Get(player->GetGUID()).current);
+        uint32 const current = sWarlockEmpower->Get(player->GetGUID()).current;
+        SyncPetSoulBonus(guardian, current);
+        ArcturusWatch::PetSync(player, SoulPowerFrom(current), current, true);
     }
 };
 

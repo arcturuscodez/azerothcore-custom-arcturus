@@ -183,6 +183,7 @@ class ConfigAndLoaderAlignmentTests(unittest.TestCase):
             "demons_commandscript",
             "endless_instances",
             "arcturus_trade_skills",
+            "arcturus_gameplay_watch",
         }
         calls = set(loader_addsc_calls())
         self.assertTrue(expected <= calls, expected - calls)

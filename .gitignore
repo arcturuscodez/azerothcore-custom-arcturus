@@ -144,6 +144,16 @@ debug-*.log
 !/src/server/scripts/Custom/warlock_corrupted_blood.cpp
 !/src/server/scripts/Custom/warlock_wrath_of_chaos.cpp
 !/src/server/scripts/Custom/CMakeLists.txt
+!/src/server/scripts/Custom/arcturus_gameplay_watch.cpp
+!/src/server/scripts/Custom/arcturus_gameplay_watch.h
+
+# Gameplay watch runtime (gitignored)
+env/dist/logs/ArcturusWatch.log
+env/dist/logs/gameplay-brief.txt
+env/dist/logs/gameplay-session.jsonl
+env/dist/logs/arcturus-watch.pid
+env/dist/logs/arcturus-watch-daemon.log
+env/user/arcturus-watch.json
 
 # Generated / local-only client patch artifacts (tracked DBCs live in client-patches/dbc/)
 /client-patches/out/
@@ -152,5 +162,6 @@ debug-*.log
 MY_SERVER.txt
 dml-start.sh
 
+.agents/*
 !.agents/docs/
 !.agents/README.md

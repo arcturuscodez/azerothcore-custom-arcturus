@@ -42,8 +42,8 @@ WarlockDemonicEmpowerment.Enable = 1
 # Merge into live env/dist/etc/worldserver.conf (gitignored) or rely on AC_* env in
 # docker-compose.override.yml — .dist alone is not auto-applied.
 # Soul flats: both warlock (Tempering.*) and pet (PerKill.*) scale with SoulPower.
-# SoulPower = sum over brackets of (souls in bracket) / 250 * mult. Never hits zero.
-#   0–5k 100% | 5–25k 50% | 25–50k 25% | 50–100k 15% | 100–250k 10% | 250–500k 5% | 500k+ 2.5%
+# SoulPower = sum over brackets of (souls in bracket) / 100 * mult. Never hits zero.
+#   0–5k 100% | 5–10k 25% | 10–20k 15% | 20–40k 10% | 40–75k 5% | 75–150k 2.5% | 150k+ 1.25%
 # Coeffs are per SoulPower unit. Anchor: ~5.7k souls ≈ half of the old linear flats, SP a bit above half.
 # Balance solo content around ~25k–100k + gear. Ranks/kits/talents still use raw lifetime.
 # PerKill.MaxSoulsApplied is unused for flats (kept so old conf does not spam missing-option).
@@ -60,9 +60,14 @@ WarlockDemonicEmpowerment.Tempering.Stamina = 10
 WarlockDemonicEmpowerment.Tempering.Intellect = 10
 WarlockDemonicEmpowerment.Tempering.SpellPower = 17.5
 WarlockDemonicEmpowerment.Tempering.ManaPer5 = 5
-WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 250
+WarlockDemonicEmpowerment.Tempering.SoulsPerTier = 100
 WarlockDemonicEmpowerment.Tempering.MaxTiers = 0
 WarlockDemonicEmpowerment.AnnounceEveryNKills = 100
+
+# Raid/dungeon boss loot volume — reference tables roll MaxCount * this (uint32).
+# ~4 purples per 40-man boss at 1.0 → ~10 at 2.5. Also affects grouped dungeon drops.
+Rate.Drop.Item.ReferencedAmount = 2.5
+Rate.Drop.Item.GroupAmount = 2.5
 
 # Corrupted Blood (90042) — Soul Reaver (5000 souls) passive.
 # Stat values live in spell_dbc (90042 / 90043), not here: tune them with an UPDATE.
@@ -73,6 +78,13 @@ Arcturus.CorruptedBlood.VisualSpellId = 0
 Arcturus.CorruptedBlood.Whispers.Enable = 1
 Arcturus.CorruptedBlood.Whispers.MinSeconds = 240
 Arcturus.CorruptedBlood.Whispers.MaxSeconds = 900
+
+# Gameplay watch — compact events for agents (tools/arcturus_watch/README.md)
+Arcturus.GameplayWatch.Enable = 1
+# Empty = all real players; set to one character name to reduce noise on multi-player realms
+Arcturus.GameplayWatch.PlayerName =
+Appender.ArcturusWatch=2,4,0,ArcturusWatch.log,a
+Logger.scripts.arcturus.watch=4,Console ArcturusWatch
 
 ####################################################################################################
 # AutoBalance.conf  (modules/mod-autobalance/conf/)
@@ -95,7 +107,7 @@ AutoBalance.reward.enable = 0
 AutoBalance.PlayerChangeNotify = 0
 AutoBalanceAnnounce.enable = 0
 
-# Always use full instance baseline (no solo downscale).
+# Always use full instance baseline (no player-count downscale).
 AutoBalance.InflectionPoint.CurveFloor = 1.0
 AutoBalance.InflectionPoint.CurveCeiling = 1.0
 AutoBalance.InflectionPointHeroic.CurveFloor = 1.0
@@ -108,11 +120,11 @@ AutoBalance.InflectionPointRaidHeroic.CurveCeiling = 1.0
 # Premium is NOT one number. CurveFloor=Ceiling=1 already holds full instance stats
 # (no solo downscale). Global then multiplies BOTH enemy HP and damage.
 # Same Global on 5-man and 40-man was the MC stomp: pet ate 40-man tank damage.
-# Picks from a TTK+pet-TTD sim at the SoulPower curve (tune souls in parens):
+# Picks from a TTK+pet-TTD sim at the SoulPower curve (100 souls/tier, steep brackets):
 #   5N (5.7k) 0.90/1.00  5H (25k) 1.70/2.00
 #   10N (25k) 1.25/1.45  10H (50k) 1.50/1.75
 #   25N (50k) 1.05/1.20  25H (100k) 1.25/1.45
-#   40N (25k) 0.50/0.60  — MC at old 1.75 + inflated souls still had ~7s pet TTD.
+#   40N (25k) 0.36/0.44  — MC anchor ~82 SoulPower (was ~60 at 250/step); old 0.50/0.60.
 # Arenas/BGs are not AutoBalance maps; these keys do not touch PvP.
 #
 AutoBalance.StatModifier.Global = 0.90
@@ -131,8 +143,8 @@ AutoBalance.StatModifierRaid25M.Global = 1.05
 AutoBalance.StatModifierRaid25M.Boss.Global = 1.20
 AutoBalance.StatModifierRaid25MHeroic.Global = 1.25
 AutoBalance.StatModifierRaid25MHeroic.Boss.Global = 1.45
-AutoBalance.StatModifierRaid40M.Global = 0.50
-AutoBalance.StatModifierRaid40M.Boss.Global = 0.60
+AutoBalance.StatModifierRaid40M.Global = 0.36
+AutoBalance.StatModifierRaid40M.Boss.Global = 0.44
 
 ####################################################################################################
 # individualProgression.conf  (modules/mod-individual-progression/conf/)
@@ -214,6 +226,10 @@ OllamaChat.RandomChatterRealPlayerDistance = 40
 ####################################################################################################
 # playerbots.conf  — see modules/mod-playerbots/conf/playerbots.conf.dist for Arcturus defaults
 ####################################################################################################
+
+# Bots auto-complete attunement quests (MC/BWL/Onyxia/Naxx40/TBC/ICC); players still attune normally.
+# See modules/mod-playerbots/conf/playerbots.conf.dist AiPlayerbot.AttunementQuests for the full ID list.
+# AiPlayerbot.AttunementQuests = ...
 
 # AiPlayerbot.DisableWarlockLogin = 1  (blocks randombot + addclass warlock)
 # AiPlayerbot.MaxAddedBots = 4

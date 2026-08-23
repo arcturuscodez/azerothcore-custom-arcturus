@@ -123,25 +123,25 @@ class DemonicEmpowermentRuntimeTests(unittest.TestCase):
 
     def test_soulpower_brackets_match_golden_values(self) -> None:
         header = read_text(DE_HEADER)
-        self.assertIn("SOUL_POWER_STEP_DEFAULT = 250u", header)
-        self.assertIn("{ 5000u,   1.00f  }", header)
-        self.assertIn("{ 25000u,  0.50f  }", header)
-        self.assertIn("{ 50000u,  0.25f  }", header)
-        self.assertIn("{ 100000u, 0.15f  }", header)
-        self.assertIn("{ 250000u, 0.10f  }", header)
-        self.assertIn("{ 500000u, 0.05f  }", header)
-        self.assertIn("{ 0u,      0.025f }", header)
+        self.assertIn("SOUL_POWER_STEP_DEFAULT = 100u", header)
+        self.assertIn("{ 4999u,   1.00f  }", header)
+        self.assertIn("{ 10000u,  0.25f  }", header)
+        self.assertIn("{ 20000u,  0.15f  }", header)
+        self.assertIn("{ 40000u,  0.10f  }", header)
+        self.assertIn("{ 75000u,  0.05f  }", header)
+        self.assertIn("{ 150000u, 0.025f }", header)
+        self.assertIn("{ 0u,      0.0125f }", header)
         self.assertIn("float SoulPowerFrom(uint32 souls)", header)
 
-        step = 250
+        step = 100
         brackets = (
-            (5000, 1.00),
-            (25000, 0.50),
-            (50000, 0.25),
-            (100000, 0.15),
-            (250000, 0.10),
-            (500000, 0.05),
-            (None, 0.025),
+            (4999, 1.00),
+            (10000, 0.25),
+            (20000, 0.15),
+            (40000, 0.10),
+            (75000, 0.05),
+            (150000, 0.025),
+            (None, 0.0125),
         )
 
         def soul_power(souls: int) -> float:
@@ -161,15 +161,15 @@ class DemonicEmpowermentRuntimeTests(unittest.TestCase):
             return power
 
         golden = {
-            5000: 20.0,
-            5700: 21.4,
-            6000: 22.0,
-            25000: 60.0,
-            50000: 85.0,
-            100000: 115.0,
-            250000: 175.0,
-            500000: 225.0,
-            1000000: 275.0,
+            5000: 49.9925,
+            5700: 51.7425,
+            6000: 52.4925,
+            25000: 82.4925,
+            50000: 102.4925,
+            100000: 121.2425,
+            250000: 146.2425,
+            500000: 177.4925,
+            1000000: 239.9925,
         }
         for souls, want in golden.items():
             self.assertAlmostEqual(soul_power(souls), want, places=5, msg=souls)
@@ -236,7 +236,7 @@ class MandateAndKitRuntimeTests(unittest.TestCase):
         src = read_text(CUSTOM_DIR / "warlock_wrath_of_chaos.cpp")
         walk = _func(src, "uint32 HighestKnownRank(", "uint32 ImmolateOrUnstableAffliction(")
         self.assertIn("GetNextRankSpell()", walk)
-        self.assertIn("HasSpell(info->Id)", walk)
+        self.assertIn("HasActiveSpell(info->Id)", walk)
         self.assertNotIn("break;", walk)
 
 
