@@ -312,12 +312,19 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
 
     def test_unrestricted_dual_wield_wires_config_login_and_equip(self) -> None:
         script = read_text(CUSTOM_DIR / "arcturus_unrestricted_dual_wield.cpp")
+        helper = read_text(REPO_ROOT / "src/server/game/Arcturus/ArcturusUnrestrictedDualWield.cpp")
         storage = read_text(REPO_ROOT / "src/server/game/Entities/Player/PlayerStorage.cpp")
-        self.assertIn("Arcturus.UnrestrictedDualWield.Enable", script)
-        self.assertIn("SetCanDualWield(true)", script)
-        self.assertIn("SetCanTitanGrip(true)", script)
-        self.assertIn("CanEquipTwoHandInOffhand", storage)
-        self.assertIn("MainHandBlocksOffhand", storage)
+        player_cpp = read_text(REPO_ROOT / "src/server/game/Entities/Player/Player.cpp")
+
+        self.assertIn("Arcturus::UnrestrictedDualWield::Apply", script)
+        self.assertIn('GetOption<bool>(CONFIG_ENABLE, false)', helper)
+        self.assertIn("ApplyPlayerFlags(this)", storage)
+        self.assertIn("_LoadInventory", storage)
+        self.assertIn("Arcturus::UnrestrictedDualWield::Apply(this)", player_cpp)
+        self.assertIn("AutoUnequipOffhandIfNeed", player_cpp)
+        self.assertIn("CanEquipTwoHandInOffhand", helper)
+        self.assertIn("MainHandBlocksOffhand", helper)
+        self.assertIn("RefreshPenaltyAura", helper)
 
 
 if __name__ == "__main__":

@@ -2,35 +2,14 @@
  * Arcturus: unrestricted dual wield — any two-handed weapon (including staves and
  * polearms) may occupy the off-hand. Enables Ashbringer + Atiesh, dual staves, etc.
  *
- * Grants CanDualWield + CanTitanGrip on login and after spec swaps (core strips both
- * unless the stock warrior talent / dual-wield spell is known). Equip validation lives
- * in PlayerStorage.cpp when Arcturus.UnrestrictedDualWield.Enable is on.
+ * Core owns equip validation and early flag application (load, spec swap, talent reset).
+ * This script re-applies on login and after spec swaps for any hook ordering edge cases.
  */
 
-#include "Config.h"
+#include "ArcturusUnrestrictedDualWield.h"
 #include "Player.h"
 #include "PlayerScript.h"
 #include "ScriptMgr.h"
-
-namespace
-{
-    constexpr char const* CONFIG_ENABLE = "Arcturus.UnrestrictedDualWield.Enable";
-
-    bool IsEnabled()
-    {
-        return sConfigMgr->GetOption<bool>(CONFIG_ENABLE, true);
-    }
-
-    void ApplyUnrestrictedDualWield(Player* player)
-    {
-        if (!IsEnabled() || !player)
-            return;
-
-        player->SetCanDualWield(true);
-        player->SetCanTitanGrip(true);
-        player->UpdateTitansGrip();
-    }
-}
 
 class arcturus_unrestricted_dual_wield_player : public PlayerScript
 {
@@ -43,12 +22,12 @@ public:
 
     void OnPlayerLogin(Player* player) override
     {
-        ApplyUnrestrictedDualWield(player);
+        Arcturus::UnrestrictedDualWield::Apply(player);
     }
 
     void OnPlayerAfterSpecSlotChanged(Player* player, uint8 /*newSlot*/) override
     {
-        ApplyUnrestrictedDualWield(player);
+        Arcturus::UnrestrictedDualWield::Apply(player);
     }
 };
 

@@ -18,6 +18,7 @@
 #include "Player.h"
 #include "AccountMgr.h"
 #include "AchievementMgr.h"
+#include "ArcturusUnrestrictedDualWield.h"
 #include "AreaDefines.h"
 #include "ArenaSpectator.h"
 #include "ArenaTeam.h"
@@ -3938,6 +3939,8 @@ bool Player::resetTalents(bool noResetCost)
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
     if (!HasSpell(674) && CanDualWield())
         SetCanDualWield(false);
+
+    Arcturus::UnrestrictedDualWield::Apply(this);
 
     AutoUnequipOffhandIfNeed();
 
@@ -12734,17 +12737,15 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
     }
 
     // unequip offhand weapon if player doesn't have dual wield anymore
-    if (!CanDualWield() && (offItem->GetTemplate()->InventoryType == INVTYPE_WEAPONOFFHAND || offItem->GetTemplate()->InventoryType == INVTYPE_WEAPON))
+    if (!CanDualWield() && !Arcturus::UnrestrictedDualWield::IsEnabled() &&
+        (offItem->GetTemplate()->InventoryType == INVTYPE_WEAPONOFFHAND || offItem->GetTemplate()->InventoryType == INVTYPE_WEAPON))
         force = true;
 
     // unequip offhand weapon if player main hand weapon is a polearm or staff or fishing pole
-    if (!sConfigMgr->GetOption<bool>("Arcturus.UnrestrictedDualWield.Enable", true))
-        if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
-            if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-                if (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
-                    mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF ||
-                    mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
-                    force = true;
+    if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
+        if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
+            if (Arcturus::UnrestrictedDualWield::MainHandBlocksOffhand(this, mhWeaponProto))
+                force = true;
 
     // need unequip offhand for 2h-weapon without TitanGrip (in any from hands)
     if (!force && (CanTitanGrip() || (offItem->GetTemplate()->InventoryType != INVTYPE_2HWEAPON && !IsTwoHandUsed())))
@@ -13454,6 +13455,11 @@ void Player::SetCanBlock(bool value)
 void Player::SetCanTitanGrip(bool value)
 {
     m_canTitanGrip = value;
+}
+
+bool Player::IsTwoHandUsed() const
+{
+    return Arcturus::UnrestrictedDualWield::IsTwoHandUsed(this);
 }
 
 bool ItemPosCount::isContainedIn(ItemPosCountVec const& vec) const
@@ -15664,6 +15670,8 @@ void Player::ActivateSpec(uint8 spec)
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
     if (!HasSpell(674) && CanDualWield())
         SetCanDualWield(false);
+
+    Arcturus::UnrestrictedDualWield::Apply(this);
 
     AutoUnequipOffhandIfNeed();
 

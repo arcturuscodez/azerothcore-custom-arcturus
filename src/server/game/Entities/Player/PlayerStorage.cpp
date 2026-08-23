@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ArcturusUnrestrictedDualWield.h"
 #include "AccountMgr.h"
 #include "AchievementMgr.h"
 #include "ArenaTeam.h"
@@ -73,56 +74,6 @@
 //  there is probably some underlying problem with imports which should properly addressed
 //  see: https://github.com/azerothcore/azerothcore-wotlk/issues/9766
 #include "GridNotifiersImpl.h"
-
-namespace
-{
-    constexpr char const* CONFIG_UNRESTRICTED_DUAL_WIELD = "Arcturus.UnrestrictedDualWield.Enable";
-
-    bool UnrestrictedDualWieldEnabled()
-    {
-        return sConfigMgr->GetOption<bool>(CONFIG_UNRESTRICTED_DUAL_WIELD, true);
-    }
-
-    bool IsStaffLikeWeaponSubclass(uint32 subClass)
-    {
-        return subClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
-            subClass == ITEM_SUBCLASS_WEAPON_STAFF ||
-            subClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE;
-    }
-
-    bool CanEquipTwoHandInOffhand(Player const* player, ItemTemplate const* proto)
-    {
-        if (!player->CanDualWield() || proto->InventoryType != INVTYPE_2HWEAPON)
-            return false;
-
-        if (UnrestrictedDualWieldEnabled())
-            return proto->Class == ITEM_CLASS_WEAPON;
-
-        if (!player->CanTitanGrip())
-            return false;
-
-        return !IsStaffLikeWeaponSubclass(proto->SubClass);
-    }
-
-    bool MainHandBlocksOffhand(Player const* player, ItemTemplate const* mhProto)
-    {
-        if (UnrestrictedDualWieldEnabled())
-            return false;
-
-        return IsStaffLikeWeaponSubclass(mhProto->SubClass);
-    }
-
-    bool MainHandTwoHandRequiresClearOffhand(Player const* player, ItemTemplate const* proto)
-    {
-        if (UnrestrictedDualWieldEnabled())
-            return false;
-
-        if (!player->CanTitanGrip())
-            return true;
-
-        return IsStaffLikeWeaponSubclass(proto->SubClass);
-    }
-}
 
 /*********************************************************/
 /***                    STORAGE SYSTEM                 ***/
@@ -249,13 +200,13 @@ uint8 Player::FindEquipSlot(ItemTemplate const* proto, uint32 slot, bool swap) c
             break;
         case INVTYPE_2HWEAPON:
             slots[0] = EQUIPMENT_SLOT_MAINHAND;
-            if (CanEquipTwoHandInOffhand(this, proto))
+            if (Arcturus::UnrestrictedDualWield::CanEquipTwoHandInOffhand(this, proto))
             {
                 Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
                 if (!mhWeapon)
                     slots[1] = EQUIPMENT_SLOT_OFFHAND;
                 else if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-                    if (!MainHandBlocksOffhand(this, mhWeaponProto))
+                    if (!Arcturus::UnrestrictedDualWield::MainHandBlocksOffhand(this, mhWeaponProto))
                         slots[1] = EQUIPMENT_SLOT_OFFHAND;
             }
             break;
@@ -2082,28 +2033,31 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
             {
                 // Do not allow polearm to be equipped in the offhand (rare case for the only 1h polearm 41750)
                 // xinef: same for fishing poles
-                if (!UnrestrictedDualWieldEnabled() && type == INVTYPE_WEAPON &&
+                if (!Arcturus::UnrestrictedDualWield::IsEnabled() && type == INVTYPE_WEAPON &&
                     (pProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM || pProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE))
                     return EQUIP_ERR_ITEM_DOESNT_GO_TO_SLOT;
 
                 else if (type == INVTYPE_WEAPON || type == INVTYPE_WEAPONOFFHAND)
                 {
-                    if (!CanDualWield())
+                    if (!CanDualWield() && !Arcturus::UnrestrictedDualWield::IsEnabled())
                         return EQUIP_ERR_CANT_DUAL_WIELD;
                 }
                 else if (type == INVTYPE_2HWEAPON)
                 {
-                    if (!CanEquipTwoHandInOffhand(this, pProto))
+                    if (!Arcturus::UnrestrictedDualWield::CanEquipTwoHandInOffhand(this, pProto))
                         return EQUIP_ERR_CANT_DUAL_WIELD;
                 }
+
+                if (Arcturus::UnrestrictedDualWield::OffhandNonWeaponBlockedByMainHandTwoHand(this, pProto))
+                    return EQUIP_ERR_CANT_EQUIP_WITH_TWOHANDED;
 
                 // Do not allow offhand with main hand polearm, staff or fishing pole
                 if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
                     if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-                        if (MainHandBlocksOffhand(this, mhWeaponProto))
+                        if (Arcturus::UnrestrictedDualWield::MainHandBlocksOffhand(this, mhWeaponProto))
                             return EQUIP_ERR_CANT_EQUIP_WITH_TWOHANDED;
 
-                if (IsTwoHandUsed())
+                if (Arcturus::UnrestrictedDualWield::IsTwoHandUsed(this))
                     return EQUIP_ERR_CANT_EQUIP_WITH_TWOHANDED;
             }
 
@@ -2112,13 +2066,13 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
             {
                 if (eslot == EQUIPMENT_SLOT_OFFHAND)
                 {
-                    if (!CanEquipTwoHandInOffhand(this, pProto))
+                    if (!Arcturus::UnrestrictedDualWield::CanEquipTwoHandInOffhand(this, pProto))
                         return EQUIP_ERR_ITEM_CANT_BE_EQUIPPED;
                 }
                 else if (eslot != EQUIPMENT_SLOT_MAINHAND)
                     return EQUIP_ERR_ITEM_CANT_BE_EQUIPPED;
 
-                if (MainHandTwoHandRequiresClearOffhand(this, pProto))
+                if (Arcturus::UnrestrictedDualWield::MainHandTwoHandRequiresClearOffhand(this, pProto))
                 {
                     // offhand item must can be stored in inventory for offhand item and it also must be unequipped
                     Item* offItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
@@ -5631,7 +5585,12 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
     // xinef: load mails before inventory, so problematic items can be added to already loaded mails
     _LoadMail(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_MAILS), holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_MAIL_ITEMS));
 
+    // Arcturus: dual-wield flags must exist before equip validation during inventory load.
+    Arcturus::UnrestrictedDualWield::ApplyPlayerFlags(this);
+
     _LoadInventory(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_INVENTORY), time_diff);
+
+    Arcturus::UnrestrictedDualWield::RefreshPenaltyAura(this);
 
     // update items with duration and realtime
     UpdateItemDuration(time_diff, true);

@@ -37,7 +37,7 @@ MaxPrimaryTradeSkill = 11
 Arcturus.WarlockWeaponTrainers.Enable = 1
 
 # Any class may dual-wield any two-handed weapon (staves, polearms, swords, …).
-# Requires rebuild; grants dual wield + titan grip on login/spec swap. Disable = stock rules.
+# Requires rebuild; grants dual wield + titan grip on login/spec swap. Default off — enable here for Arcturus live.
 Arcturus.UnrestrictedDualWield.Enable = 1
 
 EndlessInstances.Enable = 1
