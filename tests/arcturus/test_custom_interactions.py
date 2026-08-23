@@ -52,13 +52,13 @@ HIDDEN_HELPERS = {
     90045,  # Coagulate nova
 }
 
-PASSIVE_RANK_SPELLS = {90001, 90002, 90007, 90042}
+PASSIVE_RANK_SPELLS = {90001, 90002, 90007, 90042, 90047}
 
 
 class ChaosTabContractTests(unittest.TestCase):
     def test_rank_spells_match_pending_chaos_tab(self) -> None:
         taught = parse_rank_spells()
-        self.assertEqual(len(taught), 12)
+        self.assertEqual(len(taught), 13)
         ids = {row.spell_id for row in taught}
         sla = replay_skilllineability()
         chaos = {spell for spell, (skill, *_rest) in sla.items() if skill == CHAOS_SKILL}
@@ -109,6 +109,7 @@ class ProgressionCrossSystemTests(unittest.TestCase):
             self.assertEqual(by_id[spell_id], 2500, spell_id)
         self.assertEqual(by_id[90042], 5000)
         self.assertEqual(by_id[90046], 5000)
+        self.assertEqual(by_id[90047], 7500)
 
     def test_mandate_brand_reads_demonic_empowerment_souls(self) -> None:
         src = read_text(CUSTOM_DIR / "warlock_felguard_mandate.cpp")
@@ -139,7 +140,17 @@ class ProgressionCrossSystemTests(unittest.TestCase):
         self.assertIn("SPELL_CORRUPTED_BLOOD_BUFF", blood)
         self.assertIn("SPELL_COAGULATE_ABSORB", blood)
 
-    def test_wrath_is_blocked_in_crimson_shade(self) -> None:
+    def test_demonic_grip_reapplies_after_spec_swap(self) -> None:
+        de = read_text(DE_CPP)
+        self.assertIn("SPELL_DEMONIC_GRIP", de)
+        self.assertIn("OnPlayerAfterSpecSlotChanged", de)
+        self.assertIn("ApplyDemonicGrip", de)
+        self.assertIn("RevokeDemonicGrip", de)
+        by_id = {row.spell_id: row.min_souls for row in parse_rank_spells()}
+        self.assertEqual(by_id[90047], 7500)
+        sla = replay_skilllineability()
+        self.assertIn(90047, sla)
+
         wrath = read_text(CUSTOM_DIR / "warlock_wrath_of_chaos.cpp")
         self.assertIn("HasAura(SPELL_CRIMSON_SHADE)", wrath)
         self.assertIn("SPELL_FAILED_CASTER_AURASTATE", wrath)

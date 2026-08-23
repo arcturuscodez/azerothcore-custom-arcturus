@@ -31,4 +31,5 @@ UPDATE `item_template` SET
 WHERE `Quality` = 5
   AND `class` IN (2, 4)
   AND `RequiredLevel` BETWEEN 55 AND 79
-  AND `entry` < 900000;
+  AND `entry` < 900000
+  AND `entry` NOT IN (22589, 22630, 22631, 22632);

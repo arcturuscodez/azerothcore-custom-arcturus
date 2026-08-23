@@ -7,7 +7,7 @@
  *   SoulPower — diminishing brackets (step Tempering.SoulsPerTier, default 100); never zero
  *
  * Login strips retired rank spells left on characters from older builds.
- * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 / 90042 / 90046 (see
+ * Lifetime ranks teach custom spells 90001–90005 / 90007 / 90030–90034 / 90042 / 90046 / 90047 (see
  * RANK_SPELLS; 90006 hop, 90008 Ward absorb, 90041 Damned Resonance, 90043–90045
  * Corrupted Blood halves are script/DB-triggered only). Passives use the stock talent
  * path (self-only + PASSIVE; pet auras via spell_pet_auras only — never
@@ -71,6 +71,7 @@ namespace WarlockEmpowerment
     constexpr uint32 SPELL_DAMNED_RESONANCE          = 90041; // pet damage buff when ward absorbs
     constexpr uint32 SPELL_CORRUPTED_BLOOD           = 90042; // Soul Reaver (5000) passive
     constexpr uint32 SPELL_WRATH_OF_CHAOS            = 90046; // Soul Reaver (5000) DoT applicator
+    constexpr uint32 SPELL_DEMONIC_GRIP              = 90047; // Soulbinder (7500) Titan's Grip analogue
 
     // Retired spells stripped on login (no longer taught).
     inline constexpr std::array<uint32, 2> RETIRED_RANK_SPELLS = {{
@@ -93,7 +94,7 @@ namespace WarlockEmpowerment
         char const* name;
     };
 
-    inline constexpr std::array<RankSpell, 12> RANK_SPELLS = {{
+    inline constexpr std::array<RankSpell, 13> RANK_SPELLS = {{
         { 100u,  SPELL_SANGUINE_RUIN,            "Sanguine Ruin"            },
         { 250u,  SPELL_NETHER_PRESENCE,          "Nether Presence"          },
         { 500u,  SPELL_EMBRACE_UNDEATH,          "Embrace Undeath"          },
@@ -105,7 +106,8 @@ namespace WarlockEmpowerment
         { 2500u, ArcturusSpells::SPELL_TORMENTING_REND,  "Tormenting Rend"   },
         { 2500u, ArcturusSpells::SPELL_WITHERING_TOUCH,  "Withering Touch"   },
         { 5000u, SPELL_CORRUPTED_BLOOD,          "Corrupted Blood"          },
-        { 5000u, SPELL_WRATH_OF_CHAOS,           "Wrath of Chaos"           }
+        { 5000u, SPELL_WRATH_OF_CHAOS,           "Wrath of Chaos"           },
+        { 7500u, SPELL_DEMONIC_GRIP,             "Demonic Grip"             }
     }};
 
     inline constexpr std::array<RankTier, 16> RANKS = {{

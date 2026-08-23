@@ -17,7 +17,7 @@ from arcturus_lib import (
     read_text,
 )
 
-PASSIVE_RANK_SPELLS = {90001, 90002, 90007, 90042}
+PASSIVE_RANK_SPELLS = {90001, 90002, 90007, 90042, 90047}
 
 
 class SpellEditorContractTests(unittest.TestCase):

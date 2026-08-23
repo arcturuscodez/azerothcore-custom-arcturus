@@ -9,13 +9,14 @@
  *  - WorldScript (5s) handles rare Enable config flips
  *    (no per-player OnPlayerUpdate — critical with large playerbot populations)
  *  - Lifetime milestones → bonus talent points (TALENT_GRANTS, +145 at Dark Titan)
- *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90030–90034 / 90042 / 90046 (RANK_SPELLS) + chat announcement
+ *  - Rank thresholds → custom spells 90001–90005 / 90007 / 90030–90034 / 90042 / 90046 / 90047 (RANK_SPELLS) + chat announcement
  *  - Passives (90001 / 90002 / 90007 / 90042): same path as talent passives —
  *    learnSpell → _addSpell → CastSpell. Self-only targets; pet half via spell_pet_auras.
  *  - Corrupted Blood (90042): Soul Reaver passive, see warlock_corrupted_blood.cpp.
  *    Retired Feltouched Communion 90003 stripped on login via RETIRED_RANK_SPELLS;
  *    90009 was never taught (pet half via spell_pet_auras only).
  *  - Wrath of Chaos (90046): Soul Reaver DoT applicator, see warlock_wrath_of_chaos.cpp
+ *  - Demonic Grip (90047): Soulbinder passive — stock Titan's Grip mechanics for warlocks
  *  - Embrace Undeath (90004): DUMMY toggle → morph aura 90018 (death clears);
  *    soft-stripped on far teleport and reapplied after map load (client crash guard)
  *  - Ward of the Soul-Eater (90007/90008) converts Sanguine Ruin overheal into an
@@ -748,7 +749,28 @@ namespace
         state->hasValues = true;
     }
 
-    // Login hygiene: strip retired custom spells if still on the character.
+    // Stock warrior talent spell — Demonic Grip must not fight it on revoke/spec swap.
+    constexpr uint32 SPELL_WARRIOR_TITANS_GRIP = 46917u;
+    constexpr uint32 SPELL_TITANS_GRIP_PENALTY = 49152u;
+
+    void RevokeDemonicGrip(Player* player)
+    {
+        if (player->HasTalent(SPELL_WARRIOR_TITANS_GRIP, player->GetActiveSpec()))
+            return;
+
+        player->SetCanTitanGrip(false);
+        player->RemoveAurasDueToSpell(SPELL_TITANS_GRIP_PENALTY);
+    }
+
+    void ApplyDemonicGrip(Player* player)
+    {
+        if (!player->HasSpell(SPELL_DEMONIC_GRIP))
+            return;
+
+        player->CastSpell(player, SPELL_DEMONIC_GRIP, true);
+        player->UpdateTitansGrip();
+    }
+
     void StripRetiredRankSpells(Player* player)
     {
         for (uint32 spellId : RETIRED_RANK_SPELLS)
@@ -774,7 +796,11 @@ namespace
                         "|cff9370dbDemonic Empowerment:|r you learn |cffffff00{}|r.", entry.name));
             }
             else
+            {
+                if (entry.id == SPELL_DEMONIC_GRIP)
+                    RevokeDemonicGrip(player);
                 player->removeSpell(entry.id, SPEC_MASK_ALL, false);
+            }
         }
     }
 
@@ -936,7 +962,8 @@ public:
             PLAYERHOOK_ON_REWARD_KILL_REWARDER,
             PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL,
             PLAYERHOOK_ON_BEFORE_TELEPORT,
-            PLAYERHOOK_ON_MAP_CHANGED
+            PLAYERHOOK_ON_MAP_CHANGED,
+            PLAYERHOOK_ON_AFTER_SPEC_SLOT_CHANGED
         }) { }
 
     bool OnPlayerBeforeTeleport(Player* player, uint32 mapid, float /*x*/, float /*y*/, float /*z*/,
@@ -955,6 +982,13 @@ public:
 
         ScheduleEmbraceUndeathReapply(player);
         ArcturusWatch::MapChange(player, player->GetMapId());
+    }
+
+    void OnPlayerAfterSpecSlotChanged(Player* player, uint8 /*newSlot*/) override
+    {
+        // Core strips CanTitanGrip unless the warrior talent is known; re-apply for Soulbinder.
+        if (IsWarlock(player))
+            ApplyDemonicGrip(player);
     }
 
     void OnPlayerLogin(Player* player) override
