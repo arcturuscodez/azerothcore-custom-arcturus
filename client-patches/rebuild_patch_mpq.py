@@ -31,6 +31,7 @@ MPQ_FILE_REPLACEEXISTING = 0x80000000
 MPQ_COMPRESSION_ZLIB = 0x02
 
 TRACKED = (
+    "Item.dbc",
     "SkillLine.dbc",
     "SkillLineAbility.dbc",
     "SkillRaceClassInfo.dbc",

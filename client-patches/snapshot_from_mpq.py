@@ -27,6 +27,7 @@ MANIFEST = Path(__file__).resolve().parent / "MANIFEST.sha256"
 MPQ_OPEN_READ_ONLY = 0x100
 
 TRACKED = (
+    "Item.dbc",
     "SkillLine.dbc",
     "SkillLineAbility.dbc",
     "SkillRaceClassInfo.dbc",
