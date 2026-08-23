@@ -86,6 +86,7 @@
 #include "UpdateData.h"
 #include "Util.h"
 #include "Vehicle.h"
+#include "WarlockDemonicGripEquip.h"
 #include "Weather.h"
 #include "World.h"
 #include "WorldPacket.h"
@@ -12737,27 +12738,13 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
     if (!CanDualWield() && (offItem->GetTemplate()->InventoryType == INVTYPE_WEAPONOFFHAND || offItem->GetTemplate()->InventoryType == INVTYPE_WEAPON))
         force = true;
 
-    // unequip offhand weapon if player main hand weapon is a polearm or staff or fishing pole
     if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
         if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-        {
-            bool const demonicGrip = getClass() == CLASS_WARLOCK && HasSpell(90047) && CanDualWield() && CanTitanGrip();
-            bool const staffMainBlocksOffhand = mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF
-                && !(demonicGrip && offItem && offItem->GetTemplate() && offItem->GetTemplate()->InventoryType == INVTYPE_2HWEAPON
-                    && offItem->GetTemplate()->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM
-                    && offItem->GetTemplate()->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE
-                    && (offItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_AXE2
-                        || offItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_MACE2
-                        || offItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_SWORD2));
-
-            if (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
-                mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE ||
-                staffMainBlocksOffhand)
+            if (WarlockDemonicGripEquip::MainhandBlocksOffhand(this, mhWeaponProto, offItem->GetTemplate()))
                 force = true;
-        }
 
     // need unequip offhand for 2h-weapon without TitanGrip (in any from hands)
-    if (!force && (CanTitanGrip() || (offItem->GetTemplate()->InventoryType != INVTYPE_2HWEAPON && !IsTwoHandUsed())))
+    if (!force && (WarlockDemonicGripEquip::CanUseTitanStyle2H(this) || (offItem->GetTemplate()->InventoryType != INVTYPE_2HWEAPON && !IsTwoHandUsed())))
     {
         UpdateTitansGrip();
         return;
@@ -12783,6 +12770,13 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
         CharacterDatabase.CommitTransaction(trans);
     }
     UpdateTitansGrip();
+}
+
+bool Player::IsTwoHandUsed() const
+{
+    Item* mainItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+    return mainItem && mainItem->GetTemplate()->InventoryType == INVTYPE_2HWEAPON
+        && !WarlockDemonicGripEquip::CanUseTitanStyle2H(this);
 }
 
 OutdoorPvP* Player::GetOutdoorPvP() const
