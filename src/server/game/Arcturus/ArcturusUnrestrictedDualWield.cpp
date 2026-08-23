@@ -15,15 +15,11 @@ namespace
     constexpr uint32 SPELL_TITANS_GRIP_PENALTY = 49152u;
     constexpr uint32 SPELL_DEMONIC_GRIP = 90047u;
 
-    // Atiesh class staves — client Item.dbc uses polearm subclass for dual-2H sheathe visuals.
-    constexpr uint32 ATIESH_STAFF_IDS[] = { 22589, 22630, 22631, 22632 };
-
-    bool IsAtieshStaffItem(uint32 itemId)
+    // Staff / fishing-pole subclass + SheatheType 1 flips on the back; polearm + type 1 does not.
+    bool NeedsPolearmSubclassForDualSheathe(uint32 subClass)
     {
-        for (uint32 id : ATIESH_STAFF_IDS)
-            if (id == itemId)
-                return true;
-        return false;
+        return subClass == ITEM_SUBCLASS_WEAPON_STAFF ||
+            subClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE;
     }
 
     bool IsStaffLikeWeaponSubclass(uint32 subClass)
@@ -177,7 +173,7 @@ namespace Arcturus::UnrestrictedDualWield
         if (!HasAccess(player) || proto->InventoryType != INVTYPE_2HWEAPON)
             return proto->SubClass;
 
-        if (proto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF && IsAtieshStaffItem(proto->ItemId))
+        if (NeedsPolearmSubclassForDualSheathe(proto->SubClass))
             return ITEM_SUBCLASS_WEAPON_POLEARM;
 
         return proto->SubClass;

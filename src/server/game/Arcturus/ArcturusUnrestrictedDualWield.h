@@ -34,7 +34,7 @@ namespace Arcturus::UnrestrictedDualWield
     // Item query / client cache: match client Item.dbc dual-2H sheathe (type 1).
     uint32 SheathForItemQuery(ItemTemplate const* proto, Player const* player = nullptr);
 
-    // Atiesh staves: polearm subclass in the item query uses the type-1 back attachment
+    // Staff / fishing-pole 2H: polearm subclass in the item query uses the type-1 back attachment
     // without flipping the model (staff SheatheType 1 alone is upside down).
     uint32 SubClassForItemQuery(ItemTemplate const* proto, Player const* player = nullptr);
 }

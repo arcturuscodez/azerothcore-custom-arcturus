@@ -320,6 +320,8 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         self.assertIn('GetOption<bool>(CONFIG_ENABLE, true)', helper)
         self.assertIn("HasAccess", helper)
         self.assertIn("SPELL_DEMONIC_GRIP", helper)
+        self.assertIn("NeedsPolearmSubclassForDualSheathe", helper)
+        self.assertIn("ITEM_SUBCLASS_WEAPON_FISHING_POLE", helper)
         self.assertIn("ApplyPlayerFlags(this)", storage)
         self.assertIn("_LoadInventory", storage)
         self.assertIn("Arcturus::UnrestrictedDualWield::Apply(this)", player_cpp)

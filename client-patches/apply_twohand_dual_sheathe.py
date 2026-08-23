@@ -6,6 +6,11 @@ Stock: 2H swords/axes/maces use type 1 (opposite sides when dual-wielded); stave
 polearms use type 2 (center spine overlap). This sets all two-handed weapons to type 1
 so Ashbringer + Atiesh cross on the back like dual 2H swords.
 
+Staff and fishing-pole subclasses use the wrong attachment with SheatheType 1 (model
+ends up upside down). Remap every 2H staff / fishing pole to polearm subclass so the
+type-1 back slot keeps the head upright — applies to Atiesh, all staves, and any other
+2H that would flip.
+
 Reads the highest-priority stock Item.dbc from the client MPQs (skips patch-enUS-z),
 writes client-patches/dbc/Item.dbc, and refreshes MANIFEST.sha256.
 
@@ -45,13 +50,13 @@ FIELD_SUBCLASS = 2
 FIELD_INVENTORY_TYPE = 6
 FIELD_SHEATHE_TYPE = 7
 
-# Atiesh class staves: polearm subclass + type-1 sheathe = upright on the dual-2H X back slot.
-ATIESH_STAFF_IDS = frozenset({22589, 22630, 22631, 22632})
-
-# Subclass hints for reporting only.
+# Subclass values (ItemSubClass.dbc weapon).
 SUBCLASS_POLEARM = 6
 SUBCLASS_STAFF = 10
 SUBCLASS_FISHING_POLE = 20
+
+# Staff / fishing pole + SheatheType 1 = upside down; polearm + type 1 = upright X slot.
+SUBCLASSES_REMAP_TO_POLEARM = frozenset({SUBCLASS_STAFF, SUBCLASS_FISHING_POLE})
 
 MPQ_OPEN_READ_ONLY = 0x100
 
@@ -196,10 +201,16 @@ def parse_item_dbc(data: bytes) -> tuple[int, bytearray]:
     return count, bytearray(data)
 
 
+def subclass_for_dual_sheathe(subclass: int) -> int:
+    if subclass in SUBCLASSES_REMAP_TO_POLEARM:
+        return SUBCLASS_POLEARM
+    return subclass
+
+
 def patch_twohand_sheathe(data: bytearray) -> dict[str, int | set[int]]:
     count = struct.unpack_from("<I", data, 4)[0]
     patched = 0
-    atiesh = 0
+    subclass_remapped = 0
     samples: set[int] = set()
     subclass_hits: Counter[int] = Counter()
     old_sheathe: Counter[int] = Counter()
@@ -215,9 +226,10 @@ def patch_twohand_sheathe(data: bytearray) -> dict[str, int | set[int]]:
         if old != SHEATHE_DUAL_2H:
             row[FIELD_SHEATHE_TYPE] = SHEATHE_DUAL_2H
             changed = True
-        if row[0] in ATIESH_STAFF_IDS and row[FIELD_SUBCLASS] == SUBCLASS_STAFF:
-            row[FIELD_SUBCLASS] = SUBCLASS_POLEARM
-            atiesh += 1
+        new_subclass = subclass_for_dual_sheathe(row[FIELD_SUBCLASS])
+        if new_subclass != row[FIELD_SUBCLASS]:
+            row[FIELD_SUBCLASS] = new_subclass
+            subclass_remapped += 1
             changed = True
         if not changed:
             continue
@@ -229,7 +241,7 @@ def patch_twohand_sheathe(data: bytearray) -> dict[str, int | set[int]]:
 
     return {
         "patched": patched,
-        "atiesh": atiesh,
+        "subclass_remapped": subclass_remapped,
         "samples": samples,
         "subclass_hits": subclass_hits,
         "old_sheathe": old_sheathe,
@@ -258,12 +270,16 @@ def verify_patched(data: bytes) -> bool:
             continue
         if row[FIELD_SHEATHE_TYPE] != SHEATHE_DUAL_2H:
             bad.append((row[0], row[FIELD_SHEATHE_TYPE], row[FIELD_SUBCLASS]))
-        elif row[0] in ATIESH_STAFF_IDS and row[FIELD_SUBCLASS] != SUBCLASS_POLEARM:
+        elif row[FIELD_SUBCLASS] in SUBCLASSES_REMAP_TO_POLEARM:
             bad.append((row[0], row[FIELD_SHEATHE_TYPE], row[FIELD_SUBCLASS]))
         if len(bad) >= 5:
             break
     if bad:
-        print("Verification failed — expected type 1 / Atiesh polearm subclass:", bad, file=sys.stderr)
+        print(
+            "Verification failed — expected SheatheType 1 and no staff/fishing-pole subclass on 2H:",
+            bad,
+            file=sys.stderr,
+        )
         return False
     return True
 
@@ -301,7 +317,7 @@ def main() -> int:
     digest = sha256_bytes(bytes(body))
     print(f"Wrote {OUT_DBC.relative_to(PATCH_DIR.parent)} ({len(body):,} bytes)")
     print(f"  patched {stats['patched']} INVTYPE_2HWEAPON rows -> SheatheType {SHEATHE_DUAL_2H}")
-    print(f"  Atiesh class staves remapped to polearm subclass: {stats['atiesh']}")
+    print(f"  staff/fishing-pole subclass -> polearm: {stats['subclass_remapped']}")
     print(f"  sample ids: {sorted(stats['samples'])}")
     if stats["subclass_hits"]:
         staff = stats["subclass_hits"].get(SUBCLASS_STAFF, 0)
@@ -310,7 +326,7 @@ def main() -> int:
         print(f"  staves={staff} polearms={pole} fishing_poles={fish}")
 
     # Spot-check Atiesh + Ashbringer if present.
-    for item_id, label in ((22630, "Atiesh"), (49623, "Ashbringer")):
+    for item_id, label in ((22630, "Atiesh"), (13262, "Ashbringer")):
         count = struct.unpack_from("<I", body, 4)[0]
         for i in range(count):
             off = 20 + i * ITEM_RECORD_SIZE

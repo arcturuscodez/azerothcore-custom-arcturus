@@ -12,7 +12,7 @@ individual `dbc/*.dbc` files instead — Git shows which table changed, and
 
 | DBC | Why |
 |-----|-----|
-| `Item.dbc` | Dual-2H sheathe visuals (all `INVTYPE_2HWEAPON` → SheatheType 1) |
+| `Item.dbc` | Dual-2H sheathe visuals (all `INVTYPE_2HWEAPON` → SheatheType 1; staff/fishing-pole → polearm subclass) |
 | `SkillLine.dbc` | Chaos tab (skill 900) |
 | `SkillLineAbility.dbc` | Customs on Chaos |
 | `SkillRaceClassInfo.dbc` | Warlock owns Chaos + weapon skill bars |
@@ -66,7 +66,7 @@ Review the diff / LFS pointer change, then commit.
 | Warlock weapon Skills pane / Chaos ownership | `patch_skillraceclassinfo_warlock_weapons.py` then snapshot |
 | Spell names / tooltips / new IDs | Spell Editor Export `Spell.dbc` → pack → snapshot |
 | Coagulate visuals | `apply_corrupted_blood.py` → export visual DBCs → pack → snapshot |
-| Dual-2H back sheathe (Ashbringer + Atiesh X) | `apply_twohand_dual_sheathe.py` → rebuild MPQ; worldserver must send matching sheath/subclass in item query |
+| Dual-2H back sheathe (Ashbringer + Atiesh X, upright staves) | `apply_twohand_dual_sheathe.py` → rebuild MPQ; worldserver must send matching sheath/subclass in item query |
 
 `client-patches/dbc/` is the recoverable backup. The apply scripts remain the
 generators; this folder is what we monitor and what we restore from when the MPQ
