@@ -2033,13 +2033,13 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
             {
                 // Do not allow polearm to be equipped in the offhand (rare case for the only 1h polearm 41750)
                 // xinef: same for fishing poles
-                if (!Arcturus::UnrestrictedDualWield::IsEnabled() && type == INVTYPE_WEAPON &&
+                if (!Arcturus::UnrestrictedDualWield::HasAccess(this) && type == INVTYPE_WEAPON &&
                     (pProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM || pProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE))
                     return EQUIP_ERR_ITEM_DOESNT_GO_TO_SLOT;
 
                 else if (type == INVTYPE_WEAPON || type == INVTYPE_WEAPONOFFHAND)
                 {
-                    if (!CanDualWield() && !Arcturus::UnrestrictedDualWield::IsEnabled())
+                    if (!CanDualWield() && !Arcturus::UnrestrictedDualWield::HasAccess(this))
                         return EQUIP_ERR_CANT_DUAL_WIELD;
                 }
                 else if (type == INVTYPE_2HWEAPON)

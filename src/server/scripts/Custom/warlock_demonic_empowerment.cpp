@@ -774,6 +774,7 @@ namespace
         if (!player->HasSpell(SPELL_DEMONIC_GRIP))
             return;
 
+        Arcturus::UnrestrictedDualWield::ApplyPlayerFlags(player);
         player->CastSpell(player, SPELL_DEMONIC_GRIP, true);
         player->UpdateTitansGrip();
     }

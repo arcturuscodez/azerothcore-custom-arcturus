@@ -13,6 +13,7 @@ namespace
 {
     constexpr char const* CONFIG_ENABLE = "Arcturus.UnrestrictedDualWield.Enable";
     constexpr uint32 SPELL_TITANS_GRIP_PENALTY = 49152u;
+    constexpr uint32 SPELL_DEMONIC_GRIP = 90047u;
 
     // Atiesh class staves — client Item.dbc uses polearm subclass for dual-2H sheathe visuals.
     constexpr uint32 ATIESH_STAFF_IDS[] = { 22589, 22630, 22631, 22632 };
@@ -37,12 +38,21 @@ namespace Arcturus::UnrestrictedDualWield
 {
     bool IsEnabled()
     {
-        return sConfigMgr->GetOption<bool>(CONFIG_ENABLE, false);
+        // Default true: matches pre-refactor PlayerStorage behavior (see b4f627fdb).
+        return sConfigMgr->GetOption<bool>(CONFIG_ENABLE, true);
+    }
+
+    bool HasAccess(Player const* player)
+    {
+        if (IsEnabled())
+            return true;
+
+        return player && player->HasSpell(SPELL_DEMONIC_GRIP);
     }
 
     void ApplyPlayerFlags(Player* player)
     {
-        if (!IsEnabled() || !player)
+        if (!player || !HasAccess(player))
             return;
 
         player->SetCanDualWield(true);
@@ -51,7 +61,7 @@ namespace Arcturus::UnrestrictedDualWield
 
     void RefreshPenaltyAura(Player* player)
     {
-        if (!IsEnabled() || !player)
+        if (!player || !HasAccess(player))
             return;
 
         if (!player->CanTitanGrip())
@@ -94,7 +104,7 @@ namespace Arcturus::UnrestrictedDualWield
         if (!player || !proto || proto->InventoryType != INVTYPE_2HWEAPON)
             return false;
 
-        if (IsEnabled())
+        if (HasAccess(player))
             return proto->Class == ITEM_CLASS_WEAPON;
 
         if (!player->CanDualWield() || !player->CanTitanGrip())
@@ -105,7 +115,7 @@ namespace Arcturus::UnrestrictedDualWield
 
     bool MainHandBlocksOffhand(Player const* player, ItemTemplate const* mhProto)
     {
-        if (!player || !mhProto || IsEnabled())
+        if (!player || !mhProto || HasAccess(player))
             return false;
 
         return IsStaffLikeWeaponSubclass(mhProto->SubClass);
@@ -113,7 +123,7 @@ namespace Arcturus::UnrestrictedDualWield
 
     bool MainHandTwoHandRequiresClearOffhand(Player const* player, ItemTemplate const* proto)
     {
-        if (!player || !proto || IsEnabled())
+        if (!player || !proto || HasAccess(player))
             return false;
 
         if (!player->CanTitanGrip())
@@ -124,7 +134,7 @@ namespace Arcturus::UnrestrictedDualWield
 
     bool OffhandNonWeaponBlockedByMainHandTwoHand(Player const* player, ItemTemplate const* offProto)
     {
-        if (!IsEnabled() || !player || !offProto)
+        if (!HasAccess(player) || !player || !offProto)
             return false;
 
         if (offProto->Class == ITEM_CLASS_WEAPON)
@@ -139,19 +149,19 @@ namespace Arcturus::UnrestrictedDualWield
 
     bool IsTwoHandUsed(Player const* player)
     {
-        if (!player || IsEnabled())
+        if (!player || HasAccess(player))
             return false;
 
         Item* mainItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
         return mainItem && mainItem->GetTemplate()->InventoryType == INVTYPE_2HWEAPON && !player->CanTitanGrip();
     }
 
-    uint32 SheathForItemQuery(ItemTemplate const* proto)
+    uint32 SheathForItemQuery(ItemTemplate const* proto, Player const* player)
     {
         if (!proto)
             return 0;
 
-        if (!IsEnabled() || proto->InventoryType != INVTYPE_2HWEAPON)
+        if (!HasAccess(player) || proto->InventoryType != INVTYPE_2HWEAPON)
             return proto->Sheath;
 
         // Match client Item.dbc: type 1 places 2H weapons on opposite back shoulders (dual-2H X).
@@ -159,12 +169,12 @@ namespace Arcturus::UnrestrictedDualWield
         return 1;
     }
 
-    uint32 SubClassForItemQuery(ItemTemplate const* proto)
+    uint32 SubClassForItemQuery(ItemTemplate const* proto, Player const* player)
     {
         if (!proto)
             return 0;
 
-        if (!IsEnabled() || proto->InventoryType != INVTYPE_2HWEAPON)
+        if (!HasAccess(player) || proto->InventoryType != INVTYPE_2HWEAPON)
             return proto->SubClass;
 
         if (proto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF && IsAtieshStaffItem(proto->ItemId))

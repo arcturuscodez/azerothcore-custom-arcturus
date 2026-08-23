@@ -317,7 +317,9 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         player_cpp = read_text(REPO_ROOT / "src/server/game/Entities/Player/Player.cpp")
 
         self.assertIn("Arcturus::UnrestrictedDualWield::Apply", script)
-        self.assertIn('GetOption<bool>(CONFIG_ENABLE, false)', helper)
+        self.assertIn('GetOption<bool>(CONFIG_ENABLE, true)', helper)
+        self.assertIn("HasAccess", helper)
+        self.assertIn("SPELL_DEMONIC_GRIP", helper)
         self.assertIn("ApplyPlayerFlags(this)", storage)
         self.assertIn("_LoadInventory", storage)
         self.assertIn("Arcturus::UnrestrictedDualWield::Apply(this)", player_cpp)
@@ -327,8 +329,8 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         self.assertIn("SheathForItemQuery", helper)
         self.assertIn("SubClassForItemQuery", helper)
         item_handler = read_text(REPO_ROOT / "src/server/game/Handlers/ItemHandler.cpp")
-        self.assertIn("SheathForItemQuery(pProto)", item_handler)
-        self.assertIn("SubClassForItemQuery(pProto)", item_handler)
+        self.assertIn("SheathForItemQuery(pProto, GetPlayer())", item_handler)
+        self.assertIn("SubClassForItemQuery(pProto, GetPlayer())", item_handler)
 
 
 if __name__ == "__main__":

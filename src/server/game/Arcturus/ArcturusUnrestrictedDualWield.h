@@ -13,7 +13,10 @@ namespace Arcturus::UnrestrictedDualWield
 {
     bool IsEnabled();
 
-    // Set CanDualWield + CanTitanGrip when the feature is enabled (no-op when off).
+    // Server config or Demonic Grip (90047): bypass stock staff/polearm off-hand blocks.
+    bool HasAccess(Player const* player);
+
+    // Set CanDualWield + CanTitanGrip when HasAccess (no-op otherwise).
     void ApplyPlayerFlags(Player* player);
 
     // Maintain the stock Titan's Grip penalty aura (49152) for unrestricted setups.
@@ -29,11 +32,11 @@ namespace Arcturus::UnrestrictedDualWield
     bool IsTwoHandUsed(Player const* player);
 
     // Item query / client cache: match client Item.dbc dual-2H sheathe (type 1).
-    uint32 SheathForItemQuery(ItemTemplate const* proto);
+    uint32 SheathForItemQuery(ItemTemplate const* proto, Player const* player = nullptr);
 
     // Atiesh staves: polearm subclass in the item query uses the type-1 back attachment
     // without flipping the model (staff SheatheType 1 alone is upside down).
-    uint32 SubClassForItemQuery(ItemTemplate const* proto);
+    uint32 SubClassForItemQuery(ItemTemplate const* proto, Player const* player = nullptr);
 }
 
 #endif
