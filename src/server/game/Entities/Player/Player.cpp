@@ -12777,11 +12777,6 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
     UpdateTitansGrip();
 }
 
-bool Player::IsTwoHandUsed() const
-{
-    return Arcturus::UnrestrictedDualWield::IsTwoHandUsed(this);
-}
-
 OutdoorPvP* Player::GetOutdoorPvP() const
 {
     return sOutdoorPvPMgr->GetOutdoorPvPToZoneId(GetZoneId());
