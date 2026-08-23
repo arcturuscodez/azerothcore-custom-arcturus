@@ -22,15 +22,13 @@
 enum Spells
 {
     SPELL_SHADOWFLAME           = 22539,
-    SPELL_WINGBUFFET            = 23339,
-    SPELL_SHADOWOFEBONROC       = 23340
+    SPELL_WINGBUFFET            = 23339
 };
 
 enum Events
 {
     EVENT_SHADOWFLAME           = 1,
-    EVENT_WINGBUFFET            = 2,
-    EVENT_SHADOWOFEBONROC       = 3
+    EVENT_WINGBUFFET            = 2
 };
 
 struct boss_ebonroc : public BossAI
@@ -56,7 +54,6 @@ struct boss_ebonroc : public BossAI
 
         events.ScheduleEvent(EVENT_SHADOWFLAME, 18s);
         events.ScheduleEvent(EVENT_WINGBUFFET, 30s);
-        events.ScheduleEvent(EVENT_SHADOWOFEBONROC, 8s, 10s);
     }
 
     void UpdateAI(uint32 diff) override
@@ -80,10 +77,6 @@ struct boss_ebonroc : public BossAI
                 case EVENT_WINGBUFFET:
                     DoCastVictim(SPELL_WINGBUFFET);
                     events.ScheduleEvent(EVENT_WINGBUFFET, 30s);
-                    break;
-                case EVENT_SHADOWOFEBONROC:
-                    DoCastVictim(SPELL_SHADOWOFEBONROC);
-                    events.ScheduleEvent(EVENT_SHADOWOFEBONROC, 8s, 10s);
                     break;
             }
 

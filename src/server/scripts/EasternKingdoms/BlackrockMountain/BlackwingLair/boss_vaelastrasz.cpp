@@ -20,9 +20,6 @@
 #include "Player.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
-#include "SpellAuraEffects.h"
-#include "SpellScript.h"
-#include "SpellScriptLoader.h"
 #include "blackwing_lair.h"
 
 constexpr float aNefariusSpawnLoc[4] = { -7466.16f, -1040.80f, 412.053f, 2.14675f };
@@ -50,10 +47,6 @@ enum Spells
    SPELL_CLEAVE                       = 19983,   //Chain cleave is most likely named something different and contains a dummy effect
    SPELL_NEFARIUS_CORRUPTION          = 23642,
    SPELL_RED_LIGHTNING                = 19484,
-
-   SPELL_BURNING_ADRENALINE           = 18173,
-   SPELL_BURNING_ADRENALINE_EXPLOSION = 23478, // AOE
-   SPELL_BURNING_ADRENALINE_INSTAKILL = 23644 // instakill
 };
 
 enum Events
@@ -69,7 +62,6 @@ enum Events
     EVENT_FIRE_NOVA                 = 9,
     EVENT_TAIL_SWEEP                = 10,
     EVENT_CLEAVE                    = 11,
-    EVENT_BURNING_ADRENALINE        = 12,
 };
 
 struct boss_vaelastrasz : public BossAI
@@ -85,7 +77,6 @@ struct boss_vaelastrasz : public BossAI
         HasYelled = false;
         _introDone = false;
         _encounterStarted = false;
-        _burningAdrenalineCast = 0;
         me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
         me->SetNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
         me->SetFaction(FACTION_FRIENDLY);
@@ -107,7 +98,6 @@ struct boss_vaelastrasz : public BossAI
         else
         {
             HasYelled = false;
-            _burningAdrenalineCast = 0;
             _encounterStarted = false;
         }
     }
@@ -138,7 +128,6 @@ struct boss_vaelastrasz : public BossAI
         events.ScheduleEvent(EVENT_FLAME_BREATH, 15s);
         events.ScheduleEvent(EVENT_FIRE_NOVA, 5s);
         events.ScheduleEvent(EVENT_TAIL_SWEEP, 11s);
-        events.ScheduleEvent(EVENT_BURNING_ADRENALINE, 15s);
     }
 
     void BeginSpeech(Unit* target)
@@ -242,25 +231,6 @@ struct boss_vaelastrasz : public BossAI
                     DoCastAOE(SPELL_TAIL_SWEEP);
                     events.ScheduleEvent(EVENT_TAIL_SWEEP, 15s);
                     break;
-                case EVENT_BURNING_ADRENALINE:
-                {
-                    if (_burningAdrenalineCast < 2) // It's better to use TaskScheduler for this, but zzz
-                    {
-                        //selects a random target that isn't the current victim and is a mana user (selects mana users) but not pets
-                        //it also ignores targets who have the aura. We don't want to place the debuff on the same target twice.
-                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, [&](Unit* u) { return u && !u->IsPet() && u->getPowerType() == POWER_MANA && !u->HasAura(SPELL_BURNING_ADRENALINE) && u != me->GetVictim(); }))
-                            me->CastSpell(target, SPELL_BURNING_ADRENALINE, true);
-
-                        _burningAdrenalineCast++;
-                    }
-                    else
-                    {
-                        me->CastSpell(me->GetVictim(), SPELL_BURNING_ADRENALINE, true);
-                        _burningAdrenalineCast = 0;
-                    }
-                    events.ScheduleEvent(EVENT_BURNING_ADRENALINE, 15s);
-                    break;
-                }
             }
         }
 
@@ -300,37 +270,9 @@ private:
     bool _introDone;
     bool _encounterStarted;
     EventMap _eventsIntro;
-    uint8 _burningAdrenalineCast;
-};
-
-// 18173 - Burning Adrenaline
-class spell_vael_burning_adrenaline : public AuraScript
-{
-    PrepareAuraScript(spell_vael_burning_adrenaline);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_BURNING_ADRENALINE_EXPLOSION, SPELL_BURNING_ADRENALINE_INSTAKILL });
-    }
-
-    void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (!GetTarget())
-            return;
-
-        // Do the explosion, then kill the target.
-        GetTarget()->CastSpell(GetTarget(), SPELL_BURNING_ADRENALINE_EXPLOSION, true);
-        GetTarget()->CastSpell(GetTarget(), SPELL_BURNING_ADRENALINE_INSTAKILL, true);
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(spell_vael_burning_adrenaline::HandleRemove, EFFECT_2, SPELL_AURA_PERIODIC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
-    }
 };
 
 void AddSC_boss_vaelastrasz()
 {
     RegisterBlackwingLairCreatureAI(boss_vaelastrasz);
-    RegisterSpellScript(spell_vael_burning_adrenaline);
 }
