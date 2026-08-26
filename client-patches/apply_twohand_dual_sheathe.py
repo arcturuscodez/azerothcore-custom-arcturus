@@ -58,6 +58,13 @@ SUBCLASS_FISHING_POLE = 20
 # Staff / fishing pole + SheatheType 1 = upside down; polearm + type 1 = upright X slot.
 SUBCLASSES_REMAP_TO_POLEARM = frozenset({SUBCLASS_STAFF, SUBCLASS_FISHING_POLE})
 
+# Custom item entries appended after the stock sheathe remap so a rebuild cannot
+# drop them. Values match pending item_dbc for the same IDs.
+# ID, Class, Subclass, SoundOverride, Material, DisplayInfo, InventoryType, Sheathe
+CUSTOM_ITEM_ROWS: tuple[tuple[int, ...], ...] = (
+    (900100, 2, 6, 0xFFFFFFFF, 1, 36729, 17, SHEATHE_DUAL_2H),  # Malkoron
+)
+
 MPQ_OPEN_READ_ONLY = 0x100
 
 
@@ -248,6 +255,35 @@ def patch_twohand_sheathe(data: bytearray) -> dict[str, int | set[int]]:
     }
 
 
+def upsert_custom_items(data: bytearray) -> tuple[bytearray, int]:
+    """Insert or replace CUSTOM_ITEM_ROWS, preserving the trailing string block."""
+    magic, count, fields, recsize, string_size = struct.unpack_from("<4sIIII", data, 0)
+    records_end = 20 + count * recsize
+    records = data[20:records_end]
+    string_block = bytes(data[records_end:])
+
+    by_id: dict[int, list[int]] = {}
+    order: list[int] = []
+    for i in range(count):
+        row = list(struct.unpack_from("<" + "I" * ITEM_FIELDS, records, i * recsize))
+        by_id[row[0]] = row
+        order.append(row[0])
+
+    added = 0
+    for custom in CUSTOM_ITEM_ROWS:
+        row = list(custom)
+        if row[0] not in by_id:
+            order.append(row[0])
+            added += 1
+        by_id[row[0]] = row
+
+    out = bytearray(struct.pack("<4sIIII", magic, len(order), fields, recsize, string_size))
+    for item_id in order:
+        out.extend(struct.pack("<" + "I" * ITEM_FIELDS, *by_id[item_id]))
+    out.extend(string_block)
+    return out, added
+
+
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -309,6 +345,7 @@ def main() -> int:
 
     _, body = parse_item_dbc(stock)
     stats = patch_twohand_sheathe(body)
+    body, custom_added = upsert_custom_items(body)
     if not verify_patched(bytes(body)):
         return 1
 
@@ -318,6 +355,7 @@ def main() -> int:
     print(f"Wrote {OUT_DBC.relative_to(PATCH_DIR.parent)} ({len(body):,} bytes)")
     print(f"  patched {stats['patched']} INVTYPE_2HWEAPON rows -> SheatheType {SHEATHE_DUAL_2H}")
     print(f"  staff/fishing-pole subclass -> polearm: {stats['subclass_remapped']}")
+    print(f"  custom item rows upserted: {len(CUSTOM_ITEM_ROWS)} (new {custom_added})")
     print(f"  sample ids: {sorted(stats['samples'])}")
     if stats["subclass_hits"]:
         staff = stats["subclass_hits"].get(SUBCLASS_STAFF, 0)
@@ -325,8 +363,8 @@ def main() -> int:
         fish = stats["subclass_hits"].get(SUBCLASS_FISHING_POLE, 0)
         print(f"  staves={staff} polearms={pole} fishing_poles={fish}")
 
-    # Spot-check Atiesh + Ashbringer if present.
-    for item_id, label in ((22630, "Atiesh"), (13262, "Ashbringer")):
+    # Spot-check Atiesh + Ashbringer + Malkoron if present.
+    for item_id, label in ((22630, "Atiesh"), (13262, "Ashbringer"), (900100, "Malkoron")):
         count = struct.unpack_from("<I", body, 4)[0]
         for i in range(count):
             off = 20 + i * ITEM_RECORD_SIZE

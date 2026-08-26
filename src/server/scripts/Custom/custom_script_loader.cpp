@@ -21,6 +21,7 @@ void AddSC_warlock_felguard_mandate();
 void AddSC_warlock_crimson_shade();
 void AddSC_warlock_corrupted_blood();
 void AddSC_warlock_wrath_of_chaos();
+void AddSC_item_malkoron();
 void AddSC_demons_commandscript();
 void AddSC_endless_instances();
 void AddSC_arcturus_trade_skills();
@@ -36,6 +37,7 @@ void AddCustomScripts()
     AddSC_warlock_crimson_shade();
     AddSC_warlock_corrupted_blood();
     AddSC_warlock_wrath_of_chaos();
+    AddSC_item_malkoron();
     AddSC_demons_commandscript();
     AddSC_endless_instances();
     AddSC_arcturus_trade_skills();
