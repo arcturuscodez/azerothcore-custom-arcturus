@@ -13,20 +13,21 @@ class Player;
 
 namespace Arcturus::UnrestrictedDualWield
 {
-    // Soulbinder rank passive — also checked when the global config is off.
+    // Soulbinder (7500) warlock rank passive — sole grant for dual-2H / staff OH.
     constexpr uint32 SPELL_DEMONIC_GRIP = 90047u;
     constexpr uint32 SPELL_TITANS_GRIP_PENALTY = 49152u;
     constexpr uint32 SPELL_WARRIOR_TITANS_GRIP = 46917u;
 
+    // Master switch; when off, Demonic Grip does not grant dual-2H either.
     bool IsEnabled();
 
-    // Config on, or Demonic Grip known: bypass stock staff/polearm off-hand blocks.
+    // Feature enabled AND Demonic Grip known (warlock-only by spell). Not all classes.
     bool HasAccess(Player const* player);
 
     // Set CanDualWield + CanTitanGrip when HasAccess (no-op otherwise).
     void ApplyPlayerFlags(Player* player);
 
-    // Drop grip flags / penalty when access is lost (config off + no Demonic Grip).
+    // Drop grip flags / penalty when Demonic Grip is lost (or feature disabled).
     // No-op if HasAccess or the warrior talent is active. Unequips illegal off-hands.
     void Revoke(Player* player);
 

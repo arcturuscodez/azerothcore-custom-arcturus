@@ -15669,7 +15669,7 @@ void Player::ActivateSpec(uint8 spec)
     SetPower(pw, 0);
 
     // xinef: remove titan grip if player had it set and does not have appropriate talent
-    // Arcturus: keep when UnrestrictedDualWield config is on or Demonic Grip (90047) is known.
+    // Arcturus: keep when Demonic Grip (90047) is known (HasAccess); warriors keep talent TG.
     if (m_canTitanGrip && !HasTalent(Arcturus::UnrestrictedDualWield::SPELL_WARRIOR_TITANS_GRIP, GetActiveSpec()) &&
         !Arcturus::UnrestrictedDualWield::HasAccess(this))
         SetCanTitanGrip(false);

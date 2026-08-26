@@ -752,13 +752,7 @@ namespace
 
     void RevokeDemonicGrip(Player* player)
     {
-        // Config on: keep unrestricted flags. Config off: drop grip + illegal OH (see Revoke).
-        if (Arcturus::UnrestrictedDualWield::IsEnabled())
-        {
-            Arcturus::UnrestrictedDualWield::Apply(player);
-            return;
-        }
-
+        // Dual-2H is Demonic Grip only — always clear flags / illegal OH on strip.
         Arcturus::UnrestrictedDualWield::Revoke(player);
     }
 

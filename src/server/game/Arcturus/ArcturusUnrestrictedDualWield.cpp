@@ -44,17 +44,16 @@ namespace Arcturus::UnrestrictedDualWield
 {
     bool IsEnabled()
     {
-        // Default true: matches pre-refactor PlayerStorage behavior (see b4f627fdb).
-        // Dist comment historically said "default off" — code + recommended dist both enable.
+        // Default true: feature available; access still requires Demonic Grip (90047).
         return sConfigMgr->GetOption<bool>(CONFIG_ENABLE, true);
     }
 
     bool HasAccess(Player const* player)
     {
-        if (IsEnabled())
-            return true;
+        if (!IsEnabled() || !player)
+            return false;
 
-        return player && player->HasSpell(SPELL_DEMONIC_GRIP);
+        return player->HasSpell(SPELL_DEMONIC_GRIP);
     }
 
     void ApplyPlayerFlags(Player* player)
