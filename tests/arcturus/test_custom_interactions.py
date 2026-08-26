@@ -146,6 +146,15 @@ class ProgressionCrossSystemTests(unittest.TestCase):
         self.assertIn("OnPlayerAfterSpecSlotChanged", de)
         self.assertIn("ApplyDemonicGrip", de)
         self.assertIn("RevokeDemonicGrip", de)
+        # Learn path must Apply; strip path must removeSpell before Revoke (HasAccess gates on spell).
+        self.assertIsNotNone(re.search(r"learnSpell\(entry\.id\).*ApplyDemonicGrip", de, re.S))
+        self.assertIsNotNone(re.search(
+            r"removeSpell\(entry\.id,\s*SPEC_MASK_ALL,\s*false\);\s*"
+            r"if \(entry\.id == SPELL_DEMONIC_GRIP\)\s*"
+            r"RevokeDemonicGrip",
+            de,
+            re.S,
+        ))
         by_id = {row.spell_id: row.min_souls for row in parse_rank_spells()}
         self.assertEqual(by_id[90047], 7500)
         sla = replay_skilllineability()
@@ -197,6 +206,7 @@ class ConfigAndLoaderAlignmentTests(unittest.TestCase):
             "arcturus_trade_skills",
             "arcturus_unrestricted_dual_wield",
             "arcturus_gameplay_watch",
+            "item_malkoron",
         }
         calls = set(loader_addsc_calls())
         self.assertTrue(expected <= calls, expected - calls)
