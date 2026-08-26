@@ -750,23 +750,16 @@ namespace
         state->hasValues = true;
     }
 
-    // Stock warrior talent spell — Demonic Grip must not fight it on revoke/spec swap.
-    constexpr uint32 SPELL_WARRIOR_TITANS_GRIP = 46917u;
-    constexpr uint32 SPELL_TITANS_GRIP_PENALTY = 49152u;
-
     void RevokeDemonicGrip(Player* player)
     {
-        if (player->HasTalent(SPELL_WARRIOR_TITANS_GRIP, player->GetActiveSpec()))
-            return;
-
+        // Config on: keep unrestricted flags. Config off: drop grip + illegal OH (see Revoke).
         if (Arcturus::UnrestrictedDualWield::IsEnabled())
         {
             Arcturus::UnrestrictedDualWield::Apply(player);
             return;
         }
 
-        player->SetCanTitanGrip(false);
-        player->RemoveAurasDueToSpell(SPELL_TITANS_GRIP_PENALTY);
+        Arcturus::UnrestrictedDualWield::Revoke(player);
     }
 
     void ApplyDemonicGrip(Player* player)
@@ -774,9 +767,9 @@ namespace
         if (!player->HasSpell(SPELL_DEMONIC_GRIP))
             return;
 
-        Arcturus::UnrestrictedDualWield::ApplyPlayerFlags(player);
+        // Effect 155 (Titan Grip) + Apply flags/penalty in one path.
         player->CastSpell(player, SPELL_DEMONIC_GRIP, true);
-        player->UpdateTitansGrip();
+        Arcturus::UnrestrictedDualWield::Apply(player);
     }
 
     void StripRetiredRankSpells(Player* player)
@@ -799,15 +792,19 @@ namespace
             if (want)
             {
                 player->learnSpell(entry.id);
+                // learnSpell runs EffectTitanGrip; Apply also sets CanDualWield for config-off.
+                if (entry.id == SPELL_DEMONIC_GRIP)
+                    ApplyDemonicGrip(player);
                 if (announce && !player->GetSession()->PlayerLoading())
                     SendMessageIfOnline(player, Acore::StringFormat(
                         "|cff9370dbDemonic Empowerment:|r you learn |cffffff00{}|r.", entry.name));
             }
             else
             {
+                // Remove 90047 before Revoke — HasAccess() is true while the spell is still known.
+                player->removeSpell(entry.id, SPEC_MASK_ALL, false);
                 if (entry.id == SPELL_DEMONIC_GRIP)
                     RevokeDemonicGrip(player);
-                player->removeSpell(entry.id, SPEC_MASK_ALL, false);
             }
         }
     }
