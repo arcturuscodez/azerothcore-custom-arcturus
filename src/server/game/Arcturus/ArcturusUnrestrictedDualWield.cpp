@@ -12,18 +12,12 @@
 namespace
 {
     constexpr char const* CONFIG_ENABLE = "Arcturus.UnrestrictedDualWield.Enable";
-    constexpr uint32 SPELL_TITANS_GRIP_PENALTY = 49152u;
-    constexpr uint32 SPELL_DEMONIC_GRIP = 90047u;
 
-    // Atiesh class staves — client Item.dbc uses polearm subclass for dual-2H sheathe visuals.
-    constexpr uint32 ATIESH_STAFF_IDS[] = { 22589, 22630, 22631, 22632 };
-
-    bool IsAtieshStaffItem(uint32 itemId)
+    // Staff / fishing-pole subclass + SheatheType 1 flips on the back; polearm + type 1 does not.
+    bool NeedsPolearmSubclassForDualSheathe(uint32 subClass)
     {
-        for (uint32 id : ATIESH_STAFF_IDS)
-            if (id == itemId)
-                return true;
-        return false;
+        return subClass == ITEM_SUBCLASS_WEAPON_STAFF ||
+            subClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE;
     }
 
     bool IsStaffLikeWeaponSubclass(uint32 subClass)
@@ -32,22 +26,34 @@ namespace
             subClass == ITEM_SUBCLASS_WEAPON_STAFF ||
             subClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE;
     }
+
+    bool NeedsTitansGripPenalty(Player const* player)
+    {
+        Item* item1 = player->GetWeaponForAttack(BASE_ATTACK);
+        Item* item2 = player->GetWeaponForAttack(OFF_ATTACK);
+        if (!item2)
+            item2 = player->GetShield();
+
+        return item1 && item2 &&
+            (item1->GetTemplate()->InventoryType == INVTYPE_2HWEAPON ||
+             item2->GetTemplate()->InventoryType == INVTYPE_2HWEAPON);
+    }
 }
 
 namespace Arcturus::UnrestrictedDualWield
 {
     bool IsEnabled()
     {
-        // Default true: matches pre-refactor PlayerStorage behavior (see b4f627fdb).
+        // Default true: feature available; access still requires Demonic Grip (90047).
         return sConfigMgr->GetOption<bool>(CONFIG_ENABLE, true);
     }
 
     bool HasAccess(Player const* player)
     {
-        if (IsEnabled())
-            return true;
+        if (!IsEnabled() || !player)
+            return false;
 
-        return player && player->HasSpell(SPELL_DEMONIC_GRIP);
+        return player->HasSpell(SPELL_DEMONIC_GRIP);
     }
 
     void ApplyPlayerFlags(Player* player)
@@ -59,9 +65,25 @@ namespace Arcturus::UnrestrictedDualWield
         player->SetCanTitanGrip(true);
     }
 
+    void Revoke(Player* player)
+    {
+        if (!player || HasAccess(player))
+            return;
+
+        if (player->HasTalent(SPELL_WARRIOR_TITANS_GRIP, player->GetActiveSpec()))
+            return;
+
+        player->SetCanTitanGrip(false);
+        if (!player->HasSpell(674))
+            player->SetCanDualWield(false);
+
+        player->RemoveAurasDueToSpell(SPELL_TITANS_GRIP_PENALTY);
+        player->AutoUnequipOffhandIfNeed();
+    }
+
     void RefreshPenaltyAura(Player* player)
     {
-        if (!player || !HasAccess(player))
+        if (!player)
             return;
 
         if (!player->CanTitanGrip())
@@ -70,16 +92,7 @@ namespace Arcturus::UnrestrictedDualWield
             return;
         }
 
-        Item* item1 = player->GetWeaponForAttack(BASE_ATTACK);
-        Item* item2 = player->GetWeaponForAttack(OFF_ATTACK);
-        if (!item2)
-            item2 = player->GetShield();
-
-        bool const needsPenalty = item1 && item2 &&
-            (item1->GetTemplate()->InventoryType == INVTYPE_2HWEAPON ||
-             item2->GetTemplate()->InventoryType == INVTYPE_2HWEAPON);
-
-        if (needsPenalty)
+        if (NeedsTitansGripPenalty(player))
         {
             if (!player->HasAura(SPELL_TITANS_GRIP_PENALTY))
                 player->CastSpell(player, SPELL_TITANS_GRIP_PENALTY, true);
@@ -123,8 +136,18 @@ namespace Arcturus::UnrestrictedDualWield
 
     bool MainHandTwoHandRequiresClearOffhand(Player const* player, ItemTemplate const* proto)
     {
-        if (!player || !proto || HasAccess(player))
+        if (!player || !proto)
             return false;
+
+        // Unrestricted: weapons may stay in OH; shields / holdables must clear.
+        if (HasAccess(player))
+        {
+            Item* offItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+            if (!offItem || !offItem->GetTemplate())
+                return false;
+
+            return offItem->GetTemplate()->Class != ITEM_CLASS_WEAPON;
+        }
 
         if (!player->CanTitanGrip())
             return true;
@@ -134,7 +157,7 @@ namespace Arcturus::UnrestrictedDualWield
 
     bool OffhandNonWeaponBlockedByMainHandTwoHand(Player const* player, ItemTemplate const* offProto)
     {
-        if (!HasAccess(player) || !player || !offProto)
+        if (!player || !offProto || !HasAccess(player))
             return false;
 
         if (offProto->Class == ITEM_CLASS_WEAPON)
@@ -177,7 +200,7 @@ namespace Arcturus::UnrestrictedDualWield
         if (!HasAccess(player) || proto->InventoryType != INVTYPE_2HWEAPON)
             return proto->SubClass;
 
-        if (proto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF && IsAtieshStaffItem(proto->ItemId))
+        if (NeedsPolearmSubclassForDualSheathe(proto->SubClass))
             return ITEM_SUBCLASS_WEAPON_POLEARM;
 
         return proto->SubClass;

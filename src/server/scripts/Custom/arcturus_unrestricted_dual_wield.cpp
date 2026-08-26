@@ -1,9 +1,9 @@
 /*
- * Arcturus: unrestricted dual wield — any two-handed weapon (including staves and
- * polearms) may occupy the off-hand. Enables Ashbringer + Atiesh, dual staves, etc.
+ * Arcturus: Demonic Grip dual-2H — warlocks with 90047 may put any two-handed weapon
+ * (including staves and polearms) in the off-hand. Enables Ashbringer + Atiesh, etc.
  *
  * Core owns equip validation and early flag application (load, spec swap, talent reset).
- * This script re-applies on login and after spec swaps for any hook ordering edge cases.
+ * This script re-applies on login and after spec swaps when Demonic Grip is known.
  */
 
 #include "ArcturusUnrestrictedDualWield.h"

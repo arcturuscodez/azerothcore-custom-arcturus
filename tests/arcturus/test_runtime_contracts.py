@@ -313,17 +313,28 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
     def test_unrestricted_dual_wield_wires_config_login_and_equip(self) -> None:
         script = read_text(CUSTOM_DIR / "arcturus_unrestricted_dual_wield.cpp")
         helper = read_text(REPO_ROOT / "src/server/game/Arcturus/ArcturusUnrestrictedDualWield.cpp")
+        helper_h = read_text(REPO_ROOT / "src/server/game/Arcturus/ArcturusUnrestrictedDualWield.h")
         storage = read_text(REPO_ROOT / "src/server/game/Entities/Player/PlayerStorage.cpp")
         player_cpp = read_text(REPO_ROOT / "src/server/game/Entities/Player/Player.cpp")
+        updates = read_text(REPO_ROOT / "src/server/game/Entities/Player/PlayerUpdates.cpp")
+        empowerment = read_text(CUSTOM_DIR / "warlock_demonic_empowerment.cpp")
 
         self.assertIn("Arcturus::UnrestrictedDualWield::Apply", script)
         self.assertIn('GetOption<bool>(CONFIG_ENABLE, true)', helper)
         self.assertIn("HasAccess", helper)
-        self.assertIn("SPELL_DEMONIC_GRIP", helper)
+        self.assertIn("if (!IsEnabled() || !player)", helper)
+        self.assertIn("HasSpell(SPELL_DEMONIC_GRIP)", helper)
+        self.assertIn("SPELL_DEMONIC_GRIP", helper_h)
+        self.assertIn("void Revoke(Player* player)", helper_h)
+        self.assertIn("NeedsPolearmSubclassForDualSheathe", helper)
+        self.assertIn("ITEM_SUBCLASS_WEAPON_FISHING_POLE", helper)
         self.assertIn("ApplyPlayerFlags(this)", storage)
         self.assertIn("_LoadInventory", storage)
         self.assertIn("Arcturus::UnrestrictedDualWield::Apply(this)", player_cpp)
+        self.assertIn("HasAccess(this)", player_cpp)
         self.assertIn("AutoUnequipOffhandIfNeed", player_cpp)
+        self.assertIn("RefreshPenaltyAura(this)", updates)
+        self.assertIn("UnrestrictedDualWield::Revoke", empowerment)
         self.assertIn("CanEquipTwoHandInOffhand", helper)
         self.assertIn("MainHandBlocksOffhand", helper)
         self.assertIn("SheathForItemQuery", helper)
@@ -331,6 +342,21 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         item_handler = read_text(REPO_ROOT / "src/server/game/Handlers/ItemHandler.cpp")
         self.assertIn("SheathForItemQuery(pProto, GetPlayer())", item_handler)
         self.assertIn("SubClassForItemQuery(pProto, GetPlayer())", item_handler)
+
+    def test_malkoron_scripts_and_ids_align(self) -> None:
+        src = read_text(CUSTOM_DIR / "item_malkoron.cpp")
+        spells = read_text(CUSTOM_DIR / "warlock_arcturus_spells.h")
+        conf = read_text(REPO_ROOT / "conf/dist/arcturus-recommended-overrides.conf.dist")
+
+        self.assertIn("SPELL_SOULPIKE", spells)
+        self.assertIn("ITEM_MALKORON", spells)
+        self.assertIn("900100", spells)
+        self.assertIn("spell_item_malkoron_soulpike", src)
+        self.assertIn("spell_item_malkoron_damned_concord", src)
+        self.assertIn("spell_item_malkoron_call", src)
+        self.assertIn("IsRaidOrDungeonBoss", src)
+        self.assertIn("Arcturus.Malkoron.ProcChance", conf)
+        self.assertIn("Arcturus.Malkoron.FragmentCap", conf)
 
 
 if __name__ == "__main__":

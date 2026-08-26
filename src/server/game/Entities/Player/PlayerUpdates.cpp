@@ -1852,13 +1852,8 @@ void Player::UpdateForQuestWorldObjects()
 
 void Player::UpdateTitansGrip()
 {
+    // Single path: apply/remove/recalc 49152 from current MH/OH (stock TG + Arcturus).
     Arcturus::UnrestrictedDualWield::RefreshPenaltyAura(this);
-
-    // 10% damage reduce if 2x2h weapons are used
-    if (!CanTitanGrip())
-        RemoveAurasDueToSpell(49152);
-    else if (Aura* aur = GetAura(49152))
-        aur->RecalculateAmountOfEffects();
 }
 
 void Player::UpdateZoneDependentAuras(uint32 newZone)

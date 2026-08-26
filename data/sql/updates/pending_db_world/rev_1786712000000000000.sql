@@ -45,7 +45,7 @@ VALUES
      4, -1, 90030,
      133, 1500,
      3, 0, 0, 6,
-     0, 1494,
+     0, 2968,
      'Wrath of Chaos', '',
      'Applies your Corruption, Curse of Agony, and Immolate (or Unstable Affliction).\n\n"Chaos does not choose."',
      '',

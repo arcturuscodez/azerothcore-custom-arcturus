@@ -36,8 +36,9 @@ MaxPrimaryTradeSkill = 11
 # → Data/enUS/patch-enUS-z.MPQ → clear Cache/WDB. Keep WEAPON_SKILLS in sync with that script.
 Arcturus.WarlockWeaponTrainers.Enable = 1
 
-# Any class may dual-wield any two-handed weapon (staves, polearms, swords, …).
-# Requires rebuild; grants dual wield + titan grip on login/spec swap. Default off — enable here for Arcturus live.
+# Warlock Demonic Grip (90047): dual-wield any two-handed weapon (staves, polearms, …).
+# Master switch only — does not grant dual-2H to other classes. Set 0 to disable entirely.
+# Client sheathe: apply_twohand_dual_sheathe.py → rebuild MPQ → clear Cache/WDB.
 Arcturus.UnrestrictedDualWield.Enable = 1
 
 EndlessInstances.Enable = 1
@@ -82,6 +83,11 @@ Arcturus.CorruptedBlood.VisualSpellId = 0
 Arcturus.CorruptedBlood.Whispers.Enable = 1
 Arcturus.CorruptedBlood.Whispers.MinSeconds = 240
 Arcturus.CorruptedBlood.Whispers.MaxSeconds = 900
+
+# Malkoron, Blade of the Soul-Eater (item 900100) — legendary polearm proc.
+# ProcChance is 0-100 on damaging warlock spells. FragmentCap is 1-10 stacks to Soul Bane.
+Arcturus.Malkoron.ProcChance = 100
+Arcturus.Malkoron.FragmentCap = 10
 
 # Gameplay watch — compact events for agents (tools/arcturus_watch/README.md)
 Arcturus.GameplayWatch.Enable = 1

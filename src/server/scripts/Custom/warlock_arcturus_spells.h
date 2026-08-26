@@ -1,5 +1,5 @@
 /*
- * Arcturus warlock custom spell IDs (Felguard Mandate + Crimson Shade).
+ * Arcturus warlock custom spell IDs (Felguard Mandate, Crimson Shade, Malkoron).
  * Shared by Custom scripts; PetDefines keeps pet learn aliases separately.
  */
 
@@ -32,6 +32,17 @@ namespace ArcturusSpells
     constexpr uint32 BRAND_OWNER_DAMAGE_PCT         = 8;
     constexpr uint32 FELSTORM_BRAND_BONUS_PCT       = 25;
     constexpr uint32 BRAND_SOUL_CAP                 = 500;
+
+    // Malkoron, Blade of the Soul-Eater (item 900100) — item-bound, not Chaos-taught
+    constexpr uint32 SPELL_SOULPIKE                 = 90100;
+    constexpr uint32 SPELL_TORMENT_FRAGMENT         = 90101;
+    constexpr uint32 SPELL_SOUL_BANE                = 90102;
+    constexpr uint32 SPELL_FEL_ATTUNEMENT           = 90103;
+    constexpr uint32 SPELL_DAMNED_CONCORD           = 90104;
+    constexpr uint32 SPELL_CHAOTIC_VISION           = 90105;
+    constexpr uint32 SPELL_CALL_OF_THE_REAVER       = 90106;
+    constexpr uint32 SPELL_DAMNED_CONCORD_PET       = 90107;
+    constexpr uint32 ITEM_MALKORON                  = 900100;
 }
 
 #endif

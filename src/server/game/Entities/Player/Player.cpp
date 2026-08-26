@@ -12748,6 +12748,10 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
             if (Arcturus::UnrestrictedDualWield::MainHandBlocksOffhand(this, mhWeaponProto))
                 force = true;
 
+    // Unrestricted / TG: 2H main-hand may dual-wield weapons, never shields/holdables.
+    if (Arcturus::UnrestrictedDualWield::OffhandNonWeaponBlockedByMainHandTwoHand(this, offItem->GetTemplate()))
+        force = true;
+
     // need unequip offhand for 2h-weapon without TitanGrip (in any from hands)
     if (!force && (CanTitanGrip() || (offItem->GetTemplate()->InventoryType != INVTYPE_2HWEAPON && !IsTwoHandUsed())))
     {
@@ -15666,7 +15670,9 @@ void Player::ActivateSpec(uint8 spec)
     SetPower(pw, 0);
 
     // xinef: remove titan grip if player had it set and does not have appropriate talent
-    if (!HasTalent(46917, GetActiveSpec()) && !HasSpell(90047) && m_canTitanGrip)
+    // Arcturus: keep when Demonic Grip (90047) is known (HasAccess); warriors keep talent TG.
+    if (m_canTitanGrip && !HasTalent(Arcturus::UnrestrictedDualWield::SPELL_WARRIOR_TITANS_GRIP, GetActiveSpec()) &&
+        !Arcturus::UnrestrictedDualWield::HasAccess(this))
         SetCanTitanGrip(false);
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
     if (!HasSpell(674) && CanDualWield())

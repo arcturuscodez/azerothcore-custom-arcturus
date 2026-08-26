@@ -144,6 +144,7 @@ debug-*.log
 !/src/server/scripts/Custom/warlock_crimson_shade.cpp
 !/src/server/scripts/Custom/warlock_corrupted_blood.cpp
 !/src/server/scripts/Custom/warlock_wrath_of_chaos.cpp
+!/src/server/scripts/Custom/item_malkoron.cpp
 !/src/server/scripts/Custom/CMakeLists.txt
 !/src/server/scripts/Custom/arcturus_gameplay_watch.cpp
 !/src/server/scripts/Custom/arcturus_gameplay_watch.h
