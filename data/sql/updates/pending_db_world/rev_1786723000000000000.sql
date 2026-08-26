@@ -110,7 +110,7 @@ VALUES
      13, 135, 0,
      0,
      32, 0, 0,
-     0, 31,
+     0, 2297,
      'Fel Attunement', '',
      'Increases shadow damage done by $s1 and healing done by $s2.',
      '',

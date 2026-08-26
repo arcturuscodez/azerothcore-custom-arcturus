@@ -30,7 +30,7 @@ VALUES
 -- 90022 Legion Brand debuff: DoT only (pet-cast; threat on Felguard)
 (90022,0,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,13,-1,6,0,0,1,0,0,5,0,0,2000,0,0,0,0,0,6,0,0,0,0,3,0,0,0,0,0,0,0,0,2366,"Legion Brand","","Branded by the Felguard. Suffering fel damage.",5,0,0,4,1,1,1,0,0),
 -- 90023 Felstorm threat pulse (hidden AoE threat; ~Anguish strength)
-(90023,384,136,67108864,0,0,1,0,0,0,0,101,1,1,0,0,0,1,-1,63,0,0,1,0,0,299,0,0,0,0,0,0,0,0,22,0,0,15,0,0,0,0,13,0,0,0,0,0,9,"Felstorm","","",5,1,1,32,1,1,1,0,0),
+(90023,384,136,67108864,0,0,1,0,0,0,0,101,1,1,0,0,0,1,-1,63,0,0,1,0,0,299,0,0,0,0,0,0,0,0,22,0,0,15,0,0,0,0,13,0,0,0,0,0,2356,"Felstorm","","",5,1,1,32,1,1,1,0,0),
 -- 90024 Felguard Mandate (DE): +10% all-school damage + threat; DurationIndex 8 = 15s (match DE)
 -- MiscValue 127 = SPELL_SCHOOL_MASK_ALL (required for MOD_DAMAGE_PERCENT_DONE / MOD_THREAT)
 (90024,0,0,0,0,0,1,0,0,0,0,101,1,1,8,0,0,1,-1,6,6,0,1,1,0,9,49,0,0,0,0,0,0,0,1,1,0,0,0,79,10,0,0,0,127,127,0,0,236,"Legion Mandate","","The Felguard answers the Mandate: damage and threat increased. Felstorm cooldown cleared.",5,0,0,4,1,1,1,0,0),
