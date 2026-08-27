@@ -353,10 +353,15 @@ class CommandAndProfessionRuntimeTests(unittest.TestCase):
         self.assertIn("900100", spells)
         self.assertIn("spell_item_malkoron_soulpike", src)
         self.assertIn("spell_item_malkoron_damned_concord", src)
-        self.assertIn("spell_item_malkoron_call", src)
-        self.assertIn("IsRaidOrDungeonBoss", src)
+        self.assertNotIn("spell_item_malkoron_call", src)
         self.assertIn("Arcturus.Malkoron.ProcChance", conf)
         self.assertIn("Arcturus.Malkoron.FragmentCap", conf)
+
+        sql = read_text(REPO_ROOT / "data/sql/updates/pending_db_world/rev_1786726000000000000.sql")
+        self.assertIn("90106", sql)
+        self.assertIn("stat_value4`    = 152", sql)
+        self.assertIn("spellid_1`      = 90103", sql)
+        self.assertIn("spellid_5`      = 90106", sql)
 
 
 if __name__ == "__main__":

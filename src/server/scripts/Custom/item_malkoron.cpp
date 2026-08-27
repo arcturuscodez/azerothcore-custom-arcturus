@@ -5,13 +5,13 @@
  *   90101  Torment Fragment  stacking buff (cap 10)
  *   90102  Soul Bane         15 yd shadow nova + 10s magic-damage buff
  *   90104  Damned Concord    hidden dummy; script-buffs the current demon
- *   90106  Call of the Reaver On Use fear/snare; fear is skipped on bosses
  *   90107  Damned Concord    hidden pet damage aura
+ *
+ * Call of the Reaver (90106) is a self-centered Death and Decay (no script).
  */
 
 #include "warlock_arcturus_spells.h"
 #include "Config.h"
-#include "Creature.h"
 #include "Pet.h"
 #include "Player.h"
 #include "Random.h"
@@ -61,15 +61,6 @@ namespace
             _cacheMs = now ? now : 1u;
         }
         return _cache;
-    }
-
-    bool IsRaidOrDungeonBoss(Unit const* target)
-    {
-        Creature const* creature = target->ToCreature();
-        if (!creature)
-            return false;
-
-        return creature->isWorldBoss() || creature->IsDungeonBoss();
     }
 
     void EnsurePetConcord(Unit* owner)
@@ -185,28 +176,8 @@ class spell_item_malkoron_damned_concord : public AuraScript
     }
 };
 
-class spell_item_malkoron_call : public SpellScript
-{
-    PrepareSpellScript(spell_item_malkoron_call);
-
-    void SkipFearOnBosses(SpellEffIndex effIndex)
-    {
-        Unit* target = GetHitUnit();
-        if (!target || !IsRaidOrDungeonBoss(target))
-            return;
-
-        PreventHitDefaultEffect(effIndex);
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_item_malkoron_call::SkipFearOnBosses, EFFECT_2, SPELL_EFFECT_APPLY_AURA);
-    }
-};
-
 void AddSC_item_malkoron()
 {
     RegisterSpellScript(spell_item_malkoron_soulpike);
     RegisterSpellScript(spell_item_malkoron_damned_concord);
-    RegisterSpellScript(spell_item_malkoron_call);
 }
