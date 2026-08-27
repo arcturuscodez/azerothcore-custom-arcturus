@@ -8,14 +8,13 @@
 --   90102 Soul Bane         AoE shadow + temporary spell damage
 --   90103 Fel Attunement    On Equip: shadow damage + healing
 --   90104 Damned Concord    On Equip: dummy; pet half is 90107 via script
---   90105 Chaotic Vision    On Equip: spell hit + magic damage
---   90106 Call of the Reaver On Use: 3 min CD fear/snare pulse (bosses: snare only)
+--   90105 Chaotic Vision    On Equip: magic damage (hit is on the white Hit Rating)
+--   90106 Call of the Reaver On Use: 3 min CD Death and Decay under the caster
 --   90107 Damned Concord    hidden pet damage aura (not on the item row)
 --
 -- 90100 ProcTypeMask = magic damage done (0x10000) + periodic done (0x40000) = 327680.
--- 90106 Attributes 603979792 = IS_ABILITY|AURA_IS_DEBUFF|NO_IMMUNITIES so the snare
--- lands on raid bosses; the script skips fear on dungeon/world bosses so they do not
--- run out of the room.
+-- Item green text order: Fel Attunement, Chaotic Vision, Damned Concord, Soulpike, Call.
+-- Follow-up polish: rev_1786726000000000000.sql
 --
 
 DELETE FROM `spell_script_names` WHERE `spell_id` IN (90100, 90104, 90106)
@@ -25,8 +24,7 @@ DELETE FROM `spell_script_names` WHERE `spell_id` IN (90100, 90104, 90106)
         'spell_item_malkoron_call');
 INSERT INTO `spell_script_names` (`spell_id`, `ScriptName`) VALUES
 (90100, 'spell_item_malkoron_soulpike'),
-(90104, 'spell_item_malkoron_damned_concord'),
-(90106, 'spell_item_malkoron_call');
+(90104, 'spell_item_malkoron_damned_concord');
 
 DELETE FROM `spell_pet_auras` WHERE `spell` = 90104 OR `aura` = 90107;
 
@@ -133,40 +131,40 @@ VALUES
      '',
      5, 1, 1, 32,
      1, 1, 1),
-    -- 90105 Chaotic Vision — 2% spell hit + magic damage. Hidden buff, tooltip on item.
+    -- 90105 Chaotic Vision — magic damage only. Hidden buff, tooltip on item.
     (90105, 2147483776, 1, 0, 0, 101,
      21, 1, 0, -1,
-     6, 6, 0,
-     1, 1, 0,
-     1, 79, 0,
-     1, 1, 0,
+     6, 0, 0,
+     1, 0, 0,
+     79, 0, 0,
+     1, 0, 0,
      0, 0, 0,
-     55, 13, 0,
+     13, 0, 0,
      0,
-     0, 126, 0,
+     126, 0, 0,
      0, 212,
      'Chaotic Vision', '',
-     'Increases your chance to hit with spells by $s1% and magic damage done by $s2.',
+     'Increases magic damage done by $s1.',
      '',
      5, 1, 1, 32,
      1, 1, 1),
-    -- 90106 Call of the Reaver — instant, 3 min recovery. NO_IMMUNITIES so snare hits bosses.
-    (90106, 603979792, 1, 180000, 0, 101,
+    -- 90106 Call of the Reaver — On Use DnD under caster. Full row in rev_178672600 (needs ImplicitTargetB).
+    (90106, 65536, 1, 180000, 0, 101,
      1, 1, 0, -1,
-     2, 6, 6,
-     1, 1, 1,
-     2499, -71, 0,
-     15, 15, 15,
-     18, 18, 18,
-     0, 33, 7,
-     0,
+     27, 0, 0,
+     1, 0, 0,
+     999, 0, 0,
+     18, 0, 0,
+     13, 0, 0,
+     3, 0, 0,
+     1000,
      0, 0, 0,
-     8476, 173,
+     9735, 118,
      'Call of the Reaver', '',
-     'Unleash the blade\'s hunger. Enemies within 15 yards take $s1 Shadow damage and are snared. Lesser foes also flee in terror.',
-     'Movement slowed by $s2%.',
-     5, 0, 1, 32,
-     1, 1, 1),
+     'Corrupt the ground beneath you, causing $s1 Shadow damage every second for $d to enemies in the area.',
+     '$s1 Shadow damage inflicted every sec.',
+     5, 1, 1, 32,
+     0.12, 1, 1),
     -- 90107 Damned Concord — pet half, never taught.
     (90107, 192, 1, 0, 0, 101,
      21, 1, 0, -1,
@@ -220,17 +218,17 @@ VALUES
      256, -1, 284, 80,
      1, 1,
      5, 140, 7, -300,
-     45, 320, 31, 100,
+     45, 320, 31, 152,
      32, 120, 36, 200,
      6, 1000, 47, 300,
      35, 50, 43, 40,
      850, 1350, 0,
      200, 400, 5,
      50, 3600,
-     90100, 1, -1,
      90103, 1, -1,
-     90104, 1, -1,
      90105, 1, -1,
+     90104, 1, -1,
+     90100, 1, -1,
      90106, 0, 180000,
      1, 'The Ramparts spear, remade and quenched in the Soul-Eater\'s hunger.',
      1, 1, 145,
